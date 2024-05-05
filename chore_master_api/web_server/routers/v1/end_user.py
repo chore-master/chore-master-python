@@ -60,7 +60,7 @@ async def post_login(
         {"email": end_user_login.email, "password": end_user_login.password}
     )
     if end_user is None:
-        raise UnauthenticatedError()
+        raise UnauthenticatedError("Invalid email or password")
     end_user_reference = end_user["reference"]
     utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
     active_end_user_session = end_user_session_collection.find_one(
