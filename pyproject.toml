@@ -11,7 +11,7 @@ python = "^3.10"
 [tool.poetry.group.chore_master_api.dependencies]
 fastapi = "^0.110.2"
 pydantic = "^2.6.3"
-pymongo = "^4.7.0"
+pymongo = "==4.6.0"
 uvicorn = "^0.29.0"
 
 [tool.poetry.group.dev.dependencies]

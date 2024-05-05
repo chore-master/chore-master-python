@@ -3,6 +3,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Generator, Mapping, NewType, Optional, TypeVar
 
+from bson.binary import UuidRepresentation
 from bson.codec_options import CodecOptions, TypeCodec, TypeRegistry
 from bson.decimal128 import Decimal128
 from pymongo import MongoClient as PyMongoMongoClient
@@ -60,12 +61,13 @@ class MongoClient:
             host,
             readPreference="secondaryPreferred",
             retryWrites=True,
-            uuidRepresentation="standard",
             maxPoolSize=max_pool_size,
             minPoolSize=min_pool_size,
         )
         type_registry = TypeRegistry(type_codecs=[DecimalCodec(), TimedeltaCodec()])
-        self.codec_options = CodecOptions(type_registry=type_registry)
+        self.codec_options = CodecOptions(
+            uuid_representation=UuidRepresentation.STANDARD, type_registry=type_registry
+        )
 
     def close(self):
         self._client.close()
@@ -76,7 +78,9 @@ class MongoClient:
     def get_database(self, database_name: str) -> MongoDB:
         write_concern = WriteConcern(w=1, j=True, wtimeout=10000)
         return self._client.get_database(
-            database_name, codec_options=self.codec_options, write_concern=write_concern
+            database_name,
+            codec_options=self.codec_options,
+            write_concern=write_concern,
         )
 
     def drop_database(self, database_name: str):
