@@ -1,0 +1,25 @@
+[tool.poetry]
+authors = ["gocreating <gocreating@gmail.com>"]
+description = ""
+name = "chore-master-python"
+packages = []
+version = "0.1.0"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.chore_master_api.dependencies]
+fastapi = "^0.110.2"
+pydantic = "^2.6.3"
+pymongo = "^4.7.0"
+uvicorn = "^0.29.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.7.0"
+isort = "^5.12.0"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
