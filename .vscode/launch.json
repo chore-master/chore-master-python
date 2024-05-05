@@ -1,0 +1,23 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "[Chore Master API] Web Server",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "chore_master_api.entrypoints.web_server",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "ENV": "local",
+                "SERVICE_NAME": "chore_master_api",
+                "COMPONENT_NAME": "web_server",
+                "MONGODB_URI": "mongodb://localhost:27019/",
+            }
+        },
+    ]
+}
