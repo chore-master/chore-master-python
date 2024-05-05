@@ -13,18 +13,20 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
 
     UVICORN_AUTO_RELOAD = False
     ALLOW_ORIGINS = ["*"]
+    END_USER_AUTH_COOKIE_DOMAIN = "localhost"
     MONGODB_URI = get_env("MONGODB_URI")
 
     if base_config.ENV == EnvEnum.LOCAL:
         UVICORN_AUTO_RELOAD = True
     elif base_config.ENV == EnvEnum.DEVELOPING:
-        pass
+        END_USER_AUTH_COOKIE_DOMAIN = "dev.chore.master"
     elif base_config.ENV == EnvEnum.PRODUCTION:
-        pass
+        END_USER_AUTH_COOKIE_DOMAIN = "chore.master"
 
     return ChoreMasterAPIWebServerConfigSchema(
         **web_server_config.model_dump(),
         UVICORN_AUTO_RELOAD=UVICORN_AUTO_RELOAD,
         ALLOW_ORIGINS=ALLOW_ORIGINS,
         MONGODB_URI=MONGODB_URI,
+        END_USER_AUTH_COOKIE_DOMAIN=END_USER_AUTH_COOKIE_DOMAIN
     )

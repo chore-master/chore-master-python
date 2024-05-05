@@ -8,7 +8,7 @@ from modules.base.exceptions import BaseError
 from modules.base.schemas.system import BaseConfigSchema
 from modules.web_server.exceptions import (
     BadRequestError,
-    PermissionDeniedError,
+    UnauthenticatedError,
     UnauthorizedError,
 )
 from modules.web_server.routers import system
@@ -58,10 +58,12 @@ class BaseFastAPI(FastAPI):
                 ).model_dump(),
             )
 
-        @self.exception_handler(BadRequestError)
-        async def bad_request_error_handler(req: Request, exc: BadRequestError):
+        @self.exception_handler(UnauthenticatedError)
+        async def unauthenticated_error_handler(
+            req: Request, exc: UnauthenticatedError
+        ):
             return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 content=ResponseSchema[ErrorSchema](
                     status=StatusEnum.FAILED, data=ErrorSchema(message=f"{exc}")
                 ).model_dump(),
@@ -70,18 +72,16 @@ class BaseFastAPI(FastAPI):
         @self.exception_handler(UnauthorizedError)
         async def unauthorized_error_handler(req: Request, exc: UnauthorizedError):
             return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_403_FORBIDDEN,
                 content=ResponseSchema[ErrorSchema](
                     status=StatusEnum.FAILED, data=ErrorSchema(message=f"{exc}")
                 ).model_dump(),
             )
 
-        @self.exception_handler(PermissionDeniedError)
-        async def permission_denied_error_handler(
-            req: Request, exc: PermissionDeniedError
-        ):
+        @self.exception_handler(BadRequestError)
+        async def bad_request_error_handler(req: Request, exc: BadRequestError):
             return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 content=ResponseSchema[ErrorSchema](
                     status=StatusEnum.FAILED, data=ErrorSchema(message=f"{exc}")
                 ).model_dump(),

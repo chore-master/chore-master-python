@@ -9,13 +9,13 @@ class BadRequestError(WebServerError):
     pass
 
 
-class UnauthorizedError(WebServerError):
+class UnauthenticatedError(BadRequestError):
     pass
 
 
-class PermissionDeniedError(WebServerError):
+class UnauthorizedError(BadRequestError):
     pass
 
 
-class NotFoundError(WebServerError):
+class NotFoundError(BadRequestError):
     pass
