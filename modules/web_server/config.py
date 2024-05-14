@@ -14,7 +14,7 @@ def get_web_server_config() -> WebServerConfigSchema:
     elif base_config.ENV == EnvEnum.DEVELOPING:
         pass
     elif base_config.ENV == EnvEnum.PRODUCTION:
-        PORT = None
+        pass
 
     return WebServerConfigSchema(
         PORT=PORT,

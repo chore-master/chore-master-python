@@ -9,9 +9,10 @@ poetry install
 ## Release
 
 ```sh
-TAG="2024-05-15-v1" && \
+TAG="2024-05-15-v2" && \
 git tag $TAG --force && \
 sudo docker buildx build \
+    --platform linux/amd64 \
     -f deployments/chore_master_api/Dockerfile \
     --build-arg SERVICE_NAME="chore_master_api" \
     --build-arg COMPONENT_NAME="web_server" \
