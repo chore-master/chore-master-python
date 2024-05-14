@@ -9,5 +9,6 @@ services:
       SERVICE_NAME: "chore_master_api"
       COMPONENT_NAME: "web_server"
       MONGODB_URI: ${CHORE_MASTER_API_MONGODB_URI}
+      PORT: 8080
     ports:
-      - 13000:13000
+      - 13000:8080
