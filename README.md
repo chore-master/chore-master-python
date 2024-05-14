@@ -6,6 +6,22 @@
 poetry install
 ```
 
+## Release
+
+```sh
+TAG="2024-05-15-v1" && \
+git tag $TAG --force && \
+sudo docker buildx build \
+    -f deployments/chore_master_api/Dockerfile \
+    --build-arg SERVICE_NAME="chore_master_api" \
+    --build-arg COMPONENT_NAME="web_server" \
+    --build-arg COMMIT_SHORT_SHA="$(git rev-parse --short HEAD)" \
+    --build-arg COMMIT_REVISION="$TAG" \
+    --tag "gocreating/chore_master_api_web_server:$TAG" \
+    ./ && \
+docker push "gocreating/chore_master_api_web_server:$TAG"
+```
+
 ## Deployment
 
 ```sh
