@@ -9,7 +9,7 @@ poetry install
 ## Release
 
 ```sh
-TAG="2024-05-15-v2" && \
+TAG="2024-05-15-v3" && \
 git tag $TAG --force && \
 sudo docker buildx build \
     --platform linux/amd64 \
