@@ -13,20 +13,27 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
 
     UVICORN_AUTO_RELOAD = False
     ALLOW_ORIGINS = ["*"]
-    END_USER_AUTH_COOKIE_DOMAIN = "localhost"
     MONGODB_URI = get_env("MONGODB_URI")
+    SESSION_COOKIE_KEY = "ACCESS-TOKEN"
+    SESSION_COOKIE_DOMAIN = "localhost"
+    GOOGLE_OAUTH_CLIENT_ID = get_env("GOOGLE_OAUTH_CLIENT_ID")
+    GOOGLE_OAUTH_SECRET = get_env("GOOGLE_OAUTH_SECRET")
 
     if base_config.ENV == EnvEnum.LOCAL:
         UVICORN_AUTO_RELOAD = True
+        SESSION_COOKIE_DOMAIN = "localhost"
     elif base_config.ENV == EnvEnum.DEVELOPING:
-        END_USER_AUTH_COOKIE_DOMAIN = "dev.chore.master"
+        SESSION_COOKIE_DOMAIN = "dev--chore-master-api.lation.app"
     elif base_config.ENV == EnvEnum.PRODUCTION:
-        END_USER_AUTH_COOKIE_DOMAIN = "chore.master"
+        SESSION_COOKIE_DOMAIN = "chore-master-api.lation.app"
 
     return ChoreMasterAPIWebServerConfigSchema(
         **web_server_config.model_dump(),
         UVICORN_AUTO_RELOAD=UVICORN_AUTO_RELOAD,
         ALLOW_ORIGINS=ALLOW_ORIGINS,
         MONGODB_URI=MONGODB_URI,
-        END_USER_AUTH_COOKIE_DOMAIN=END_USER_AUTH_COOKIE_DOMAIN
+        SESSION_COOKIE_KEY=SESSION_COOKIE_KEY,
+        SESSION_COOKIE_DOMAIN=SESSION_COOKIE_DOMAIN,
+        GOOGLE_OAUTH_CLIENT_ID=GOOGLE_OAUTH_CLIENT_ID,
+        GOOGLE_OAUTH_SECRET=GOOGLE_OAUTH_SECRET,
     )

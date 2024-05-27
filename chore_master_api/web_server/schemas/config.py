@@ -5,4 +5,9 @@ class ChoreMasterAPIWebServerConfigSchema(WebServerConfigSchema):
     UVICORN_AUTO_RELOAD: bool
     ALLOW_ORIGINS: list[str]
     MONGODB_URI: str
-    END_USER_AUTH_COOKIE_DOMAIN: str
+
+    SESSION_COOKIE_KEY: str
+    SESSION_COOKIE_DOMAIN: str
+
+    GOOGLE_OAUTH_CLIENT_ID: str
+    GOOGLE_OAUTH_SECRET: str
