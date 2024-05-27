@@ -6,6 +6,7 @@ class ChoreMasterAPIWebServerConfigSchema(WebServerConfigSchema):
     ALLOW_ORIGINS: list[str]
     MONGODB_URI: str
 
+    HOST: str
     SESSION_COOKIE_KEY: str
     SESSION_COOKIE_DOMAIN: str
 
