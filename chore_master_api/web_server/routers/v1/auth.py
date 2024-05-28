@@ -50,7 +50,6 @@ async def get_google_authorize(
 
 @router.get("/google/callback")
 async def get_google_callback(
-    response: Response,
     code: Annotated[str, Query()],
     state: Annotated[str, Query()],
     user_agent: Optional[str] = Header(default=None),
@@ -61,6 +60,8 @@ async def get_google_callback(
 ):
     state_dict = json.loads(state)
     next_uri = state_dict["next_uri"]
+    response = RedirectResponse(next_uri)
+
     async with AsyncClient(timeout=None) as client:
         access_token_res = await client.post(
             "https://oauth2.googleapis.com/token",
@@ -172,14 +173,14 @@ async def get_google_callback(
         )
 
     response.set_cookie(
-        key=chore_master_api_web_server_config.SESSION_COOKIE_DOMAIN,
+        key=chore_master_api_web_server_config.SESSION_COOKIE_KEY,
         value=str(end_user_session_reference),
         domain=chore_master_api_web_server_config.SESSION_COOKIE_DOMAIN,
         httponly=True,
         samesite="lax",
         max_age=end_user_session_ttl.total_seconds(),
     )
-    return RedirectResponse(next_uri)
+    return response
 
 
 @router.post("/logout", response_model=ResponseSchema[None])
