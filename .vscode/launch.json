@@ -16,7 +16,7 @@
                 "ENV": "local",
                 "SERVICE_NAME": "chore_master_api",
                 "COMPONENT_NAME": "web_server",
-                "MONGODB_URI": "mongodb://localhost:27019/",
+                "MONGODB_URI": "mongodb://localhost:27017",
                 "GOOGLE_OAUTH_CLIENT_ID": "<GOOGLE_OAUTH_CLIENT_ID>",
                 "GOOGLE_OAUTH_SECRET": "<GOOGLE_OAUTH_SECRET>",
             }

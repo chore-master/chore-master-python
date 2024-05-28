@@ -6,6 +6,11 @@
 poetry install
 ```
 
+```sh
+sudo docker compose -f ./deployments/docker-compose.infra.yml up -d
+sudo docker compose -f ./deployments/docker-compose.infra.yml down
+```
+
 ## Release
 
 ```sh
