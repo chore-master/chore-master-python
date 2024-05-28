@@ -32,7 +32,7 @@ def get_app(base_config: Optional[BaseConfigSchema] = None) -> FastAPI:
 
     app = BaseFastAPI(
         base_config=base_config,
-        title="Chore Master",
+        title="Chore Master API",
         lifespan=lifespan,
     )
     app.add_middleware(

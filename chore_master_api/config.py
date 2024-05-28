@@ -21,13 +21,16 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
 
     if base_config.ENV == EnvEnum.LOCAL:
         UVICORN_AUTO_RELOAD = True
-        HOST = "http://localhost:13000"
+        ALLOW_ORIGINS = ["http://localhost:3000"]
+        FRONTEND_HOST = "http://localhost:13000"
         SESSION_COOKIE_DOMAIN = "localhost"
     elif base_config.ENV == EnvEnum.DEVELOPING:
-        HOST = "https://dev--chore-master.lation.app"
+        ALLOW_ORIGINS = ["https://dev--chore-master.lation.app"]
+        FRONTEND_HOST = "https://dev--chore-master.lation.app"
         SESSION_COOKIE_DOMAIN = "dev--chore-master-api.lation.app"
     elif base_config.ENV == EnvEnum.PRODUCTION:
-        HOST = "https://chore-master.lation.app"
+        ALLOW_ORIGINS = ["https://chore-master.lation.app"]
+        FRONTEND_HOST = "https://chore-master.lation.app"
         SESSION_COOKIE_DOMAIN = "chore-master-api.lation.app"
 
     return ChoreMasterAPIWebServerConfigSchema(
@@ -35,7 +38,7 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
         UVICORN_AUTO_RELOAD=UVICORN_AUTO_RELOAD,
         ALLOW_ORIGINS=ALLOW_ORIGINS,
         MONGODB_URI=MONGODB_URI,
-        HOST=HOST,
+        FRONTEND_HOST=FRONTEND_HOST,
         SESSION_COOKIE_KEY=SESSION_COOKIE_KEY,
         SESSION_COOKIE_DOMAIN=SESSION_COOKIE_DOMAIN,
         GOOGLE_OAUTH_CLIENT_ID=GOOGLE_OAUTH_CLIENT_ID,
