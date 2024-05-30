@@ -14,7 +14,7 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
     UVICORN_AUTO_RELOAD = False
     ALLOW_ORIGINS = ["*"]
     MONGODB_URI = get_env("MONGODB_URI")
-    SESSION_COOKIE_KEY = "ACCESS-TOKEN"
+    SESSION_COOKIE_KEY = "end_user_session_reference"
     SESSION_COOKIE_DOMAIN = "localhost"
     GOOGLE_OAUTH_CLIENT_ID = get_env("GOOGLE_OAUTH_CLIENT_ID")
     GOOGLE_OAUTH_SECRET = get_env("GOOGLE_OAUTH_SECRET")
