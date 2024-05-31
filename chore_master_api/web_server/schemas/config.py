@@ -3,10 +3,12 @@ from modules.web_server.schemas.config import WebServerConfigSchema
 
 class ChoreMasterAPIWebServerConfigSchema(WebServerConfigSchema):
     UVICORN_AUTO_RELOAD: bool
-    ALLOW_ORIGINS: list[str]
     MONGODB_URI: str
 
-    FRONTEND_HOST: str
+    IAM_API_ORIGIN: str
+    FRONTEND_ORIGIN: str
+    ALLOW_ORIGINS: list[str]
+
     SESSION_COOKIE_KEY: str
     SESSION_COOKIE_DOMAIN: str
 

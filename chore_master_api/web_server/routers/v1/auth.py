@@ -39,7 +39,7 @@ async def get_google_authorize(
     auth_endpoint = "https://accounts.google.com/o/oauth2/v2/auth"
     query_params = {
         "client_id": chore_master_api_web_server_config.GOOGLE_OAUTH_CLIENT_ID,
-        "redirect_uri": f"{chore_master_api_web_server_config.FRONTEND_HOST}/v1/auth/google/callback",
+        "redirect_uri": f"{chore_master_api_web_server_config.IAM_API_ORIGIN}/v1/auth/google/callback",
         "response_type": "code",
         "scope": " ".join(required_google_scopes),
         "state": json.dumps({"next_uri": next_uri}),
@@ -69,7 +69,7 @@ async def get_google_callback(
                 "code": code,
                 "client_id": chore_master_api_web_server_config.GOOGLE_OAUTH_CLIENT_ID,
                 "client_secret": chore_master_api_web_server_config.GOOGLE_OAUTH_SECRET,
-                "redirect_uri": f"{chore_master_api_web_server_config.FRONTEND_HOST}/v1/auth/google/callback",
+                "redirect_uri": f"{chore_master_api_web_server_config.IAM_API_ORIGIN}/v1/auth/google/callback",
                 "grant_type": "authorization_code",
             },
         )
