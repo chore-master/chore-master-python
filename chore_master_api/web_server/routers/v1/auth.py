@@ -24,34 +24,42 @@ required_google_scopes = [
     # https://developers.google.com/identity/protocols/oauth2/scopes?hl=zh-tw
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
-    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/spreadsheets",
 ]
 
 
 @router.get("/google/authorize")
 async def get_google_authorize(
-    next_uri: Annotated[str, Query()],
+    success_redirect_uri: Annotated[str, Query()],
+    error_redirect_uri: Annotated[str, Query()],
     chore_master_api_web_server_config: ChoreMasterAPIWebServerConfigSchema = Depends(
         get_chore_master_api_web_server_config
     ),
 ):
-    auth_endpoint = "https://accounts.google.com/o/oauth2/v2/auth"
     query_params = {
         "client_id": chore_master_api_web_server_config.GOOGLE_OAUTH_CLIENT_ID,
         "redirect_uri": f"{chore_master_api_web_server_config.IAM_API_ORIGIN}/v1/auth/google/callback",
         "response_type": "code",
         "scope": " ".join(required_google_scopes),
-        "state": json.dumps({"next_uri": next_uri}),
+        "state": json.dumps(
+            {
+                "success_redirect_uri": success_redirect_uri,
+                "error_redirect_uri": error_redirect_uri,
+            }
+        ),
+        # https://blog.miniasp.com/post/2023/06/14/How-to-issue-Refresh-Token-in-Google-OAuth
+        "access_type": "offline",
+        # "prompt": "consent",
     }
-    url = f"{auth_endpoint}?{urlencode(query_params)}"
+    url = f"{chore_master_api_web_server_config.GOOGLE_OAUTH_ENDPOINT}?{urlencode(query_params)}"
     return RedirectResponse(url)
 
 
 @router.get("/google/callback")
 async def get_google_callback(
-    code: Annotated[str, Query()],
     state: Annotated[str, Query()],
+    code: Annotated[Optional[str], Query()] = None,
     user_agent: Optional[str] = Header(default=None),
     chore_master_api_web_server_config: ChoreMasterAPIWebServerConfigSchema = Depends(
         get_chore_master_api_web_server_config
@@ -59,12 +67,18 @@ async def get_google_callback(
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
 ):
     state_dict = json.loads(state)
-    next_uri = state_dict["next_uri"]
-    response = RedirectResponse(next_uri)
+    error_redirect_uri = state_dict["error_redirect_uri"]
+    success_redirect_uri = state_dict["success_redirect_uri"]
+
+    error_response = RedirectResponse(error_redirect_uri)
+    if code is None:
+        return error_response
+
+    response = RedirectResponse(success_redirect_uri)
 
     async with AsyncClient(timeout=None) as client:
         access_token_res = await client.post(
-            "https://oauth2.googleapis.com/token",
+            chore_master_api_web_server_config.GOOGLE_OAUTH_TOKEN_URI,
             json={
                 "code": code,
                 "client_id": chore_master_api_web_server_config.GOOGLE_OAUTH_CLIENT_ID,
@@ -78,7 +92,6 @@ async def get_google_callback(
         {
             "access_token": "ya29.a0AXooCguwead03rT46dOqC2orZmtjlSqXuDz0lQyAcp3bYbL54cJgTFAam9A1YjzCNlExmI3V19zlzlNPIRtwrELkZkI-eeapqXgBlE7ptyXXCQpl9-wPapAHsGV6j4Sblu8NqEARoagQ8HqfQFxhvicdf2SwCczglkHyaCgYKAccSARMSFQHGX2MiMfXRWa91PQ-_b1nDU74whA0171",
             "expires_in": 3599,
-            "refresh_token": "1//0e89EEaRuKn5gCgYIARAAGA4SNwF-L9IrOxh_YGncGNjvVuFh9MIGoJAQOCYJaqa-TFSR7o1m2M3pE_1oqb_Q_owCtgOuugyJnL4",
             "scope": "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/drive.file",
             "token_type": "Bearer",
             "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjY3MTk2NzgzNTFhNWZhZWRjMmU3MDI3NGJiZWE2MmRhMmE4YzRhMTIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiIyODg1MjczMzg1Nzcta2ttbGh1NjZra2R1Ym4zcnBnZzA2MTFzdmN0czFoODEuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiIyODg1MjczMzg1Nzcta2ttbGh1NjZra2R1Ym4zcnBnZzA2MTFzdmN0czFoODEuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDQ0MjQzMDgwMTA2MzU1NDY5NTAiLCJlbWFpbCI6ImdvY3JlYXRpbmdAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImF0X2hhc2giOiJkX0VzRXVXYU5BS3lTNGpmMU9BRDVnIiwibmFtZSI6IkNQIFdlbmciLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSXUxYTA0Z29sOE1NSFFOUWtWVTVya2o1aDJjLUpMN1EzcjBfME9IdURxXzltUjlYU209czk2LWMiLCJnaXZlbl9uYW1lIjoiQ1AiLCJmYW1pbHlfbmFtZSI6IldlbmciLCJpYXQiOjE3MTY4Mjc2NTUsImV4cCI6MTcxNjgzMTI1NX0.RKstHCi5qpieiEK56VE7Y5a_YmW8nkx1v_9d5UKu6kAXf6gCjOo3kweUKICTUwKR-0dHq9M3T55HdxHioCBJH4jouHFWl9zNn8YNacddhF9EdEBY5-x_ECCFHK4jS7eAspZW5nabyU_pzBmVDmIRuwojhb-leJK1NFIcJg8YHjIX9L0gSIxEt-0ix9b6dBfPJSuDNy1tggM2Glwg2EKK8bIlOSwZZeL8srzRxtZvWrIZyUBXv8ei6_HoWAvBk53MLr3PLCTsvnn6ABoydw032eqK4wyjGk8l2NhzuybzE8r7ObzaB9ne2d9oxA-QNucUlZKnUaP7JWWP98__a6pwoQ"
@@ -86,7 +99,9 @@ async def get_google_callback(
         """
 
     id_token = access_token_dict["id_token"]
-    jwks_client = jwt.PyJWKClient("https://www.googleapis.com/oauth2/v3/certs")
+    jwks_client = jwt.PyJWKClient(
+        chore_master_api_web_server_config.GOOGLE_OAUTH_JWKS_URI
+    )
     signing_key = jwks_client.get_signing_key_from_jwt(id_token)
     google_user_dict = jwt.decode(
         id_token,
@@ -113,9 +128,11 @@ async def get_google_callback(
     """
 
     if google_user_dict["email_verified"] is False:
-        raise UnauthenticatedError("Email not verified")
-    if set(access_token_dict["scope"].split(" ")) < set(required_google_scopes):
-        raise UnauthorizedError("Required scopes are not granted")
+        return error_response
+    if set(access_token_dict["scope"].split(" ")) < set(
+        ["openid"] + required_google_scopes
+    ):
+        return error_response
 
     end_user_collection = chore_master_api_db.get_collection("end_user")
     end_user_session_collection = chore_master_api_db.get_collection("end_user_session")
@@ -164,6 +181,7 @@ async def get_google_callback(
             "created_time": utc_now,
             "deactivated_time": None,
             "google": {
+                "refresh_token": access_token_dict["refresh_token"],
                 "access_token_dict": access_token_dict,
                 "user_dict": google_user_dict,
             },
@@ -171,16 +189,17 @@ async def get_google_callback(
         end_user_session_collection.insert_one(end_user_session_dict)
     else:
         end_user_session_reference = active_end_user_session["reference"]
+        update_end_user_session_dict = {
+            "google.access_token_dict": access_token_dict,
+            "google.user_dict": google_user_dict,
+        }
+        if "refresh_token" in access_token_dict:
+            update_end_user_session_dict["google.refresh_token"] = access_token_dict[
+                "refresh_token"
+            ]
         end_user_session_collection.update_one(
             filter={"reference": end_user_session_reference},
-            update={
-                "$set": {
-                    "google": {
-                        "access_token_dict": access_token_dict,
-                        "user_dict": google_user_dict,
-                    }
-                }
-            },
+            update={"$set": update_end_user_session_dict},
         )
         end_user_session_ttl = (
             active_end_user_session["expired_time"].replace(tzinfo=timezone.utc)

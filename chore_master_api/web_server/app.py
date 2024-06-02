@@ -12,6 +12,9 @@ from chore_master_api.web_server.routers.v1.auth import router as v1_auth_router
 from chore_master_api.web_server.routers.v1.end_user import (
     router as v1_end_user_api_router,
 )
+from chore_master_api.web_server.routers.v1.integration import (
+    router as v1_integration_api_router,
+)
 from modules.base.config import get_base_config
 from modules.base.schemas.system import BaseConfigSchema
 from modules.web_server.base_fastapi import BaseFastAPI
@@ -44,8 +47,9 @@ def get_app(base_config: Optional[BaseConfigSchema] = None) -> FastAPI:
     )
     base_router = APIRouter()
     v1_router = APIRouter(prefix="/v1")
-    v1_router.include_router(v1_end_user_api_router)
     v1_router.include_router(v1_auth_router)
+    v1_router.include_router(v1_end_user_api_router)
+    v1_router.include_router(v1_integration_api_router)
     base_router.include_router(v1_router)
     app.include_router(base_router)
     return app

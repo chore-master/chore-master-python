@@ -20,6 +20,9 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
 
     SESSION_COOKIE_KEY = "end_user_session_reference"
     SESSION_COOKIE_DOMAIN = "localhost"
+    GOOGLE_OAUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
+    GOOGLE_OAUTH_TOKEN_URI = "https://oauth2.googleapis.com/token"
+    GOOGLE_OAUTH_JWKS_URI = "https://www.googleapis.com/oauth2/v3/certs"
     GOOGLE_OAUTH_CLIENT_ID = get_env("GOOGLE_OAUTH_CLIENT_ID")
     GOOGLE_OAUTH_SECRET = get_env("GOOGLE_OAUTH_SECRET")
 
@@ -49,6 +52,9 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
         IAM_API_ORIGIN=IAM_API_ORIGIN,
         SESSION_COOKIE_KEY=SESSION_COOKIE_KEY,
         SESSION_COOKIE_DOMAIN=SESSION_COOKIE_DOMAIN,
+        GOOGLE_OAUTH_ENDPOINT=GOOGLE_OAUTH_ENDPOINT,
+        GOOGLE_OAUTH_TOKEN_URI=GOOGLE_OAUTH_TOKEN_URI,
+        GOOGLE_OAUTH_JWKS_URI=GOOGLE_OAUTH_JWKS_URI,
         GOOGLE_OAUTH_CLIENT_ID=GOOGLE_OAUTH_CLIENT_ID,
         GOOGLE_OAUTH_SECRET=GOOGLE_OAUTH_SECRET,
     )

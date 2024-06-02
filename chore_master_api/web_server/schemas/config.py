@@ -12,5 +12,8 @@ class ChoreMasterAPIWebServerConfigSchema(WebServerConfigSchema):
     SESSION_COOKIE_KEY: str
     SESSION_COOKIE_DOMAIN: str
 
+    GOOGLE_OAUTH_ENDPOINT: str
+    GOOGLE_OAUTH_TOKEN_URI: str
+    GOOGLE_OAUTH_JWKS_URI: str
     GOOGLE_OAUTH_CLIENT_ID: str
     GOOGLE_OAUTH_SECRET: str
