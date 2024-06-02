@@ -9,12 +9,12 @@ from modules.database.mongo_client import MongoDB
 from modules.web_server.exceptions import UnauthenticatedError, UnauthorizedError
 
 
-async def get_current_end_user(
+async def get_current_end_user_session(
     end_user_session_reference: Annotated[
         Optional[UUID], Cookie(alias="end_user_session_reference")
     ] = None,
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
-) -> Optional[dict]:
+) -> dict:
     if end_user_session_reference is None:
         raise UnauthenticatedError("current request is not authenticated")
     end_user_session_collection = chore_master_api_db.get_collection("end_user_session")
@@ -52,5 +52,11 @@ async def get_current_end_user(
     )
     if current_end_user_session is None:
         raise UnauthorizedError("current request is not authorized")
+    return current_end_user_session
+
+
+async def get_current_end_user(
+    current_end_user_session: dict = Depends(get_current_end_user_session),
+) -> dict:
     current_end_user = current_end_user_session["end_users"][0]
     return current_end_user

@@ -163,10 +163,25 @@ async def get_google_callback(
             "expired_time": utc_now + end_user_session_ttl,
             "created_time": utc_now,
             "deactivated_time": None,
+            "google": {
+                "access_token_dict": access_token_dict,
+                "user_dict": google_user_dict,
+            },
         }
         end_user_session_collection.insert_one(end_user_session_dict)
     else:
         end_user_session_reference = active_end_user_session["reference"]
+        end_user_session_collection.update_one(
+            filter={"reference": end_user_session_reference},
+            update={
+                "$set": {
+                    "google": {
+                        "access_token_dict": access_token_dict,
+                        "user_dict": google_user_dict,
+                    }
+                }
+            },
+        )
         end_user_session_ttl = (
             active_end_user_session["expired_time"].replace(tzinfo=timezone.utc)
             - utc_now
