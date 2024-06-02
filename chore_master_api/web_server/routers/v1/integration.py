@@ -11,7 +11,6 @@ from chore_master_api.web_server.dependencies.google_service import (
     get_sheets_v4_service,
 )
 from modules.database.mongo_client import MongoDB
-from modules.web_server.exceptions import BadRequestError
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 
@@ -28,41 +27,31 @@ class GetGoogleResponse(BaseModel):
 router = APIRouter(prefix="/integrations", tags=["Integration"])
 
 
-# @router.post("/google/initialize", response_model=ResponseSchema[dict])
-# async def post_google_initialize(
-#     drive_service: Resource = Depends(get_drive_v3_service),
-#     current_end_user: dict = Depends(get_current_end_user),
-#     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
-# ):
-#     file_metadata = {
-#         "name": ".chore_master",
-#         "mimeType": "application/vnd.google-apps.folder",
-#     }
-#     result = (
-#         drive_service.files()
-#         .list(
-#             q=f"name = '{file_metadata['name']}' and mimeType='{file_metadata['mimeType']}'",
-#             fields="files(id, name)",
-#         )
-#         .execute()
-#     )
-#     files = result.get("files", [])
-#     if len(files) == 0:
-#         file = drive_service.files().create(body=file_metadata, fields="id").execute()
-#     elif len(files) == 1:
-#         file = files[0]
-#     elif len(files) > 1:
-#         raise BadRequestError("Multiple folders named `.chore_master` detected.")
-
-#     end_user_collection = chore_master_api_db.get_collection("end_user")
-#     end_user_collection.update_one(
-#         filter={"reference": current_end_user["reference"]},
-#         update={"$set": {"root_folder_id": file["id"]}},
-#     )
-#     return ResponseSchema[dict](
-#         status=StatusEnum.SUCCESS,
-#         data=file,
-#     )
+def create_spreadsheet_if_not_exist(
+    parent_folder_id: str, spreadsheet_name: str, drive_service: Resource
+) -> str:
+    spreadsheet_mime_type = "application/vnd.google-apps.spreadsheet"
+    result = (
+        drive_service.files()
+        .list(
+            q=f"'{parent_folder_id}' in parents and name = '{spreadsheet_name}' and mimeType='{spreadsheet_mime_type}'",
+            fields="files(id, name)",
+        )
+        .execute()
+    )
+    files = result.get("files", [])
+    if len(files) == 0:
+        file_metadata = {
+            "name": spreadsheet_name,
+            "mimeType": spreadsheet_mime_type,
+            "parents": [parent_folder_id],
+        }
+        file = drive_service.files().create(body=file_metadata, fields="id").execute()
+        return file["id"]
+    elif len(files) == 1:
+        return files[0]["id"]
+    elif len(files) > 1:
+        raise Exception(f"Multiple spreadsheets named `{spreadsheet_name}` detected.")
 
 
 @router.get("/google", response_model=ResponseSchema[GetGoogleResponse])
@@ -80,8 +69,15 @@ async def get_google(current_end_user: dict = Depends(get_current_end_user)):
 async def patch_google(
     update_google: UpdateGoogleRequest,
     current_end_user: dict = Depends(get_current_end_user),
+    drive_service: Resource = Depends(get_drive_v3_service),
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
 ):
+    profile_folder_id = update_google.profile_folder_id
+    treasury_spreadsheet_id = create_spreadsheet_if_not_exist(
+        parent_folder_id=profile_folder_id,
+        spreadsheet_name="treasury",
+        drive_service=drive_service,
+    )
     end_user_collection = chore_master_api_db.get_collection("end_user")
     end_user_collection.update_one(
         filter={"reference": current_end_user["reference"]},
@@ -89,7 +85,8 @@ async def patch_google(
             "$set": {
                 "is_onboarded": True,
                 "root_folder_id": update_google.root_folder_id,
-                "profile_folder_id": update_google.profile_folder_id,
+                "profile_folder_id": profile_folder_id,
+                "treasury_spreadsheet_id": treasury_spreadsheet_id,
             }
         },
     )
@@ -97,25 +94,3 @@ async def patch_google(
         status=StatusEnum.SUCCESS,
         data=None,
     )
-
-
-# @router.post("/google/profiles", response_model=ResponseSchema[list])
-# async def get_google_profiles(
-#     drive_service: Resource = Depends(get_drive_v3_service),
-#     current_end_user: dict = Depends(get_current_end_user),
-# ):
-#     root_folder_id = current_end_user.get("root_folder_id")
-#     result = (
-#         drive_service.files()
-#         .list(
-#             q=f"'{root_folder_id}' in parents and mimeType='application/vnd.google-apps.folder'",
-#             fields="files(id, name)",
-#         )
-#         .execute()
-#     )
-#     files = result.get("files", [])
-#     profile_files = [f["name"].startswith("profile_") for f in files]
-#     return ResponseSchema[dict](
-#         status=StatusEnum.SUCCESS,
-#         data=profile_files,
-#     )

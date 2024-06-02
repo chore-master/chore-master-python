@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from chore_master_api.web_server.dependencies.auth import get_current_end_user
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
-router = APIRouter(prefix="/end_users", tags=["End Users"])
+router = APIRouter(prefix="/end_users", tags=["End User"])
 
 
 @router.get("/me", response_model=ResponseSchema[dict])

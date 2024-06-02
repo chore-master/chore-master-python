@@ -36,6 +36,7 @@ async def get_credentials(
 async def get_drive_v3_service(
     credentials: Credentials = Depends(get_credentials),
 ) -> Resource:
+    # https://developers.google.com/drive/api/guides/about-files
     service = build(serviceName="drive", version="v3", credentials=credentials)
     return service
 
@@ -43,5 +44,6 @@ async def get_drive_v3_service(
 async def get_sheets_v4_service(
     credentials: Credentials = Depends(get_credentials),
 ) -> Resource:
+    # https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets
     service = build(serviceName="sheets", version="v4", credentials=credentials)
     return service
