@@ -38,7 +38,12 @@ def create_spreadsheet_if_not_exist(
     result = (
         drive_service.files()
         .list(
-            q=f"'{parent_folder_id}' in parents and name = '{spreadsheet_name}' and mimeType='{spreadsheet_mime_type}'",
+            q=(
+                f"'{parent_folder_id}' in parents and "
+                f"name = '{spreadsheet_name}' and "
+                f"mimeType='{spreadsheet_mime_type}' and"
+                "trashed=false"
+            ),
             fields="files(id, name)",
         )
         .execute()
