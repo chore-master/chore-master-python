@@ -14,7 +14,7 @@ sudo docker compose -f ./deployments/docker-compose.infra.yml down
 ## Release
 
 ```sh
-TAG="2024-05-31-v1" && \
+TAG="2024-06-02-v1" && \
 git tag $TAG --force && \
 sudo docker buildx build \
     --platform linux/amd64 \
