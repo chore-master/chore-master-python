@@ -19,3 +19,7 @@ class UnauthorizedError(BadRequestError):
 
 class NotFoundError(BadRequestError):
     pass
+
+
+class InternalServerError(WebServerError):
+    pass

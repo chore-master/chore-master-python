@@ -12,6 +12,6 @@ async def get_me(current_end_user: dict = Depends(get_current_end_user)):
         status=StatusEnum.SUCCESS,
         data={
             "email": current_end_user["email"],
-            "root_folder_id": current_end_user.get("root_folder_id"),
+            "is_onboarded": current_end_user.get("is_onboarded", False),
         },
     )

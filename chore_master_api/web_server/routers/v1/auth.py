@@ -15,7 +15,6 @@ from chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
 )
 from modules.database.mongo_client import MongoDB
-from modules.web_server.exceptions import UnauthenticatedError, UnauthorizedError
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -50,7 +49,7 @@ async def get_google_authorize(
         ),
         # https://blog.miniasp.com/post/2023/06/14/How-to-issue-Refresh-Token-in-Google-OAuth
         "access_type": "offline",
-        # "prompt": "consent",
+        "prompt": "consent",
     }
     url = f"{chore_master_api_web_server_config.GOOGLE_OAUTH_ENDPOINT}?{urlencode(query_params)}"
     return RedirectResponse(url)
