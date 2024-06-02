@@ -35,6 +35,8 @@ async def post_google_initialize(
     files = result.get("files", [])
     if len(files) == 0:
         file = drive_service.files().create(body=file_metadata, fields="id").execute()
+    elif len(files) == 1:
+        file = files[0]
     elif len(files) > 1:
         raise BadRequestError("Multiple folders named `.chore_master` detected.")
 
