@@ -175,3 +175,19 @@ class SqlAlchemyRepository(
         result = await self._session.execute(statement)
         entity = result.scalars().first()
         return entity
+
+
+class ExaminationReportRepository(SqlAlchemyRepository[ExaminationReport]):
+    @property
+    def _model(self) -> Type[ExaminationReport]:
+        return ExaminationReport
+
+    def get_enhanced_select_statement(
+        self, statement: expression.select
+    ) -> expression.select:
+        return statement.options(joinedload(ExaminationReport.file_group))
+
+    async def _delete_by(self, **kwargs):
+        entity = await self.get_by(**kwargs)
+        await self._session.delete(entity.file_group)
+        await self._session.delete(entity)
