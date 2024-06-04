@@ -11,7 +11,7 @@ ENTITY_TYPE = TypeVar("ENTITY_TYPE", bound=Entity)
 FilterType = Optional[dict]
 
 
-class AbstractRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
+class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
     async def count(self, filter: FilterType = None) -> int:
         count = await self._count(filter=filter)
         return count
@@ -51,8 +51,8 @@ class AbstractRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-class SheetRepository(
-    Generic[ENTITY_TYPE], AbstractRepository[ENTITY_TYPE], metaclass=abc.ABCMeta
+class BaseSheetRepository(
+    Generic[ENTITY_TYPE], BaseRepository[ENTITY_TYPE], metaclass=abc.ABCMeta
 ):
     @staticmethod
     def column_name(column_index: int) -> str:
@@ -63,15 +63,19 @@ class SheetRepository(
             result = f"{chr(65 + remainder)}{result}"
         return result
 
-    def __init__(self, sheets_service: Resource, spreadsheet_id: str, sheet_title: str):
+    def __init__(self, sheets_service: Resource, spreadsheet_id: str):
         super().__init__()
         self._sheets_service = sheets_service
         self._spreadsheet_id = spreadsheet_id
-        self._sheet_title = sheet_title
 
     @property
     @abc.abstractmethod
     def entity_class(self) -> Type[ENTITY_TYPE]:
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    async def sheet_title(self) -> str:
         raise NotImplementedError
 
     async def migrate_schema(self):
@@ -82,7 +86,7 @@ class SheetRepository(
         )
         sheets = spreadsheet.get("sheets", [])
         sheet = next(
-            (s for s in sheets if s["properties"]["title"] == self._sheet_title),
+            (s for s in sheets if s["properties"]["title"] == self.sheet_title),
             None,
         )
         if sheet is None:
@@ -96,7 +100,7 @@ class SheetRepository(
                             {
                                 "addSheet": {
                                     "properties": {
-                                        "title": self._sheet_title,
+                                        "title": self.sheet_title,
                                         "gridProperties": {
                                             "rowCount": 2,
                                             "columnCount": 1,  # 0 will result in columns A-Z
@@ -110,56 +114,14 @@ class SheetRepository(
                 .execute()
             )
             sheet = result["replies"][0]["addSheet"]
-            # result = (
-            #     self._sheets_service.spreadsheets()
-            #     .batchUpdate(
-            #         spreadsheetId=self._spreadsheet_id,
-            #         body={
-            #             "requests": [
-            #                 {
-            #                     "updateCells": {
-            #                         "range": {
-            #                             "sheetId": sheet_id,
-            #                             "startRowIndex": 0,
-            #                             "startColumnIndex": 0,
-            #                         },
-            #                         "rows": [
-            #                             {
-            #                                 "values": [
-            #                                     {
-            #                                         "userEnteredValue": {
-            #                                             "stringValue": field_name
-            #                                         }
-            #                                     }
-            #                                     for field_name in self.entity_class.model_fields.keys()
-            #                                 ]
-            #                             },
-            #                             {
-            #                                 "values": [
-            #                                     {
-            #                                         "userEnteredValue": {
-            #                                             "stringValue": field_info.annotation.__name__
-            #                                         }
-            #                                     }
-            #                                     for field_info in self.entity_class.model_fields.values()
-            #                                 ]
-            #                             },
-            #                         ],
-            #                         "fields": "userEnteredValue",
-            #                     }
-            #                 }
-            #             ]
-            #         },
-            #     )
-            #     .execute()
-            # )
+
+        # update table
 
         sheet_id = sheet["properties"]["sheetId"]
         reflected_column_count = sheet["properties"]["gridProperties"]["columnCount"]
-        # update table
         batch_udpate_requests = []
-        # column_count = len(self.entity_class.model_fields)
         delete_column_count = 0
+
         # reflect table
         result = (
             self._sheets_service.spreadsheets()
@@ -167,7 +129,7 @@ class SheetRepository(
             .get(
                 spreadsheetId=self._spreadsheet_id,
                 majorDimension="COLUMNS",
-                range=f"{self._sheet_title}!A1:{self.column_name(reflected_column_count)}2",
+                range=f"{self.sheet_title}!A1:{self.column_name(reflected_column_count)}2",
             )
             .execute()
         )

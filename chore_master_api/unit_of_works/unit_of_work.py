@@ -34,18 +34,15 @@ class SpreadsheetUnitOfWork(AbstractUnitOfWork):
         self,
         sheets_service: Resource,
         some_entity_spreadsheet_id: str,
-        some_entity_sheet_id: str,
     ):
         self._sheets_service = sheets_service
         self._some_entity_spreadsheet_id = some_entity_spreadsheet_id
-        self._some_entity_sheet_id = some_entity_sheet_id
 
     async def __aenter__(self) -> SpreadsheetUnitOfWork:
         await super().__aenter__()
         self.some_entity_repository = SomeEntityRepository(
             self._sheets_service,
             self._some_entity_spreadsheet_id,
-            self._some_entity_sheet_id,
         )
         return self
 
