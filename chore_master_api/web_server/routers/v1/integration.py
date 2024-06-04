@@ -85,14 +85,15 @@ def create_spreadsheet_if_not_exist(
                     }
                 }
             )
-    batch_update_spreadsheet_response = (
-        sheets_service.spreadsheets()
-        .batchUpdate(
-            spreadsheetId=spreadsheet_id,
-            body={"requests": requests},
+    if len(requests) > 0:
+        batch_update_spreadsheet_response = (
+            sheets_service.spreadsheets()
+            .batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={"requests": requests},
+            )
+            .execute()
         )
-        .execute()
-    )
     return spreadsheet_id
 
 

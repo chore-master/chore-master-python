@@ -81,16 +81,12 @@ class SheetRepository(
             .execute()
         )
         sheets = spreadsheet.get("sheets", [])
-        sheet_id = next(
-            (
-                s["properties"]["sheetId"]
-                for s in sheets
-                if s["properties"]["title"] == self._sheet_title
-            ),
+        sheet = next(
+            (s for s in sheets if s["properties"]["title"] == self._sheet_title),
             None,
         )
-        column_count = len(self.entity_class.model_fields)
-        if sheet_id is None:
+        if sheet is None:
+            # create table
             result = (
                 self._sheets_service.spreadsheets()
                 .batchUpdate(
@@ -103,7 +99,7 @@ class SheetRepository(
                                         "title": self._sheet_title,
                                         "gridProperties": {
                                             "rowCount": 2,
-                                            "columnCount": column_count,
+                                            "columnCount": 1,  # 0 will result in columns A-Z
                                         },
                                     }
                                 }
@@ -113,62 +109,220 @@ class SheetRepository(
                 )
                 .execute()
             )
-            sheet_id = result["replies"][0]["addSheet"]["properties"]["sheetId"]
+            sheet = result["replies"][0]["addSheet"]
+            # result = (
+            #     self._sheets_service.spreadsheets()
+            #     .batchUpdate(
+            #         spreadsheetId=self._spreadsheet_id,
+            #         body={
+            #             "requests": [
+            #                 {
+            #                     "updateCells": {
+            #                         "range": {
+            #                             "sheetId": sheet_id,
+            #                             "startRowIndex": 0,
+            #                             "startColumnIndex": 0,
+            #                         },
+            #                         "rows": [
+            #                             {
+            #                                 "values": [
+            #                                     {
+            #                                         "userEnteredValue": {
+            #                                             "stringValue": field_name
+            #                                         }
+            #                                     }
+            #                                     for field_name in self.entity_class.model_fields.keys()
+            #                                 ]
+            #                             },
+            #                             {
+            #                                 "values": [
+            #                                     {
+            #                                         "userEnteredValue": {
+            #                                             "stringValue": field_info.annotation.__name__
+            #                                         }
+            #                                     }
+            #                                     for field_info in self.entity_class.model_fields.values()
+            #                                 ]
+            #                             },
+            #                         ],
+            #                         "fields": "userEnteredValue",
+            #                     }
+            #                 }
+            #             ]
+            #         },
+            #     )
+            #     .execute()
+            # )
+
+        sheet_id = sheet["properties"]["sheetId"]
+        reflected_column_count = sheet["properties"]["gridProperties"]["columnCount"]
+        # update table
+        batch_udpate_requests = []
+        # column_count = len(self.entity_class.model_fields)
+        delete_column_count = 0
+        # reflect table
+        result = (
+            self._sheets_service.spreadsheets()
+            .values()
+            .get(
+                spreadsheetId=self._spreadsheet_id,
+                majorDimension="COLUMNS",
+                range=f"{self._sheet_title}!A1:{self.column_name(reflected_column_count)}2",
+            )
+            .execute()
+        )
+        field_names_set = set(self.entity_class.model_fields.keys())
+        reflected_field_names_set = set()
+        reflected_values = result.get("values", [])
+        for column_index in range(reflected_column_count):
+            # delete redundant columns
+            if column_index >= len(reflected_values):
+                batch_udpate_requests.append(
+                    {
+                        "deleteDimension": {
+                            "range": {
+                                "sheetId": sheet_id,
+                                "dimension": "COLUMNS",
+                                "startIndex": column_index - delete_column_count,
+                                "endIndex": column_index - delete_column_count + 1,
+                            }
+                        }
+                    }
+                )
+                delete_column_count += 1
+                continue
+
+            # delete redundant columns
+            series = reflected_values[column_index]
+            if len(series) != 2:
+                batch_udpate_requests.append(
+                    {
+                        "deleteDimension": {
+                            "range": {
+                                "sheetId": sheet_id,
+                                "dimension": "COLUMNS",
+                                "startIndex": column_index - delete_column_count,
+                                "endIndex": column_index - delete_column_count + 1,
+                            }
+                        }
+                    }
+                )
+                delete_column_count += 1
+                continue
+
+            # delete deprecated columns
+            reflected_field_name, reflected_field_type_name = series
+            reflected_field_names_set.add(reflected_field_name)
+            if reflected_field_name not in self.entity_class.model_fields:
+                batch_udpate_requests.append(
+                    {
+                        "deleteDimension": {
+                            "range": {
+                                "sheetId": sheet_id,
+                                "dimension": "COLUMNS",
+                                "startIndex": column_index - delete_column_count,
+                                "endIndex": column_index - delete_column_count + 1,
+                            }
+                        }
+                    }
+                )
+                delete_column_count += 1
+                continue
+
+            # update columns
+            field_info = self.entity_class.model_fields[reflected_field_name]
+            field_type_name = field_info.annotation.__name__
+            if reflected_field_type_name != field_type_name:
+                batch_udpate_requests.append(
+                    {
+                        "updateCells": {
+                            "range": {
+                                "sheetId": sheet_id,
+                                "startRowIndex": 1,
+                                "startColumnIndex": column_index,
+                            },
+                            "rows": [
+                                {
+                                    "values": [
+                                        {
+                                            "userEnteredValue": {
+                                                "stringValue": field_type_name
+                                            }
+                                        }
+                                    ]
+                                },
+                            ],
+                            "fields": "userEnteredValue",
+                        }
+                    }
+                )
+
+        # create columns
+        new_field_names_set = field_names_set.difference(reflected_field_names_set)
+        insert_column_start_index = reflected_column_count - delete_column_count
+        new_columns_count = len(new_field_names_set)
+        if new_columns_count > 0:
+            batch_udpate_requests.append(
+                {
+                    "insertDimension": {
+                        "range": {
+                            "sheetId": sheet_id,
+                            "dimension": "COLUMNS",
+                            "startIndex": insert_column_start_index,
+                            "endIndex": insert_column_start_index + new_columns_count,
+                        },
+                        "inheritFromBefore": insert_column_start_index > 0,
+                    }
+                }
+            )
+
+            for i, field_name in enumerate(new_field_names_set):
+                field_info = self.entity_class.model_fields[field_name]
+                batch_udpate_requests.append(
+                    {
+                        "updateCells": {
+                            "range": {
+                                "sheetId": sheet_id,
+                                "startRowIndex": 0,
+                                "startColumnIndex": insert_column_start_index + i,
+                            },
+                            "rows": [
+                                {
+                                    "values": [
+                                        {
+                                            "userEnteredValue": {
+                                                "stringValue": field_name
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "values": [
+                                        {
+                                            "userEnteredValue": {
+                                                "stringValue": field_info.annotation.__name__
+                                            }
+                                        }
+                                    ]
+                                },
+                            ],
+                            "fields": "userEnteredValue",
+                        }
+                    }
+                )
+
+        if len(batch_udpate_requests) > 0:
             result = (
                 self._sheets_service.spreadsheets()
                 .batchUpdate(
                     spreadsheetId=self._spreadsheet_id,
-                    body={
-                        "requests": [
-                            {
-                                "updateCells": {
-                                    "range": {
-                                        "sheetId": sheet_id,
-                                        "startRowIndex": 0,
-                                        "startColumnIndex": 0,
-                                    },
-                                    "rows": [
-                                        {
-                                            "values": [
-                                                {
-                                                    "userEnteredValue": {
-                                                        "stringValue": field_name
-                                                    }
-                                                }
-                                                for field_name in self.entity_class.model_fields.keys()
-                                            ]
-                                        },
-                                        {
-                                            "values": [
-                                                {
-                                                    "userEnteredValue": {
-                                                        "stringValue": field_info.annotation.__name__
-                                                    }
-                                                }
-                                                for field_info in self.entity_class.model_fields.values()
-                                            ]
-                                        },
-                                    ],
-                                    "fields": "userEnteredValue",
-                                }
-                            }
-                        ]
-                    },
+                    body={"requests": batch_udpate_requests},
                 )
                 .execute()
             )
+            print("Migration done", batch_udpate_requests, result)
         else:
-            result = (
-                self._sheets_service.spreadsheets()
-                .values()
-                .get(
-                    spreadsheetId=self._spreadsheet_id,
-                    majorDimension="COLUMNS",
-                    range=f"{self._sheet_title}!A1:{self.column_name(column_count)}2",
-                )
-                .execute()
-            )
-            print(result)
+            print("Migration done: no difference")
 
     async def _count(self, filter: FilterType = None) -> int:
         raise NotImplementedError
