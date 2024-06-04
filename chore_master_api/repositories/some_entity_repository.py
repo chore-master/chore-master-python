@@ -6,5 +6,5 @@ from chore_master_api.repositories.base_repository import SheetRepository
 
 class SomeEntityRepository(SheetRepository[SomeEntity]):
     @property
-    def _model(self) -> Type[SomeEntity]:
+    def entity_class(self) -> Type[SomeEntity]:
         return SomeEntity
