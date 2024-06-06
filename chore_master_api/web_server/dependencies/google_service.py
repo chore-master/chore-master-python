@@ -1,7 +1,6 @@
 from fastapi import Depends
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import Resource, build
 from googleapiclient.errors import HttpError
 
 from chore_master_api.config import get_chore_master_api_web_server_config
@@ -9,6 +8,7 @@ from chore_master_api.web_server.dependencies.auth import get_current_end_user_s
 from chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
 )
+from modules.google_service.google_service import GoogleService
 from modules.web_server.exceptions import InternalServerError
 
 
@@ -33,17 +33,7 @@ async def get_credentials(
     return credentials
 
 
-async def get_drive_v3_service(
+async def get_google_service(
     credentials: Credentials = Depends(get_credentials),
-) -> Resource:
-    # https://developers.google.com/drive/api/guides/about-files
-    service = build(serviceName="drive", version="v3", credentials=credentials)
-    return service
-
-
-async def get_sheets_v4_service(
-    credentials: Credentials = Depends(get_credentials),
-) -> Resource:
-    # https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets
-    service = build(serviceName="sheets", version="v4", credentials=credentials)
-    return service
+) -> GoogleService:
+    return GoogleService(credentials=credentials)
