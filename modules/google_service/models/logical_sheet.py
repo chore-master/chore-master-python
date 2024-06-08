@@ -4,6 +4,8 @@ from typing import NamedTuple, Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from chore_master_api.models.base import Entity
+
 
 class LogicalDataTypeNameEnum(str, Enum):
     BOOLEAN = "BOOLEAN"
@@ -16,7 +18,9 @@ class LogicalDataTypeNameEnum(str, Enum):
 
 
 class LogicalColumn(BaseModel):
-    model_config = ConfigDict(use_enum_values=True, frozen=True)
+    model_config = ConfigDict(
+        use_enum_values=True, frozen=True, arbitrary_types_allowed=False
+    )
 
     logical_name: str
     logical_data_type_name: Optional[LogicalDataTypeNameEnum]
@@ -57,3 +61,37 @@ class LogicalSheet(BaseModel):
     @property
     def preserved_raw_column_count(self) -> int:
         return len(self.preserved_raw_column_names._fields)
+
+    def raw_rows_from_entities(self, entities: list[Entity]) -> list:
+        rows = []
+        for entity in entities:
+            entity_values = [None for _ in range(len(self.logical_columns))]
+            for logical_column in self.logical_columns:
+                py_value = getattr(entity, logical_column.logical_name)
+                if py_value is None:
+                    if not logical_column.logical_is_nullable:
+                        raise ValueError(
+                            f"Non-nullable column {logical_column.logical_name} is None"
+                        )
+                    py_value = ""
+                match logical_column.logical_data_type_name:
+                    case LogicalDataTypeNameEnum.DATETIME:
+                        cell_value = py_value.isoformat()
+                    case (
+                        LogicalDataTypeNameEnum.BOOLEAN
+                        | LogicalDataTypeNameEnum.INTEGER
+                        | LogicalDataTypeNameEnum.FLOAT
+                        | LogicalDataTypeNameEnum.STRING
+                        | LogicalDataTypeNameEnum.DECIMAL
+                        | LogicalDataTypeNameEnum.UUID
+                    ):
+                        cell_value = f"{py_value}"
+                    case _:
+                        raise ValueError(
+                            f"Unsupported logical_data_type_name: {logical_column.logical_data_type_name}"
+                        )
+                entity_values[
+                    logical_column.raw_index - self.preserved_raw_column_count
+                ] = cell_value
+            rows.append(entity_values)
+        return rows

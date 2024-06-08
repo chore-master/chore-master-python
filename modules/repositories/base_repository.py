@@ -108,7 +108,6 @@ class BaseSheetRepository(
             reflected_column_count - 1
         )
         body_range = f"{self.logical_sheet.logical_name}!{left_column_name}{reflected_logical_sheet.preserved_raw_row_count + 1}:{right_column_name}{reflected_row_count}"
-
         result = (
             self._google_service._sheets_service.spreadsheets()
             .values()
@@ -116,7 +115,9 @@ class BaseSheetRepository(
                 spreadsheetId=self._spreadsheet_id,
                 range=body_range,
                 valueInputOption="RAW",
-                body={"values": [["x", "y"]]},
+                body={
+                    "values": reflected_logical_sheet.raw_rows_from_entities(entities)
+                },
             )
             .execute()
         )

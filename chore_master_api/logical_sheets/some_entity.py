@@ -33,5 +33,15 @@ some_entity_logical_sheet = LogicalSheet(
             logical_name="f",
             logical_data_type_name=LogicalDataTypeNameEnum.DATETIME,
         ),
+        LogicalColumn(
+            logical_name="g",
+            logical_data_type_name=LogicalDataTypeNameEnum.STRING,
+            logical_is_nullable=True,
+        ),
+        LogicalColumn(
+            logical_name="h",
+            logical_data_type_name=LogicalDataTypeNameEnum.INTEGER,
+            logical_is_nullable=True,
+        ),
     ],
 )

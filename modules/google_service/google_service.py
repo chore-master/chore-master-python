@@ -175,7 +175,7 @@ class GoogleService:
         return sheet_dict
 
     def migrate_logical_sheet(self, spreadsheet_id: str, logical_sheet: LogicalSheet):
-        reflected_logical_sheet, reflected_sheet_dict = self.reflect_logical_sheet(
+        reflected_logical_sheet, reflected_sheet_dict, _ = self.reflect_logical_sheet(
             spreadsheet_id=spreadsheet_id, sheet_title=logical_sheet.logical_name
         )
         if reflected_logical_sheet is None or reflected_sheet_dict is None:
@@ -274,6 +274,7 @@ class GoogleService:
                         "range": {
                             "sheetId": sheet_id,
                             "startRowIndex": 0,
+                            "endRowIndex": logical_sheet.preserved_raw_row_count,
                             "startColumnIndex": reflected_logical_sheet_column.raw_index,
                             "endColumnIndex": reflected_logical_sheet_column.raw_index
                             + 1,
@@ -393,6 +394,7 @@ class GoogleService:
                             "range": {
                                 "sheetId": sheet_id,
                                 "startRowIndex": 0,
+                                "endRowIndex": logical_sheet.preserved_raw_row_count,
                                 "startColumnIndex": insert_raw_column_index
                                 + column_index_offset,
                                 "endColumnIndex": insert_raw_column_index
