@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from collections import namedtuple
 from datetime import datetime
 from decimal import Decimal
@@ -164,7 +163,7 @@ class LogicalSheet(BaseModel):
         return rows
 
     def match_rows(
-        self, body_values: list[list], filter: dict, limit: Optional[int] = sys.maxsize
+        self, body_values: list[list], filter: dict, limit: int
     ) -> list[dict]:
         filtering_logical_columns: list[LogicalColumn] = []
         non_filtering_logical_columns: list[LogicalColumn] = []

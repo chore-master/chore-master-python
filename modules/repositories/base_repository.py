@@ -1,4 +1,5 @@
 import abc
+import sys
 from typing import Generic, List, Optional, Type, TypeVar
 
 from chore_master_api.models.base import Entity
@@ -22,8 +23,10 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
     async def insert_one(self, entity: ABSTRACT_ENTITY_TYPE):
         await self._insert_one(entity)
 
-    async def find_many(self, filter: FilterType = None) -> List[ABSTRACT_ENTITY_TYPE]:
-        entities = await self._find_many(filter=filter)
+    async def find_many(
+        self, filter: FilterType = None, limit: Optional[int] = None
+    ) -> List[ABSTRACT_ENTITY_TYPE]:
+        entities = await self._find_many(filter=filter, limit=limit)
         return entities
 
     async def find_one(self, filter: FilterType = None) -> ABSTRACT_ENTITY_TYPE:
@@ -45,7 +48,9 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
         await self._insert_many([entity])
 
     @abc.abstractmethod
-    async def _find_many(self, filter: FilterType = None) -> List[ABSTRACT_ENTITY_TYPE]:
+    async def _find_many(
+        self, filter: FilterType = None, limit: Optional[int] = None
+    ) -> List[ABSTRACT_ENTITY_TYPE]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -110,9 +115,13 @@ class BaseSheetRepository(
             .execute()
         )
 
-    async def _find_many(self, filter: FilterType = None) -> List[ABSTRACT_ENTITY_TYPE]:
+    async def _find_many(
+        self, filter: FilterType = None, limit: Optional[int] = None
+    ) -> List[ABSTRACT_ENTITY_TYPE]:
         if filter is None:
             filter = {}
+        if limit is None:
+            limit = sys.maxsize
         reflected_logical_sheet, _, reflected_body_values = (
             self._google_service.reflect_logical_sheet(
                 spreadsheet_id=self._spreadsheet_id,
@@ -122,13 +131,16 @@ class BaseSheetRepository(
         )
         entity_class = self.entity_class
         matched_row_dicts = reflected_logical_sheet.match_rows(
-            body_values=reflected_body_values, filter=filter
+            body_values=reflected_body_values, filter=filter, limit=limit
         )
         entities = [entity_class(**row_dict) for row_dict in matched_row_dicts]
         return entities
 
     async def _find_one(self, filter: FilterType = None) -> ABSTRACT_ENTITY_TYPE:
-        raise NotImplementedError
+        entities = await self._find_many(filter=filter, limit=1)
+        if len(entities) == 0:
+            raise ValueError("Entity not found")
+        return entities[0]
 
     async def _delete_many(self, filter: FilterType = None):
         raise NotImplementedError
