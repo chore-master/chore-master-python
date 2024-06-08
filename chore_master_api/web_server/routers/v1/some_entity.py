@@ -11,6 +11,16 @@ from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 router = APIRouter(prefix="/some_entities", tags=["SomeEntity"])
 
 
+@router.get("", response_model=ResponseSchema[list])
+async def get_(uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work)):
+    async with uow:
+        some_entities = await uow.some_entity_repository.find_many()
+    return ResponseSchema[list](
+        status=StatusEnum.SUCCESS,
+        data=some_entities,
+    )
+
+
 @router.post("", response_model=ResponseSchema[None])
 async def post_(uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work)):
     async with uow:

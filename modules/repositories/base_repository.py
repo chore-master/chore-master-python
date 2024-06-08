@@ -60,18 +60,6 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
 class BaseSheetRepository(
     Generic[ENTITY_TYPE], BaseRepository[ENTITY_TYPE], metaclass=abc.ABCMeta
 ):
-    # attribute_type_to_sheet_type_name_map = {
-    #     bool: TypeNameEnum.BOOLEAN.value,
-    #     int: TypeNameEnum.INTEGER.value,
-    #     float: TypeNameEnum.FLOAT.value,
-    #     str: TypeNameEnum.STRING.value,
-    #     Decimal: TypeNameEnum.DECIMAL.value,
-    #     UUID: TypeNameEnum.UUID.value,
-    # }
-    # sheet_type_name_to_attribute_type_map = {
-    #     v: k for k, v in attribute_type_to_sheet_type_name_map.items()
-    # }
-
     def __init__(self, google_service: GoogleService, spreadsheet_id: str):
         super().__init__()
         self._google_service = google_service
@@ -123,7 +111,21 @@ class BaseSheetRepository(
         )
 
     async def _find_many(self, filter: FilterType = None) -> List[ABSTRACT_ENTITY_TYPE]:
-        raise NotImplementedError
+        if filter is None:
+            filter = {}
+        reflected_logical_sheet, _, reflected_body_values = (
+            self._google_service.reflect_logical_sheet(
+                spreadsheet_id=self._spreadsheet_id,
+                sheet_title=self.logical_sheet.logical_name,
+                should_include_body=True,
+            )
+        )
+        entity_class = self.entity_class
+        matched_row_dicts = reflected_logical_sheet.match_rows(
+            body_values=reflected_body_values, filter=filter
+        )
+        entities = [entity_class(**row_dict) for row_dict in matched_row_dicts]
+        return entities
 
     async def _find_one(self, filter: FilterType = None) -> ABSTRACT_ENTITY_TYPE:
         raise NotImplementedError

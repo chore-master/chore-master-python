@@ -36,7 +36,6 @@ some_entity_logical_sheet = LogicalSheet(
         LogicalColumn(
             logical_name="g",
             logical_data_type_name=LogicalDataTypeNameEnum.STRING,
-            logical_is_nullable=True,
         ),
         LogicalColumn(
             logical_name="h",

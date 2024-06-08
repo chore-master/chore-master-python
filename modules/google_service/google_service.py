@@ -103,7 +103,7 @@ class GoogleService:
         ranges.append(header_range)
         if (
             should_include_body
-            and logical_sheet.preserved_raw_row_count + 1 < reflected_row_count
+            and logical_sheet.preserved_raw_row_count < reflected_row_count
         ):
             body_range = f"{sheet_title}!{left_column_name}{logical_sheet.preserved_raw_row_count + 1}:{right_column_name}{reflected_row_count}"
             ranges.append(body_range)
@@ -196,16 +196,16 @@ class GoogleService:
 
         sheet_id = reflected_sheet_dict["properties"]["sheetId"]
 
-        column_name_to_reflected_logical_sheet_column_map = {
-            c.logical_name: c for c in reflected_logical_sheet.logical_columns
-        }
+        column_name_to_reflected_logical_sheet_column_map = (
+            reflected_logical_sheet.logical_column_name_to_logical_column_map
+        )
         reflected_logical_sheet_column_names_set = set(
             c.logical_name for c in reflected_logical_sheet.logical_columns
         )
 
-        column_name_to_logical_sheet_column_map = {
-            c.logical_name: c for c in logical_sheet.logical_columns
-        }
+        column_name_to_logical_sheet_column_map = (
+            logical_sheet.logical_column_name_to_logical_column_map
+        )
         logical_sheet_column_names_set = set(
             c.logical_name for c in logical_sheet.logical_columns
         )
