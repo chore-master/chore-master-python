@@ -12,5 +12,6 @@ class SomeEntity(Entity):
     d: Decimal
     e: str
     f: datetime
-    g: Optional[str] = None
+    g: str
     h: Optional[int] = None
+    i: Optional[dict] = None

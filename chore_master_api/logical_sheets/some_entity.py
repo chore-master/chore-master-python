@@ -42,5 +42,10 @@ some_entity_logical_sheet = LogicalSheet(
             logical_data_type_name=LogicalDataTypeNameEnum.INTEGER,
             logical_is_nullable=True,
         ),
+        LogicalColumn(
+            logical_name="i",
+            logical_data_type_name=LogicalDataTypeNameEnum.JSON,
+            logical_is_nullable=True,
+        ),
     ],
 )

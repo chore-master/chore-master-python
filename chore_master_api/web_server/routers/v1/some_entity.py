@@ -1,10 +1,10 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Json
 
 from chore_master_api.models.some_entity import SomeEntity
 from chore_master_api.unit_of_works.unit_of_work import SpreadsheetUnitOfWork
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/some_entities", tags=["SomeEntity"])
 
 
 class Filter(BaseModel):
+    reference: Optional[UUID] = None
     a: Optional[bool] = None
     b: Optional[int] = None
     c: Optional[float] = None
@@ -23,9 +24,11 @@ class Filter(BaseModel):
     f: Optional[datetime] = None
     g: Optional[str] = None
     h: Optional[int] = None
+    i: Optional[dict] = None
 
 
 async def get_filter(
+    reference: Annotated[Optional[UUID], Query()] = None,
     a: Annotated[Optional[bool], Query()] = None,
     b: Annotated[Optional[int], Query()] = None,
     c: Annotated[Optional[float], Query()] = None,
@@ -34,8 +37,9 @@ async def get_filter(
     f: Annotated[Optional[datetime], Query()] = None,
     g: Annotated[Optional[str], Query()] = None,
     h: Annotated[Optional[int], Query()] = None,
+    i: Annotated[Optional[Json[Any]], Query()] = None,
 ) -> Filter:
-    return Filter(a=a, b=b, c=c, d=d, e=e, f=f, g=g, h=h)
+    return Filter(reference=reference, a=a, b=b, c=c, d=d, e=e, f=f, g=g, h=h, i=i)
 
 
 @router.get("", response_model=ResponseSchema[list])
@@ -61,8 +65,10 @@ async def post_(uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work)):
             b=1,
             c=1.5,
             d=Decimal("2.3"),
-            e="a",
+            e="some string",
             f=datetime.now(),
+            g="another string",
+            i={"key1": 1, "key2": "value2", "key3": [1, 2, 3]},
         )
         await uow.some_entity_repository.insert_one(some_entity)
     return ResponseSchema[None](

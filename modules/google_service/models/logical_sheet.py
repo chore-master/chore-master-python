@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import namedtuple
 from datetime import datetime
 from decimal import Decimal
@@ -19,6 +20,7 @@ class LogicalDataTypeNameEnum(str, Enum):
     STRING = "STRING"
     DATETIME = "DATETIME"
     DECIMAL = "DECIMAL"
+    JSON = "JSON"
     UUID = "UUID"
 
 
@@ -36,13 +38,13 @@ class LogicalColumn(BaseModel):
     raw_index: Optional[int] = None
 
     @model_validator(mode="after")
-    def check_passwords_match(self) -> LogicalColumn:
+    def ensure_value_deserializable(self) -> LogicalColumn:
         if (
             self.logical_data_type_name == LogicalDataTypeNameEnum.STRING
             and self.logical_is_nullable
         ):
             raise ValueError(
-                f"On column `{self.logical_name}`, string type cannot be nullable"
+                f"Logical column `{self.logical_name}` cannot have STRING type and logical_is_nullable=True in the same time"
             )
         return self
 
@@ -70,6 +72,15 @@ class LogicalSheet(BaseModel):
         ],
     )
 
+    @model_validator(mode="after")
+    def ensure_column_name_unique(self) -> LogicalSheet:
+        logical_column_names_set = set()
+        for col in self.logical_columns:
+            if col.logical_name in logical_column_names_set:
+                raise ValueError(f"Column name `{col.logical_name}` is duplicated")
+            logical_column_names_set.add(col.logical_name)
+        return self
+
     @property
     def preserved_raw_row_count(self) -> int:
         return len(self.preserved_raw_row_names._fields)
@@ -95,6 +106,8 @@ class LogicalSheet(BaseModel):
         match logical_column.logical_data_type_name:
             case LogicalDataTypeNameEnum.DATETIME:
                 cell_value = py_value.isoformat()
+            case LogicalDataTypeNameEnum.JSON:
+                cell_value = json.dumps(py_value)
             case (
                 LogicalDataTypeNameEnum.BOOLEAN
                 | LogicalDataTypeNameEnum.INTEGER
@@ -139,6 +152,8 @@ class LogicalSheet(BaseModel):
                 py_value = datetime.fromisoformat(cell_value)
             case LogicalDataTypeNameEnum.DECIMAL:
                 py_value = Decimal(cell_value)
+            case LogicalDataTypeNameEnum.JSON:
+                py_value = json.loads(cell_value)
             case LogicalDataTypeNameEnum.UUID:
                 py_value = UUID(cell_value)
             case _:
