@@ -11,7 +11,11 @@ async def get_unit_of_work(
     current_end_user: dict = Depends(get_current_end_user),
     google_service: GoogleService = Depends(get_google_service),
 ) -> SpreadsheetUnitOfWork:
-    some_entity_spreadsheet_id = current_end_user.get("some_entity_spreadsheet_id")
+    some_entity_spreadsheet_id = (
+        current_end_user.get("google", {})
+        .get("spreadsheet", {})
+        .get("some_entity_spreadsheet_id")
+    )
     if some_entity_spreadsheet_id is None:
         raise NotFoundError("`some_entity_spreadsheet_id` is not set yet")
     return SpreadsheetUnitOfWork(

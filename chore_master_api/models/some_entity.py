@@ -1,8 +1,13 @@
-from typing import Optional
+from datetime import datetime
+from decimal import Decimal
 
 from chore_master_api.models.base import Entity
 
 
 class SomeEntity(Entity):
-    x: Optional[int]
-    y: bool
+    a: bool
+    b: int
+    c: float
+    d: Decimal
+    e: str
+    f: datetime

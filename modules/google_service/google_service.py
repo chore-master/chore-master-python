@@ -74,8 +74,8 @@ class GoogleService:
         return spreadsheet_file_dict
 
     def reflect_logical_sheet(
-        self, spreadsheet_id: str, sheet_title: str
-    ) -> Tuple[Optional[LogicalSheet], Optional[dict]]:
+        self, spreadsheet_id: str, sheet_title: str, should_include_body: bool = False
+    ) -> Tuple[Optional[LogicalSheet], Optional[dict], list]:
         spreadsheet = (
             self._sheets_service.spreadsheets()
             .get(spreadsheetId=spreadsheet_id)
@@ -91,20 +91,43 @@ class GoogleService:
 
         grid_dict = sheet_dict["properties"]["gridProperties"]
         reflected_column_count = grid_dict["columnCount"]
+        reflected_row_count = grid_dict["rowCount"]
         logical_sheet = LogicalSheet(logical_name=sheet_title, logical_columns=[])
+        # https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/batchGet
+        left_column_name = self.sheet_column_name(
+            logical_sheet.preserved_raw_column_count
+        )
+        right_column_name = self.sheet_column_name(reflected_column_count - 1)
+        ranges = []
+        header_range = f"{sheet_title}!{left_column_name}1:{right_column_name}{logical_sheet.preserved_raw_row_count}"
+        ranges.append(header_range)
+        if (
+            should_include_body
+            and logical_sheet.preserved_raw_row_count + 1 < reflected_row_count
+        ):
+            body_range = f"{sheet_title}!{left_column_name}{logical_sheet.preserved_raw_row_count + 1}:{right_column_name}{reflected_row_count}"
+            ranges.append(body_range)
         result = (
             self._sheets_service.spreadsheets()
             .values()
-            .get(
+            .batchGet(
                 spreadsheetId=spreadsheet_id,
                 majorDimension="COLUMNS",
-                range=f"{sheet_title}!{self.sheet_column_name(logical_sheet.preserved_raw_column_count)}1:{self.sheet_column_name(reflected_column_count - 1)}{logical_sheet.preserved_raw_row_count}",
+                valueRenderOption="FORMATTED_VALUE",
+                dateTimeRenderOption="SERIAL_NUMBER",
+                ranges=ranges,
             )
             .execute()
         )
-        reflected_column_values = result.get("values", [])
+        value_ranges = result.get("valueRanges", [])
+        reflected_header_values = value_ranges[0]["values"]
+        if len(value_ranges) > 1:
+            reflected_body_values = value_ranges[1]["values"]
+        else:
+            reflected_body_values = []
+
         for reflected_raw_column_offset, reflected_column_series in enumerate(
-            reflected_column_values
+            reflected_header_values
         ):
             reflected_column_series_generator = iter(reflected_column_series)
             logical_column_name = next(reflected_column_series_generator, None)
@@ -124,7 +147,7 @@ class GoogleService:
                 + reflected_raw_column_offset,
             )
             logical_sheet.logical_columns.append(logical_column)
-        return logical_sheet, sheet_dict
+        return logical_sheet, sheet_dict, reflected_body_values
 
     def create_logical_sheet(self, spreadsheet_id: str, logical_sheet: LogicalSheet):
         batch_update_requests = [
@@ -163,8 +186,12 @@ class GoogleService:
                     logical_columns=[],
                 ),
             )
-            reflected_logical_sheet, reflected_sheet_dict = self.reflect_logical_sheet(
-                spreadsheet_id=spreadsheet_id, sheet_title=logical_sheet.logical_name
+            reflected_logical_sheet, reflected_sheet_dict, _ = (
+                self.reflect_logical_sheet(
+                    spreadsheet_id=spreadsheet_id,
+                    sheet_title=logical_sheet.logical_name,
+                    should_include_body=False,
+                )
             )
 
         sheet_id = reflected_sheet_dict["properties"]["sheetId"]

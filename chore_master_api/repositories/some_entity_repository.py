@@ -1,7 +1,9 @@
 from typing import Type
 
+from chore_master_api.logical_sheets.some_entity import some_entity_logical_sheet
 from chore_master_api.models.some_entity import SomeEntity
-from chore_master_api.repositories.base_repository import BaseSheetRepository
+from modules.google_service.models.logical_sheet import LogicalSheet
+from modules.repositories.base_repository import BaseSheetRepository
 
 
 class SomeEntityRepository(BaseSheetRepository[SomeEntity]):
@@ -10,5 +12,5 @@ class SomeEntityRepository(BaseSheetRepository[SomeEntity]):
         return SomeEntity
 
     @property
-    def sheet_title(self) -> str:
-        return "some_entity"
+    def logical_sheet(self) -> LogicalSheet:
+        return some_entity_logical_sheet

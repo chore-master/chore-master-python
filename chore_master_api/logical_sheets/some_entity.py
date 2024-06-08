@@ -11,31 +11,26 @@ some_entity_logical_sheet = LogicalSheet(
         *get_base_logical_columns(),
         LogicalColumn(
             logical_name="a",
-            logical_data_type_name=LogicalDataTypeNameEnum.UUID,
-            logical_is_nullable=True,
-        ),
-        LogicalColumn(
-            logical_name="b",
             logical_data_type_name=LogicalDataTypeNameEnum.BOOLEAN,
         ),
         LogicalColumn(
-            logical_name="c",
+            logical_name="b",
             logical_data_type_name=LogicalDataTypeNameEnum.INTEGER,
         ),
         LogicalColumn(
-            logical_name="d",
+            logical_name="c",
             logical_data_type_name=LogicalDataTypeNameEnum.FLOAT,
         ),
         LogicalColumn(
-            logical_name="e",
+            logical_name="d",
             logical_data_type_name=LogicalDataTypeNameEnum.DECIMAL,
         ),
         LogicalColumn(
-            logical_name="f",
+            logical_name="e",
             logical_data_type_name=LogicalDataTypeNameEnum.STRING,
         ),
         LogicalColumn(
-            logical_name="g",
+            logical_name="f",
             logical_data_type_name=LogicalDataTypeNameEnum.DATETIME,
         ),
     ],
