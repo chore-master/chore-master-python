@@ -34,14 +34,15 @@ class GoogleService:
     def batch_update_spreadsheet_session(self, spreadsheet_id: str):
         batch_update_requests = []
         yield batch_update_requests
-        result = (
-            self._sheets_service.spreadsheets()
-            .batchUpdate(
-                spreadsheetId=spreadsheet_id,
-                body={"requests": batch_update_requests},
+        if len(batch_update_requests) > 0:
+            result = (
+                self._sheets_service.spreadsheets()
+                .batchUpdate(
+                    spreadsheetId=spreadsheet_id,
+                    body={"requests": batch_update_requests},
+                )
+                .execute()
             )
-            .execute()
-        )
 
     def find_spreadsheet_file_or_none(
         self, parent_folder_id: str, spreadsheet_name: str
@@ -161,7 +162,11 @@ class GoogleService:
                 + reflected_raw_column_offset,
             )
             logical_sheet.logical_columns.append(logical_column)
-        return logical_sheet, sheet_dict, reflected_body_values
+        return (
+            logical_sheet,
+            sheet_dict,
+            reflected_body_values[: len(logical_sheet.logical_columns)],
+        )
 
     def create_logical_sheet(self, spreadsheet_id: str, logical_sheet: LogicalSheet):
         batch_update_requests = [

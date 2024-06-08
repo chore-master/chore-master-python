@@ -179,7 +179,7 @@ class LogicalSheet(BaseModel):
 
     def match_rows(
         self, body_values: list[list], filter: dict, limit: int
-    ) -> list[dict]:
+    ) -> tuple[list[dict], list[int]]:
         filtering_logical_columns: list[LogicalColumn] = []
         non_filtering_logical_columns: list[LogicalColumn] = []
         for logical_column in self.logical_columns:
@@ -189,6 +189,7 @@ class LogicalSheet(BaseModel):
                 non_filtering_logical_columns.append(logical_column)
 
         matched_row_dicts = []
+        matched_row_indices = []
         matched_count = 0
         max_row_count = max(len(column_series) for column_series in body_values)
         for row_index in range(max_row_count):
@@ -222,7 +223,8 @@ class LogicalSheet(BaseModel):
                 )
                 row_dict[logical_column.logical_name] = py_value
             matched_row_dicts.append(row_dict)
+            matched_row_indices.append(row_index)
             limit += 1
             if matched_count >= limit:
                 break
-        return matched_row_dicts
+        return matched_row_dicts, matched_row_indices

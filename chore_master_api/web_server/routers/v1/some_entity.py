@@ -83,7 +83,7 @@ async def post_(uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work)):
 
 
 @router.get("/{some_entity_reference}", response_model=ResponseSchema)
-async def get_(
+async def get_some_entity_reference(
     some_entity_reference: Annotated[UUID, Path()],
     uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work),
 ):
@@ -94,4 +94,36 @@ async def get_(
     return ResponseSchema(
         status=StatusEnum.SUCCESS,
         data=some_entity,
+    )
+
+
+@router.delete("", response_model=ResponseSchema[None])
+async def delete_(
+    filter: Filter = Depends(get_filter),
+    uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work),
+):
+    async with uow:
+        await uow.some_entity_repository.delete_many(
+            filter=filter.model_dump(exclude_unset=True, exclude_none=True)
+        )
+        await uow.commit()
+    return ResponseSchema[None](
+        status=StatusEnum.SUCCESS,
+        data=None,
+    )
+
+
+@router.delete("/{some_entity_reference}", response_model=ResponseSchema[None])
+async def delete_some_entity_reference(
+    some_entity_reference: Annotated[UUID, Path()],
+    uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work),
+):
+    async with uow:
+        await uow.some_entity_repository.delete_many(
+            filter={"reference": some_entity_reference}, limit=1
+        )
+        await uow.commit()
+    return ResponseSchema[None](
+        status=StatusEnum.SUCCESS,
+        data=None,
     )

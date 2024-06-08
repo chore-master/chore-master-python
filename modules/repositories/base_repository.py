@@ -33,8 +33,8 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
         entity = await self._find_one(filter=filter)
         return entity
 
-    async def delete_many(self, filter: FilterType = None):
-        await self._delete_many(filter=filter)
+    async def delete_many(self, filter: FilterType = None, limit: Optional[int] = None):
+        await self._delete_many(filter=filter, limit=limit)
 
     @abc.abstractmethod
     async def _count(self, filter: FilterType = None) -> int:
@@ -58,7 +58,9 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def _delete_many(self, filter: FilterType = None):
+    async def _delete_many(
+        self, filter: FilterType = None, limit: Optional[int] = None
+    ):
         raise NotImplementedError
 
 
@@ -136,7 +138,7 @@ class BaseSheetRepository(
             )
         )
         entity_class = self.entity_class
-        matched_row_dicts = reflected_logical_sheet.match_rows(
+        matched_row_dicts, _ = reflected_logical_sheet.match_rows(
             body_values=reflected_body_values, filter=filter, limit=limit
         )
         entities = [entity_class(**row_dict) for row_dict in matched_row_dicts]
@@ -148,5 +150,36 @@ class BaseSheetRepository(
             raise ValueError("Entity not found")
         return entities[0]
 
-    async def _delete_many(self, filter: FilterType = None):
-        raise NotImplementedError
+    async def _delete_many(
+        self, filter: FilterType = None, limit: Optional[int] = None
+    ):
+        if filter is None:
+            filter = {}
+        if limit is None:
+            limit = sys.maxsize
+        reflected_logical_sheet, reflected_sheet_dict, reflected_body_values = (
+            self._google_service.reflect_logical_sheet(
+                spreadsheet_id=self._spreadsheet_id,
+                sheet_title=self.logical_sheet.logical_name,
+                should_include_body=True,
+            )
+        )
+        _, matched_row_indices = reflected_logical_sheet.match_rows(
+            body_values=reflected_body_values, filter=filter, limit=limit
+        )
+        for matched_row_index in reversed(matched_row_indices):
+            self._batch_update_requests.append(
+                {
+                    "deleteDimension": {
+                        "range": {
+                            "sheetId": reflected_sheet_dict["properties"]["sheetId"],
+                            "dimension": "ROWS",
+                            "startIndex": reflected_logical_sheet.preserved_raw_row_count
+                            + matched_row_index,
+                            "endIndex": reflected_logical_sheet.preserved_raw_row_count
+                            + matched_row_index
+                            + 1,
+                        }
+                    }
+                }
+            )
