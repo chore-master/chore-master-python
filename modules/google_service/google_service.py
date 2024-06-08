@@ -1,11 +1,22 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import Resource, build
 
+from modules.google_service.models.logical_sheet import LogicalColumn, LogicalSheet
+
 
 class GoogleService:
     spreadsheet_mime_type = "application/vnd.google-apps.spreadsheet"
+
+    @staticmethod
+    def sheet_column_name(column_index: int) -> str:
+        result = ""
+        column_index += 1
+        while column_index > 0:
+            column_index, remainder = divmod(column_index - 1, 26)
+            result = f"{chr(65 + remainder)}{result}"
+        return result
 
     def __init__(self, credentials: Credentials):
         self._credentials = credentials
@@ -14,7 +25,7 @@ class GoogleService:
             serviceName="drive", version="v3", credentials=credentials
         )
         # https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets
-        self._sheet_service: Resource = build(
+        self._sheets_service: Resource = build(
             serviceName="sheets", version="v4", credentials=credentials
         )
 
@@ -62,201 +73,303 @@ class GoogleService:
             )
         return spreadsheet_file_dict
 
-    def migrate_sheet(self):
-        pass
-
-    def _migrate_sheet(self):
+    def reflect_logical_sheet(
+        self, spreadsheet_id: str, sheet_title: str
+    ) -> Tuple[Optional[LogicalSheet], Optional[dict]]:
         spreadsheet = (
             self._sheets_service.spreadsheets()
-            .get(spreadsheetId=self._spreadsheet_id)
+            .get(spreadsheetId=spreadsheet_id)
             .execute()
         )
-        sheets = spreadsheet.get("sheets", [])
-        sheet = next(
-            (s for s in sheets if s["properties"]["title"] == self.sheet.title),
+        sheet_dicts = spreadsheet.get("sheets", [])
+        sheet_dict = next(
+            (s for s in sheet_dicts if s["properties"]["title"] == sheet_title),
             None,
         )
-        if sheet is None:
-            # create sheet
-            result = (
-                self._sheets_service.spreadsheets()
-                .batchUpdate(
-                    spreadsheetId=self._spreadsheet_id,
-                    body={
-                        "requests": [
-                            {
-                                "addSheet": {
-                                    "properties": {
-                                        "title": self.sheet.title,
-                                        "gridProperties": {
-                                            "rowCount": len(
-                                                self.preserved_row_names._fields
-                                            ),
-                                            "columnCount": len(
-                                                self.preserved_row_names._fields
-                                            ),
-                                        },
-                                    }
-                                }
-                            }
-                        ]
-                    },
-                )
-                .execute()
-            )
-            sheet = result["replies"][0]["addSheet"]
+        if sheet_dict is None:
+            return None, None
 
-        # new_dimensions = []
-        # update_dimensions = []
-        # deprecate_dimensions = []
-
-        sheet_id = sheet["properties"]["sheetId"]
-        reflected_column_count = sheet["properties"]["gridProperties"]["columnCount"]
-        batch_udpate_requests = []
-        delete_column_count = 0
-
-        # reflect sheet
+        grid_dict = sheet_dict["properties"]["gridProperties"]
+        reflected_column_count = grid_dict["columnCount"]
+        logical_sheet = LogicalSheet(logical_name=sheet_title, logical_columns=[])
         result = (
             self._sheets_service.spreadsheets()
             .values()
             .get(
-                spreadsheetId=self._spreadsheet_id,
+                spreadsheetId=spreadsheet_id,
                 majorDimension="COLUMNS",
-                range=f"{self.sheet_title}!A1:{self.column_name(reflected_column_count)}{len(self.preserved_row_names._fields)}",
+                range=f"{sheet_title}!{self.sheet_column_name(logical_sheet.preserved_raw_column_count)}1:{self.sheet_column_name(reflected_column_count - 1)}{logical_sheet.preserved_raw_row_count}",
             )
             .execute()
         )
-        field_names_set = set(self.entity_class.model_fields.keys())
-        reflected_field_names_set = set()
-        reflected_values = result.get("values", [])
-
-        # iterate over existing columns to detect differences
-        field_types = typing.get_type_hints(self.entity_class)
-        for column_index in range(reflected_column_count):
-            # delete redundant columns
-            if column_index >= len(reflected_values):
-                batch_udpate_requests.append(
-                    {
-                        "deleteDimension": {
-                            "range": {
-                                "sheetId": sheet_id,
-                                "dimension": "COLUMNS",
-                                "startIndex": column_index - delete_column_count,
-                                "endIndex": column_index - delete_column_count + 1,
-                            }
-                        }
-                    }
-                )
-                delete_column_count += 1
+        reflected_column_values = result.get("values", [])
+        for reflected_raw_column_offset, reflected_column_series in enumerate(
+            reflected_column_values
+        ):
+            reflected_column_series_generator = iter(reflected_column_series)
+            logical_column_name = next(reflected_column_series_generator, None)
+            if logical_column_name is None:
                 continue
+            logical_data_type_name = next(reflected_column_series_generator, None)
+            logical_is_nullable = next(reflected_column_series_generator, None)
+            logical_is_primary_key = next(reflected_column_series_generator, None)
+            logical_is_unique_key = next(reflected_column_series_generator, None)
+            logical_column = LogicalColumn(
+                logical_name=logical_column_name,
+                logical_data_type_name=logical_data_type_name,
+                logical_is_nullable=logical_is_nullable,
+                logical_is_primary_key=logical_is_primary_key,
+                logical_is_unique_key=logical_is_unique_key,
+                raw_index=logical_sheet.preserved_raw_column_count
+                + reflected_raw_column_offset,
+            )
+            logical_sheet.logical_columns.append(logical_column)
+        return logical_sheet, sheet_dict
 
-            # delete redundant columns
-            series = reflected_values[column_index]
-            if len(series) != len(self.preserved_row_names._fields):
-                batch_udpate_requests.append(
-                    {
-                        "deleteDimension": {
-                            "range": {
-                                "sheetId": sheet_id,
-                                "dimension": "COLUMNS",
-                                "startIndex": column_index - delete_column_count,
-                                "endIndex": column_index - delete_column_count + 1,
-                            }
-                        }
+    def create_logical_sheet(self, spreadsheet_id: str, logical_sheet: LogicalSheet):
+        batch_update_requests = [
+            {
+                "addSheet": {
+                    "properties": {
+                        "title": logical_sheet.logical_name,
+                        "gridProperties": {
+                            "rowCount": logical_sheet.preserved_raw_row_count,
+                            "columnCount": logical_sheet.preserved_raw_column_count,
+                        },
                     }
-                )
-                delete_column_count += 1
-                continue
-
-            # delete deprecated columns
-            reflected_field_name, reflected_field_type_name = series
-            reflected_field_names_set.add(reflected_field_name)
-            if reflected_field_name not in self.entity_class.model_fields:
-                batch_udpate_requests.append(
-                    {
-                        "deleteDimension": {
-                            "range": {
-                                "sheetId": sheet_id,
-                                "dimension": "COLUMNS",
-                                "startIndex": column_index - delete_column_count,
-                                "endIndex": column_index - delete_column_count + 1,
-                            }
-                        }
-                    }
-                )
-                delete_column_count += 1
-                continue
-
-            # update columns
-            field_info = self.entity_class.model_fields[reflected_field_name]
-            field_type_name = field_info.annotation.__name__
-            if reflected_field_type_name != field_type_name:
-                batch_udpate_requests.append(
-                    {
-                        "updateCells": {
-                            "range": {
-                                "sheetId": sheet_id,
-                                "startRowIndex": 1,
-                                "startColumnIndex": len(
-                                    self.preserved_column_names._fields
-                                )
-                                + column_index,
-                            },
-                            "rows": [
-                                {
-                                    "values": [
-                                        {
-                                            "userEnteredValue": {
-                                                "stringValue": field_type_name
-                                            }
-                                        }
-                                    ]
-                                },
-                            ],
-                            "fields": "userEnteredValue",
-                        }
-                    }
-                )
-
-        # create columns
-        new_field_names_set = field_names_set.difference(reflected_field_names_set)
-        insert_column_start_index = (
-            len(self.preserved_column_names._fields)
-            + reflected_column_count
-            - delete_column_count
+                }
+            }
+        ]
+        result = (
+            self._sheets_service.spreadsheets()
+            .batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={"requests": batch_update_requests},
+            )
+            .execute()
         )
-        new_columns_count = len(new_field_names_set)
-        if new_columns_count > 0:
+        sheet_dict = result["replies"][0]["addSheet"]
+        return sheet_dict
+
+    def migrate_logical_sheet(self, spreadsheet_id: str, logical_sheet: LogicalSheet):
+        reflected_logical_sheet, reflected_sheet_dict = self.reflect_logical_sheet(
+            spreadsheet_id=spreadsheet_id, sheet_title=logical_sheet.logical_name
+        )
+        if reflected_logical_sheet is None or reflected_sheet_dict is None:
+            self.create_logical_sheet(
+                spreadsheet_id=spreadsheet_id,
+                logical_sheet=LogicalSheet(
+                    logical_name=logical_sheet.logical_name,
+                    logical_columns=[],
+                ),
+            )
+            reflected_logical_sheet, reflected_sheet_dict = self.reflect_logical_sheet(
+                spreadsheet_id=spreadsheet_id, sheet_title=logical_sheet.logical_name
+            )
+
+        sheet_id = reflected_sheet_dict["properties"]["sheetId"]
+
+        column_name_to_reflected_logical_sheet_column_map = {
+            c.logical_name: c for c in reflected_logical_sheet.logical_columns
+        }
+        reflected_logical_sheet_column_names_set = set(
+            c.logical_name for c in reflected_logical_sheet.logical_columns
+        )
+
+        column_name_to_logical_sheet_column_map = {
+            c.logical_name: c for c in logical_sheet.logical_columns
+        }
+        logical_sheet_column_names_set = set(
+            c.logical_name for c in logical_sheet.logical_columns
+        )
+
+        updatable_logical_sheet_column_names_set = (
+            reflected_logical_sheet_column_names_set & logical_sheet_column_names_set
+        )
+        removable_logical_sheet_column_names_set = (
+            reflected_logical_sheet_column_names_set - logical_sheet_column_names_set
+        )
+        insertable_logical_sheet_column_names_set = (
+            logical_sheet_column_names_set - reflected_logical_sheet_column_names_set
+        )
+
+        batch_udpate_requests = []
+
+        # ensure preserved columns
+        reflected_raw_sheet_column_count = reflected_sheet_dict["properties"][
+            "gridProperties"
+        ]["columnCount"]
+        if reflected_raw_sheet_column_count < logical_sheet.preserved_raw_column_count:
             batch_udpate_requests.append(
                 {
                     "insertDimension": {
                         "range": {
                             "sheetId": sheet_id,
                             "dimension": "COLUMNS",
-                            "startIndex": insert_column_start_index,
-                            "endIndex": insert_column_start_index + new_columns_count,
+                            "startIndex": reflected_raw_sheet_column_count,
+                            "endIndex": logical_sheet.preserved_raw_column_count,
                         },
-                        "inheritFromBefore": insert_column_start_index > 0,
+                        "inheritFromBefore": True,
                     }
                 }
             )
 
-            for i, field_name in enumerate(new_field_names_set):
-                field_info = self.entity_class.model_fields[field_name]
+        # ensure preserved rows
+        reflected_raw_sheet_row_count = reflected_sheet_dict["properties"][
+            "gridProperties"
+        ]["rowCount"]
+        if reflected_raw_sheet_row_count < logical_sheet.preserved_raw_row_count:
+            batch_udpate_requests.append(
+                {
+                    "insertDimension": {
+                        "range": {
+                            "sheetId": sheet_id,
+                            "dimension": "ROWS",
+                            "startIndex": reflected_raw_sheet_row_count,
+                            "endIndex": logical_sheet.preserved_raw_row_count,
+                        },
+                        "inheritFromBefore": True,
+                    }
+                }
+            )
+
+        # update logical columns
+        for logical_column_name in updatable_logical_sheet_column_names_set:
+            reflected_logical_sheet_column = (
+                column_name_to_reflected_logical_sheet_column_map[logical_column_name]
+            )
+            logical_sheet_column = column_name_to_logical_sheet_column_map[
+                logical_column_name
+            ]
+            batch_udpate_requests.append(
+                {
+                    "updateCells": {
+                        "range": {
+                            "sheetId": sheet_id,
+                            "startRowIndex": 0,
+                            "startColumnIndex": reflected_logical_sheet_column.raw_index,
+                            "endColumnIndex": reflected_logical_sheet_column.raw_index
+                            + 1,
+                        },
+                        "rows": [
+                            {
+                                "values": [
+                                    {
+                                        "userEnteredValue": {
+                                            "stringValue": logical_sheet_column.logical_name
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "values": [
+                                    {
+                                        "userEnteredValue": {
+                                            "stringValue": logical_sheet_column.logical_data_type_name
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "values": [
+                                    {
+                                        "userEnteredValue": {
+                                            "stringValue": f"{logical_sheet_column.logical_is_nullable}"
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "values": [
+                                    {
+                                        "userEnteredValue": {
+                                            "stringValue": f"{logical_sheet_column.logical_is_primary_key}"
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "values": [
+                                    {
+                                        "userEnteredValue": {
+                                            "stringValue": f"{logical_sheet_column.logical_is_unique_key}"
+                                        }
+                                    }
+                                ]
+                            },
+                        ],
+                        "fields": "userEnteredValue",
+                    }
+                }
+            )
+
+        # remove logical columns
+        removed_raw_column_count = len(removable_logical_sheet_column_names_set)
+        for logical_column_name in removable_logical_sheet_column_names_set:
+            reflected_logical_sheet_column = (
+                column_name_to_reflected_logical_sheet_column_map[logical_column_name]
+            )
+            batch_udpate_requests.append(
+                {
+                    "deleteDimension": {
+                        "range": {
+                            "sheetId": sheet_id,
+                            "dimension": "COLUMNS",
+                            "startIndex": reflected_logical_sheet_column.raw_index,
+                            "endIndex": reflected_logical_sheet_column.raw_index + 1,
+                        }
+                    }
+                }
+            )
+
+        # insert logical columns
+        insertable_logical_sheet_columns_count = len(
+            insertable_logical_sheet_column_names_set
+        )
+        if insertable_logical_sheet_columns_count > 0:
+            insert_raw_column_index = (
+                logical_sheet.preserved_raw_column_count
+                + len(reflected_logical_sheet.logical_columns)
+                - removed_raw_column_count
+            )
+            batch_udpate_requests.append(
+                {
+                    "insertDimension": {
+                        "range": {
+                            "sheetId": sheet_id,
+                            "dimension": "COLUMNS",
+                            "startIndex": insert_raw_column_index,
+                            "endIndex": insert_raw_column_index
+                            + insertable_logical_sheet_columns_count,
+                        },
+                        "inheritFromBefore": insert_raw_column_index > 0,
+                    }
+                }
+            )
+            for column_index_offset, logical_column_name in enumerate(
+                insertable_logical_sheet_column_names_set
+            ):
+                logical_sheet_column = column_name_to_logical_sheet_column_map[
+                    logical_column_name
+                ]
                 batch_udpate_requests.append(
                     {
                         "updateCells": {
                             "range": {
                                 "sheetId": sheet_id,
                                 "startRowIndex": 0,
-                                "startColumnIndex": insert_column_start_index + i,
+                                "startColumnIndex": insert_raw_column_index
+                                + column_index_offset,
+                                "endColumnIndex": insert_raw_column_index
+                                + column_index_offset
+                                + 1,
                             },
                             "rows": [
                                 {
                                     "values": [
                                         {
                                             "userEnteredValue": {
-                                                "stringValue": field_name
+                                                "stringValue": logical_sheet_column.logical_name
                                             }
                                         }
                                     ]
@@ -265,7 +378,34 @@ class GoogleService:
                                     "values": [
                                         {
                                             "userEnteredValue": {
-                                                "stringValue": field_info.annotation.__name__
+                                                "stringValue": logical_sheet_column.logical_data_type_name
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "values": [
+                                        {
+                                            "userEnteredValue": {
+                                                "stringValue": f"{logical_sheet_column.logical_is_nullable}"
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "values": [
+                                        {
+                                            "userEnteredValue": {
+                                                "stringValue": f"{logical_sheet_column.logical_is_primary_key}"
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "values": [
+                                        {
+                                            "userEnteredValue": {
+                                                "stringValue": f"{logical_sheet_column.logical_is_unique_key}"
                                             }
                                         }
                                     ]
@@ -280,11 +420,8 @@ class GoogleService:
             result = (
                 self._sheets_service.spreadsheets()
                 .batchUpdate(
-                    spreadsheetId=self._spreadsheet_id,
+                    spreadsheetId=spreadsheet_id,
                     body={"requests": batch_udpate_requests},
                 )
                 .execute()
             )
-            print("Migration done", batch_udpate_requests, result)
-        else:
-            print("Migration done: no difference")

@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import abc
 
-from googleapiclient.discovery import Resource
-
 from chore_master_api.repositories.some_entity_repository import SomeEntityRepository
+from modules.google_service.google_service import GoogleService
 
 
 class AbstractUnitOfWork(abc.ABC):
@@ -32,16 +31,16 @@ class AbstractUnitOfWork(abc.ABC):
 class SpreadsheetUnitOfWork(AbstractUnitOfWork):
     def __init__(
         self,
-        sheets_service: Resource,
+        google_service: GoogleService,
         some_entity_spreadsheet_id: str,
     ):
-        self._sheets_service = sheets_service
+        self._google_service = google_service
         self._some_entity_spreadsheet_id = some_entity_spreadsheet_id
 
     async def __aenter__(self) -> SpreadsheetUnitOfWork:
         await super().__aenter__()
         self.some_entity_repository = SomeEntityRepository(
-            self._sheets_service,
+            self._google_service,
             self._some_entity_spreadsheet_id,
         )
         return self

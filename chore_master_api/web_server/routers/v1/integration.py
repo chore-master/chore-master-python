@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, RootModel
 
+from chore_master_api.logical_sheets.some_entity import some_entity_logical_sheet
 from chore_master_api.web_server.dependencies.auth import get_current_end_user
 from chore_master_api.web_server.dependencies.database import get_chore_master_api_db
 from chore_master_api.web_server.dependencies.google_service import get_google_service
@@ -41,6 +42,10 @@ async def patch_google(
         parent_folder_id=update_google.drive_root_folder_id,
         spreadsheet_name="some_entity",
     )
+    some_entity_spreadsheet_id = some_entity_spreadsheet_file_dict["id"]
+    google_service.migrate_logical_sheet(
+        some_entity_spreadsheet_id, some_entity_logical_sheet
+    )
     end_user_collection = chore_master_api_db.get_collection("end_user")
     end_user_collection.update_one(
         filter={"reference": current_end_user["reference"]},
@@ -52,9 +57,7 @@ async def patch_google(
                         "root_folder_id": update_google.drive_root_folder_id,
                     },
                     "spreadsheet": {
-                        "some_entity_spreadsheet_id": some_entity_spreadsheet_file_dict[
-                            "id"
-                        ],
+                        "some_entity_spreadsheet_id": some_entity_spreadsheet_id,
                     },
                 },
             }
