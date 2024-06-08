@@ -32,25 +32,28 @@ class SpreadsheetUnitOfWork(AbstractUnitOfWork):
     def __init__(
         self,
         google_service: GoogleService,
-        some_entity_spreadsheet_id: str,
+        spreadsheet_id: str,
     ):
         self._google_service = google_service
-        self._some_entity_spreadsheet_id = some_entity_spreadsheet_id
+        self._spreadsheet_id = spreadsheet_id
+        self._batch_update_spreadsheet_session = (
+            self._google_service.batch_update_spreadsheet_session(self._spreadsheet_id)
+        )
 
     async def __aenter__(self) -> SpreadsheetUnitOfWork:
         await super().__aenter__()
+        batch_update_requests = self._batch_update_spreadsheet_session.__enter__()
         self.some_entity_repository = SomeEntityRepository(
-            self._google_service,
-            self._some_entity_spreadsheet_id,
+            self._google_service, self._spreadsheet_id, batch_update_requests
         )
         return self
 
     async def __aexit__(self, *args):
-        await super().__aexit__(*args)
         self.some_entity_repository = None
+        await super().__aexit__(*args)
 
     async def _commit(self):
-        pass
+        self._batch_update_spreadsheet_session.__exit__(None, None, None)
 
     async def _rollback(self):
         pass

@@ -1,6 +1,6 @@
 import abc
 import sys
-from typing import Generic, List, Optional, Type, TypeVar
+from typing import Generic, Optional, Type, TypeVar
 
 from chore_master_api.models.base import Entity
 from modules.google_service.google_service import GoogleService
@@ -25,7 +25,7 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
 
     async def find_many(
         self, filter: FilterType = None, limit: Optional[int] = None
-    ) -> List[ABSTRACT_ENTITY_TYPE]:
+    ) -> list[ABSTRACT_ENTITY_TYPE]:
         entities = await self._find_many(filter=filter, limit=limit)
         return entities
 
@@ -50,7 +50,7 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
     @abc.abstractmethod
     async def _find_many(
         self, filter: FilterType = None, limit: Optional[int] = None
-    ) -> List[ABSTRACT_ENTITY_TYPE]:
+    ) -> list[ABSTRACT_ENTITY_TYPE]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -65,10 +65,16 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
 class BaseSheetRepository(
     Generic[ENTITY_TYPE], BaseRepository[ENTITY_TYPE], metaclass=abc.ABCMeta
 ):
-    def __init__(self, google_service: GoogleService, spreadsheet_id: str):
+    def __init__(
+        self,
+        google_service: GoogleService,
+        spreadsheet_id: str,
+        batch_update_requests: list[dict] = None,
+    ):
         super().__init__()
         self._google_service = google_service
         self._spreadsheet_id = spreadsheet_id
+        self._batch_update_requests = batch_update_requests
 
     @property
     @abc.abstractmethod
@@ -91,33 +97,33 @@ class BaseSheetRepository(
                 should_include_body=False,
             )
         )
-        grid_dict = reflected_sheet_dict["properties"]["gridProperties"]
-        reflected_column_count = grid_dict["columnCount"]
-        reflected_row_count = grid_dict["rowCount"]
-        left_column_name = self._google_service.sheet_column_name(
-            reflected_logical_sheet.preserved_raw_column_count
-        )
-        right_column_name = self._google_service.sheet_column_name(
-            reflected_column_count - 1
-        )
-        body_range = f"{self.logical_sheet.logical_name}!{left_column_name}{reflected_logical_sheet.preserved_raw_row_count + 1}:{right_column_name}{reflected_row_count}"
-        result = (
-            self._google_service._sheets_service.spreadsheets()
-            .values()
-            .append(
-                spreadsheetId=self._spreadsheet_id,
-                range=body_range,
-                valueInputOption="RAW",
-                body={
-                    "values": reflected_logical_sheet.raw_rows_from_entities(entities)
-                },
-            )
-            .execute()
+        placeholder_row_values = [
+            {} for _ in range(reflected_logical_sheet.preserved_raw_column_count)
+        ]
+        self._batch_update_requests.append(
+            {
+                "appendCells": {
+                    "sheetId": reflected_sheet_dict["properties"]["sheetId"],
+                    "rows": [
+                        {
+                            "values": placeholder_row_values
+                            + [
+                                {"userEnteredValue": {"stringValue": cell_value}}
+                                for cell_value in row_values
+                            ]
+                        }
+                        for row_values in reflected_logical_sheet.raw_rows_from_entities(
+                            entities
+                        )
+                    ],
+                    "fields": "userEnteredValue",
+                }
+            }
         )
 
     async def _find_many(
         self, filter: FilterType = None, limit: Optional[int] = None
-    ) -> List[ABSTRACT_ENTITY_TYPE]:
+    ) -> list[ABSTRACT_ENTITY_TYPE]:
         if filter is None:
             filter = {}
         if limit is None:

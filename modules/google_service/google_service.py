@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from typing import Optional, Tuple
 
 from google.oauth2.credentials import Credentials
@@ -27,6 +28,19 @@ class GoogleService:
         # https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets
         self._sheets_service: Resource = build(
             serviceName="sheets", version="v4", credentials=credentials
+        )
+
+    @contextmanager
+    def batch_update_spreadsheet_session(self, spreadsheet_id: str):
+        batch_update_requests = []
+        yield batch_update_requests
+        result = (
+            self._sheets_service.spreadsheets()
+            .batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={"requests": batch_update_requests},
+            )
+            .execute()
         )
 
     def find_spreadsheet_file_or_none(
