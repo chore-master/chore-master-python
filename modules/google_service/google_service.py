@@ -303,9 +303,17 @@ class GoogleService:
                 }
             )
 
-        # remove logical columns
+        # remove logical columns from right to left (to prevent index shift)
         removed_raw_column_count = len(removable_logical_sheet_column_names_set)
-        for logical_column_name in removable_logical_sheet_column_names_set:
+        sorted_removable_logical_sheet_column_names = sorted(
+            removable_logical_sheet_column_names_set,
+            key=lambda c: column_name_to_reflected_logical_sheet_column_map[
+                c
+            ].raw_index,
+            reverse=True,
+        )
+
+        for logical_column_name in sorted_removable_logical_sheet_column_names:
             reflected_logical_sheet_column = (
                 column_name_to_reflected_logical_sheet_column_map[logical_column_name]
             )
