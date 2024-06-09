@@ -22,7 +22,19 @@ get_uow = get_spreadsheet_unit_of_work_factory(
 )
 
 
-class Filter(BaseModel):
+class CreateSomeEntityRequest(BaseModel):
+    a: Optional[bool] = None
+    b: Optional[int] = None
+    c: Optional[float] = None
+    d: Optional[Decimal] = None
+    e: Optional[str] = None
+    f: Optional[datetime] = None
+    g: Optional[str] = None
+    h: Optional[int] = None
+    i: Optional[dict] = None
+
+
+class SomeEntityFilter(BaseModel):
     reference: Optional[UUID] = None
     a: Optional[bool] = None
     b: Optional[int] = None
@@ -35,7 +47,7 @@ class Filter(BaseModel):
     i: Optional[dict] = None
 
 
-async def get_filter(
+async def get_some_entity_filter(
     reference: Annotated[Optional[UUID], Query()] = None,
     a: Annotated[Optional[bool], Query()] = None,
     b: Annotated[Optional[int], Query()] = None,
@@ -46,13 +58,15 @@ async def get_filter(
     g: Annotated[Optional[str], Query()] = None,
     h: Annotated[Optional[int], Query()] = None,
     i: Annotated[Optional[Json[Any]], Query()] = None,
-) -> Filter:
-    return Filter(reference=reference, a=a, b=b, c=c, d=d, e=e, f=f, g=g, h=h, i=i)
+) -> SomeEntityFilter:
+    return SomeEntityFilter(
+        reference=reference, a=a, b=b, c=c, d=d, e=e, f=f, g=g, h=h, i=i
+    )
 
 
 @router.get("/some_entities", response_model=ResponseSchema[list])
 async def get_some_entities(
-    filter: Filter = Depends(get_filter),
+    filter: SomeEntityFilter = Depends(get_some_entity_filter),
     uow: SomeModuleSpreadsheetUnitOfWork = Depends(get_uow),
 ):
     async with uow:
@@ -67,19 +81,22 @@ async def get_some_entities(
 
 @router.post("/some_entities", response_model=ResponseSchema[None])
 async def post_some_entities(
+    create_some_entity_request: CreateSomeEntityRequest,
     uow: SomeModuleSpreadsheetUnitOfWork = Depends(get_uow),
 ):
+    some_entity_dict = {
+        "a": True,
+        "b": 1,
+        "c": 1.5,
+        "d": Decimal("9.99"),
+        "e": "some string",
+        "f": datetime.now(),
+        "g": "another string",
+        "i": {"key1": 1, "key2": "value2", "key3": [1, 2, 3]},
+    }
+    some_entity_dict.update(create_some_entity_request.model_dump(exclude_unset=True))
     async with uow:
-        some_entity = SomeEntity(
-            a=True,
-            b=1,
-            c=1.5,
-            d=Decimal("9.99"),
-            e="some string",
-            f=datetime.now(),
-            g="another string",
-            i={"key1": 1, "key2": "value2", "key3": [1, 2, 3]},
-        )
+        some_entity = SomeEntity(**some_entity_dict)
         await uow.some_entity_repository.insert_one(some_entity)
         await uow.commit()
     return ResponseSchema[None](
@@ -105,7 +122,7 @@ async def get_some_entities_some_entity_reference(
 
 @router.delete("/some_entities", response_model=ResponseSchema[None])
 async def delete_some_entities(
-    filter: Filter = Depends(get_filter),
+    filter: SomeEntityFilter = Depends(get_some_entity_filter),
     uow: SomeModuleSpreadsheetUnitOfWork = Depends(get_uow),
 ):
     async with uow:
