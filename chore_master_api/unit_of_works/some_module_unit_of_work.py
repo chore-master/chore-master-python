@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from chore_master_api.repositories.some_module.some_entity_repository import (
-    SomeEntityRepository,
-)
+from chore_master_api.repositories.some_module import SomeEntityRepository
 from modules.unit_of_works.base_spreadsheet_unit_of_work import (
     BaseSpreadsheetUnitOfWork,
 )
