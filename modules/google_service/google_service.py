@@ -239,185 +239,69 @@ class GoogleService:
             logical_sheet_column_names_set - reflected_logical_sheet_column_names_set
         )
 
-        batch_udpate_requests = []
-
-        # ensure preserved columns
-        reflected_raw_sheet_column_count = reflected_sheet_dict["properties"][
-            "gridProperties"
-        ]["columnCount"]
-        if reflected_raw_sheet_column_count < logical_sheet.preserved_raw_column_count:
-            batch_udpate_requests.append(
-                {
-                    "insertDimension": {
-                        "range": {
-                            "sheetId": sheet_id,
-                            "dimension": "COLUMNS",
-                            "startIndex": reflected_raw_sheet_column_count,
-                            "endIndex": logical_sheet.preserved_raw_column_count,
-                        },
-                        "inheritFromBefore": True,
-                    }
-                }
-            )
-
-        # ensure preserved rows
-        reflected_raw_sheet_row_count = reflected_sheet_dict["properties"][
-            "gridProperties"
-        ]["rowCount"]
-        if reflected_raw_sheet_row_count < logical_sheet.preserved_raw_row_count:
-            batch_udpate_requests.append(
-                {
-                    "insertDimension": {
-                        "range": {
-                            "sheetId": sheet_id,
-                            "dimension": "ROWS",
-                            "startIndex": reflected_raw_sheet_row_count,
-                            "endIndex": logical_sheet.preserved_raw_row_count,
-                        },
-                        "inheritFromBefore": True,
-                    }
-                }
-            )
-
-        # update logical columns
-        for logical_column_name in updatable_logical_sheet_column_names_set:
-            reflected_logical_sheet_column = (
-                column_name_to_reflected_logical_sheet_column_map[logical_column_name]
-            )
-            logical_sheet_column = column_name_to_logical_sheet_column_map[
-                logical_column_name
-            ]
-            batch_udpate_requests.append(
-                {
-                    "updateCells": {
-                        "range": {
-                            "sheetId": sheet_id,
-                            "startRowIndex": 0,
-                            "endRowIndex": logical_sheet.preserved_raw_row_count,
-                            "startColumnIndex": reflected_logical_sheet_column.raw_index,
-                            "endColumnIndex": reflected_logical_sheet_column.raw_index
-                            + 1,
-                        },
-                        "rows": [
-                            {
-                                "values": [
-                                    {
-                                        "userEnteredValue": {
-                                            "stringValue": logical_sheet_column.logical_name
-                                        }
-                                    }
-                                ]
+        with self.batch_update_spreadsheet_session(
+            spreadsheet_id
+        ) as batch_update_requests:
+            # ensure preserved columns
+            reflected_raw_sheet_column_count = reflected_sheet_dict["properties"][
+                "gridProperties"
+            ]["columnCount"]
+            if (
+                reflected_raw_sheet_column_count
+                < logical_sheet.preserved_raw_column_count
+            ):
+                batch_update_requests.append(
+                    {
+                        "insertDimension": {
+                            "range": {
+                                "sheetId": sheet_id,
+                                "dimension": "COLUMNS",
+                                "startIndex": reflected_raw_sheet_column_count,
+                                "endIndex": logical_sheet.preserved_raw_column_count,
                             },
-                            {
-                                "values": [
-                                    {
-                                        "userEnteredValue": {
-                                            "stringValue": logical_sheet_column.logical_data_type_name
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                "values": [
-                                    {
-                                        "userEnteredValue": {
-                                            "stringValue": f"{logical_sheet_column.logical_is_nullable}"
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                "values": [
-                                    {
-                                        "userEnteredValue": {
-                                            "stringValue": f"{logical_sheet_column.logical_is_primary_key}"
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                "values": [
-                                    {
-                                        "userEnteredValue": {
-                                            "stringValue": f"{logical_sheet_column.logical_is_unique_key}"
-                                        }
-                                    }
-                                ]
-                            },
-                        ],
-                        "fields": "userEnteredValue",
-                    }
-                }
-            )
-
-        # remove logical columns from right to left (to prevent index shift)
-        removed_raw_column_count = len(removable_logical_sheet_column_names_set)
-        sorted_removable_logical_sheet_column_names = sorted(
-            removable_logical_sheet_column_names_set,
-            key=lambda c: column_name_to_reflected_logical_sheet_column_map[
-                c
-            ].raw_index,
-            reverse=True,
-        )
-
-        for logical_column_name in sorted_removable_logical_sheet_column_names:
-            reflected_logical_sheet_column = (
-                column_name_to_reflected_logical_sheet_column_map[logical_column_name]
-            )
-            batch_udpate_requests.append(
-                {
-                    "deleteDimension": {
-                        "range": {
-                            "sheetId": sheet_id,
-                            "dimension": "COLUMNS",
-                            "startIndex": reflected_logical_sheet_column.raw_index,
-                            "endIndex": reflected_logical_sheet_column.raw_index + 1,
+                            "inheritFromBefore": True,
                         }
                     }
-                }
-            )
+                )
 
-        # insert logical columns
-        insertable_logical_sheet_columns_count = len(
-            insertable_logical_sheet_column_names_set
-        )
-        if insertable_logical_sheet_columns_count > 0:
-            insert_raw_column_index = (
-                logical_sheet.preserved_raw_column_count
-                + len(reflected_logical_sheet.logical_columns)
-                - removed_raw_column_count
-            )
-            batch_udpate_requests.append(
-                {
-                    "insertDimension": {
-                        "range": {
-                            "sheetId": sheet_id,
-                            "dimension": "COLUMNS",
-                            "startIndex": insert_raw_column_index,
-                            "endIndex": insert_raw_column_index
-                            + insertable_logical_sheet_columns_count,
-                        },
-                        "inheritFromBefore": insert_raw_column_index > 0,
+            # ensure preserved rows
+            reflected_raw_sheet_row_count = reflected_sheet_dict["properties"][
+                "gridProperties"
+            ]["rowCount"]
+            if reflected_raw_sheet_row_count < logical_sheet.preserved_raw_row_count:
+                batch_update_requests.append(
+                    {
+                        "insertDimension": {
+                            "range": {
+                                "sheetId": sheet_id,
+                                "dimension": "ROWS",
+                                "startIndex": reflected_raw_sheet_row_count,
+                                "endIndex": logical_sheet.preserved_raw_row_count,
+                            },
+                            "inheritFromBefore": True,
+                        }
                     }
-                }
-            )
-            for column_index_offset, logical_column_name in enumerate(
-                insertable_logical_sheet_column_names_set
-            ):
+                )
+
+            # update logical columns
+            for logical_column_name in updatable_logical_sheet_column_names_set:
+                reflected_logical_sheet_column = (
+                    column_name_to_reflected_logical_sheet_column_map[
+                        logical_column_name
+                    ]
+                )
                 logical_sheet_column = column_name_to_logical_sheet_column_map[
                     logical_column_name
                 ]
-                batch_udpate_requests.append(
+                batch_update_requests.append(
                     {
                         "updateCells": {
                             "range": {
                                 "sheetId": sheet_id,
                                 "startRowIndex": 0,
                                 "endRowIndex": logical_sheet.preserved_raw_row_count,
-                                "startColumnIndex": insert_raw_column_index
-                                + column_index_offset,
-                                "endColumnIndex": insert_raw_column_index
-                                + column_index_offset
+                                "startColumnIndex": reflected_logical_sheet_column.raw_index,
+                                "endColumnIndex": reflected_logical_sheet_column.raw_index
                                 + 1,
                             },
                             "rows": [
@@ -472,12 +356,127 @@ class GoogleService:
                     }
                 )
 
-        if len(batch_udpate_requests) > 0:
-            result = (
-                self._sheets_service.spreadsheets()
-                .batchUpdate(
-                    spreadsheetId=spreadsheet_id,
-                    body={"requests": batch_udpate_requests},
-                )
-                .execute()
+            # remove logical columns from right to left (to prevent index shift)
+            removed_raw_column_count = len(removable_logical_sheet_column_names_set)
+            sorted_removable_logical_sheet_column_names = sorted(
+                removable_logical_sheet_column_names_set,
+                key=lambda c: column_name_to_reflected_logical_sheet_column_map[
+                    c
+                ].raw_index,
+                reverse=True,
             )
+
+            for logical_column_name in sorted_removable_logical_sheet_column_names:
+                reflected_logical_sheet_column = (
+                    column_name_to_reflected_logical_sheet_column_map[
+                        logical_column_name
+                    ]
+                )
+                batch_update_requests.append(
+                    {
+                        "deleteDimension": {
+                            "range": {
+                                "sheetId": sheet_id,
+                                "dimension": "COLUMNS",
+                                "startIndex": reflected_logical_sheet_column.raw_index,
+                                "endIndex": reflected_logical_sheet_column.raw_index
+                                + 1,
+                            }
+                        }
+                    }
+                )
+
+            # insert logical columns
+            insertable_logical_sheet_columns_count = len(
+                insertable_logical_sheet_column_names_set
+            )
+            if insertable_logical_sheet_columns_count > 0:
+                insert_raw_column_index = (
+                    logical_sheet.preserved_raw_column_count
+                    + len(reflected_logical_sheet.logical_columns)
+                    - removed_raw_column_count
+                )
+                batch_update_requests.append(
+                    {
+                        "insertDimension": {
+                            "range": {
+                                "sheetId": sheet_id,
+                                "dimension": "COLUMNS",
+                                "startIndex": insert_raw_column_index,
+                                "endIndex": insert_raw_column_index
+                                + insertable_logical_sheet_columns_count,
+                            },
+                            "inheritFromBefore": insert_raw_column_index > 0,
+                        }
+                    }
+                )
+                for column_index_offset, logical_column_name in enumerate(
+                    insertable_logical_sheet_column_names_set
+                ):
+                    logical_sheet_column = column_name_to_logical_sheet_column_map[
+                        logical_column_name
+                    ]
+                    batch_update_requests.append(
+                        {
+                            "updateCells": {
+                                "range": {
+                                    "sheetId": sheet_id,
+                                    "startRowIndex": 0,
+                                    "endRowIndex": logical_sheet.preserved_raw_row_count,
+                                    "startColumnIndex": insert_raw_column_index
+                                    + column_index_offset,
+                                    "endColumnIndex": insert_raw_column_index
+                                    + column_index_offset
+                                    + 1,
+                                },
+                                "rows": [
+                                    {
+                                        "values": [
+                                            {
+                                                "userEnteredValue": {
+                                                    "stringValue": logical_sheet_column.logical_name
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "values": [
+                                            {
+                                                "userEnteredValue": {
+                                                    "stringValue": logical_sheet_column.logical_data_type_name
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "values": [
+                                            {
+                                                "userEnteredValue": {
+                                                    "stringValue": f"{logical_sheet_column.logical_is_nullable}"
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "values": [
+                                            {
+                                                "userEnteredValue": {
+                                                    "stringValue": f"{logical_sheet_column.logical_is_primary_key}"
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "values": [
+                                            {
+                                                "userEnteredValue": {
+                                                    "stringValue": f"{logical_sheet_column.logical_is_unique_key}"
+                                                }
+                                            }
+                                        ]
+                                    },
+                                ],
+                                "fields": "userEnteredValue",
+                            }
+                        }
+                    )

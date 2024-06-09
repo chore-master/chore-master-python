@@ -99,17 +99,37 @@ class BaseSheetRepository(
                 should_include_body=False,
             )
         )
-        placeholder_row_values = [
-            {} for _ in range(reflected_logical_sheet.preserved_raw_column_count)
-        ]
+
+        # append to the start of the sheet
         self._batch_update_requests.append(
             {
-                "appendCells": {
-                    "sheetId": reflected_sheet_dict["properties"]["sheetId"],
+                "insertDimension": {
+                    "range": {
+                        "sheetId": reflected_sheet_dict["properties"]["sheetId"],
+                        "dimension": "ROWS",
+                        "startIndex": reflected_logical_sheet.preserved_raw_row_count,
+                        "endIndex": reflected_logical_sheet.preserved_raw_row_count
+                        + len(entities),
+                    },
+                    "inheritFromBefore": True,
+                }
+            }
+        )
+        self._batch_update_requests.append(
+            {
+                "updateCells": {
+                    "range": {
+                        "sheetId": reflected_sheet_dict["properties"]["sheetId"],
+                        "startRowIndex": reflected_logical_sheet.preserved_raw_row_count,
+                        "endRowIndex": reflected_logical_sheet.preserved_raw_row_count
+                        + len(entities),
+                        "startColumnIndex": reflected_logical_sheet.preserved_raw_column_count,
+                        "endColumnIndex": reflected_logical_sheet.preserved_raw_column_count
+                        + len(reflected_logical_sheet.logical_columns),
+                    },
                     "rows": [
                         {
-                            "values": placeholder_row_values
-                            + [
+                            "values": [
                                 {"userEnteredValue": {"stringValue": cell_value}}
                                 for cell_value in row_values
                             ]
@@ -122,6 +142,31 @@ class BaseSheetRepository(
                 }
             }
         )
+
+        # append to the end of the sheet
+        # placeholder_row_values = [
+        #     {} for _ in range(reflected_logical_sheet.preserved_raw_column_count)
+        # ]
+        # self._batch_update_requests.append(
+        #     {
+        #         "appendCells": {
+        #             "sheetId": reflected_sheet_dict["properties"]["sheetId"],
+        #             "rows": [
+        #                 {
+        #                     "values": placeholder_row_values
+        #                     + [
+        #                         {"userEnteredValue": {"stringValue": cell_value}}
+        #                         for cell_value in row_values
+        #                     ]
+        #                 }
+        #                 for row_values in reflected_logical_sheet.raw_rows_from_entities(
+        #                     entities
+        #                 )
+        #             ],
+        #             "fields": "userEnteredValue",
+        #         }
+        #     }
+        # )
 
     async def _find_many(
         self, filter: FilterType = None, limit: Optional[int] = None
