@@ -38,6 +38,14 @@ class LogicalColumn(BaseModel):
     raw_index: Optional[int] = None
 
     @model_validator(mode="after")
+    def ensure_primary_key_unique(self) -> LogicalColumn:
+        if self.logical_is_primary_key and not self.logical_is_unique_key:
+            raise ValueError(
+                f"Primary key column `{self.logical_name}` must also be unique key"
+            )
+        return self
+
+    @model_validator(mode="after")
     def ensure_value_deserializable(self) -> LogicalColumn:
         if (
             self.logical_data_type_name == LogicalDataTypeNameEnum.STRING
@@ -71,6 +79,18 @@ class LogicalSheet(BaseModel):
             "placeholder_column",  # spreadsheet doesn't allow column count become zero
         ],
     )
+
+    @model_validator(mode="after")
+    def ensure_primary_key_constraint(self) -> LogicalColumn:
+        if len(self.logical_columns) > 0:
+            primary_key_logical_columns = [
+                c for c in self.logical_columns if c.logical_is_primary_key
+            ]
+            if len(primary_key_logical_columns) != 1:
+                raise ValueError(
+                    f"Primary key should be exactly one (found {len(primary_key_logical_columns)})"
+                )
+        return self
 
     @model_validator(mode="after")
     def ensure_column_name_unique(self) -> LogicalSheet:
@@ -188,13 +208,13 @@ class LogicalSheet(BaseModel):
             else:
                 non_filtering_logical_columns.append(logical_column)
 
-        matched_row_dicts = []
-        matched_row_indices = []
-        matched_count = 0
-        max_row_count = max(
+        matched_logical_row_dicts = []
+        matched_logical_row_indices = []
+        _matched_count = 0
+        _max_row_count = max(
             (len(column_series) for column_series in body_values), default=0
         )
-        for row_index in range(max_row_count):
+        for row_index in range(_max_row_count):
             row_dict = {}
             is_row_matched = True
             for logical_column in filtering_logical_columns:
@@ -224,9 +244,9 @@ class LogicalSheet(BaseModel):
                     cell_value=cell_value, logical_column=logical_column
                 )
                 row_dict[logical_column.logical_name] = py_value
-            matched_row_dicts.append(row_dict)
-            matched_row_indices.append(row_index)
+            matched_logical_row_dicts.append(row_dict)
+            matched_logical_row_indices.append(row_index)
             limit += 1
-            if matched_count >= limit:
+            if _matched_count >= limit:
                 break
-        return matched_row_dicts, matched_row_indices
+        return matched_logical_row_dicts, matched_logical_row_indices
