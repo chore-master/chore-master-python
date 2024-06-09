@@ -3,7 +3,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, RootModel
 
-from chore_master_api.logical_sheets.some_entity import some_entity_logical_sheet
+from chore_master_api.logical_sheets.some_module.some_entity import (
+    some_entity_logical_sheet,
+)
 from chore_master_api.web_server.dependencies.auth import get_current_end_user
 from chore_master_api.web_server.dependencies.database import get_chore_master_api_db
 from chore_master_api.web_server.dependencies.google_service import get_google_service

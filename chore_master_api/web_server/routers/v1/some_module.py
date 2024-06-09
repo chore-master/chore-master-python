@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel, Json
 
-from chore_master_api.models.some_entity import SomeEntity
+from chore_master_api.models.some_module.some_entity import SomeEntity
 from chore_master_api.unit_of_works.some_module_unit_of_work import (
     SomeModuleSpreadsheetUnitOfWork,
 )
