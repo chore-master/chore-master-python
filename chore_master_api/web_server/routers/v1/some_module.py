@@ -7,15 +7,19 @@ from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel, Json
 
 from chore_master_api.models.some_entity import SomeEntity
-from chore_master_api.unit_of_works.unit_of_work import SpreadsheetUnitOfWork
+from chore_master_api.unit_of_works.some_module_unit_of_work import (
+    SomeModuleSpreadsheetUnitOfWork,
+)
 from chore_master_api.web_server.dependencies.unit_of_work import (
-    get_unit_of_work_factory,
+    get_spreadsheet_unit_of_work_factory,
 )
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
-router = APIRouter(prefix="/some_entities", tags=["SomeEntity"])
+router = APIRouter(prefix="/some_module", tags=["Some Module"])
 
-get_unit_of_work = get_unit_of_work_factory("some_entity")
+get_some_module_spreadsheet_unit_of_work = get_spreadsheet_unit_of_work_factory(
+    "some_module", SomeModuleSpreadsheetUnitOfWork
+)
 
 
 class Filter(BaseModel):
@@ -46,10 +50,12 @@ async def get_filter(
     return Filter(reference=reference, a=a, b=b, c=c, d=d, e=e, f=f, g=g, h=h, i=i)
 
 
-@router.get("", response_model=ResponseSchema[list])
-async def get_(
+@router.get("/some_entities", response_model=ResponseSchema[list])
+async def get_some_entities(
     filter: Filter = Depends(get_filter),
-    uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work),
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(
+        get_some_module_spreadsheet_unit_of_work
+    ),
 ):
     async with uow:
         some_entities = await uow.some_entity_repository.find_many(
@@ -61,8 +67,12 @@ async def get_(
     )
 
 
-@router.post("", response_model=ResponseSchema[None])
-async def post_(uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work)):
+@router.post("/some_entities", response_model=ResponseSchema[None])
+async def post_some_entities(
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(
+        get_some_module_spreadsheet_unit_of_work
+    ),
+):
     async with uow:
         some_entity = SomeEntity(
             a=True,
@@ -82,10 +92,12 @@ async def post_(uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work)):
     )
 
 
-@router.get("/{some_entity_reference}", response_model=ResponseSchema)
-async def get_some_entity_reference(
+@router.get("/some_entities/{some_entity_reference}", response_model=ResponseSchema)
+async def get_some_entities_some_entity_reference(
     some_entity_reference: Annotated[UUID, Path()],
-    uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work),
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(
+        get_some_module_spreadsheet_unit_of_work
+    ),
 ):
     async with uow:
         some_entity = await uow.some_entity_repository.find_one(
@@ -97,10 +109,12 @@ async def get_some_entity_reference(
     )
 
 
-@router.delete("", response_model=ResponseSchema[None])
-async def delete_(
+@router.delete("/some_entities", response_model=ResponseSchema[None])
+async def delete_some_entities(
     filter: Filter = Depends(get_filter),
-    uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work),
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(
+        get_some_module_spreadsheet_unit_of_work
+    ),
 ):
     async with uow:
         await uow.some_entity_repository.delete_many(
@@ -113,10 +127,14 @@ async def delete_(
     )
 
 
-@router.delete("/{some_entity_reference}", response_model=ResponseSchema[None])
-async def delete_some_entity_reference(
+@router.delete(
+    "/some_entities/{some_entity_reference}", response_model=ResponseSchema[None]
+)
+async def delete_some_entities_some_entity_reference(
     some_entity_reference: Annotated[UUID, Path()],
-    uow: SpreadsheetUnitOfWork = Depends(get_unit_of_work),
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(
+        get_some_module_spreadsheet_unit_of_work
+    ),
 ):
     async with uow:
         await uow.some_entity_repository.delete_many(

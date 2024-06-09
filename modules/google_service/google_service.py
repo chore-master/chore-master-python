@@ -90,7 +90,7 @@ class GoogleService:
 
     def reflect_logical_sheet(
         self, spreadsheet_id: str, sheet_title: str, should_include_body: bool = False
-    ) -> Tuple[Optional[LogicalSheet], Optional[dict], list]:
+    ) -> Tuple[Optional[LogicalSheet], Optional[dict], Optional[list]]:
         spreadsheet = (
             self._sheets_service.spreadsheets()
             .get(spreadsheetId=spreadsheet_id)
@@ -102,7 +102,7 @@ class GoogleService:
             None,
         )
         if sheet_dict is None:
-            return None, None
+            return None, None, None
 
         grid_dict = sheet_dict["properties"]["gridProperties"]
         reflected_column_count = grid_dict["columnCount"]
@@ -135,9 +135,9 @@ class GoogleService:
             .execute()
         )
         value_ranges = result.get("valueRanges", [])
-        reflected_header_values = value_ranges[0]["values"]
+        reflected_header_values = value_ranges[0].get("values", [])
         if len(value_ranges) > 1:
-            reflected_body_values = value_ranges[1]["values"]
+            reflected_body_values = value_ranges[1].get("values", [])
         else:
             reflected_body_values = []
 

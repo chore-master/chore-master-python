@@ -191,7 +191,9 @@ class LogicalSheet(BaseModel):
         matched_row_dicts = []
         matched_row_indices = []
         matched_count = 0
-        max_row_count = max(len(column_series) for column_series in body_values)
+        max_row_count = max(
+            (len(column_series) for column_series in body_values), default=0
+        )
         for row_index in range(max_row_count):
             row_dict = {}
             is_row_matched = True
