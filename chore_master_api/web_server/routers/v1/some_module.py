@@ -17,7 +17,7 @@ from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter(prefix="/some_module", tags=["Some Module"])
 
-get_some_module_spreadsheet_unit_of_work = get_spreadsheet_unit_of_work_factory(
+get_uow = get_spreadsheet_unit_of_work_factory(
     "some_module", SomeModuleSpreadsheetUnitOfWork
 )
 
@@ -53,9 +53,7 @@ async def get_filter(
 @router.get("/some_entities", response_model=ResponseSchema[list])
 async def get_some_entities(
     filter: Filter = Depends(get_filter),
-    uow: SomeModuleSpreadsheetUnitOfWork = Depends(
-        get_some_module_spreadsheet_unit_of_work
-    ),
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(get_uow),
 ):
     async with uow:
         some_entities = await uow.some_entity_repository.find_many(
@@ -69,9 +67,7 @@ async def get_some_entities(
 
 @router.post("/some_entities", response_model=ResponseSchema[None])
 async def post_some_entities(
-    uow: SomeModuleSpreadsheetUnitOfWork = Depends(
-        get_some_module_spreadsheet_unit_of_work
-    ),
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(get_uow),
 ):
     async with uow:
         some_entity = SomeEntity(
@@ -95,9 +91,7 @@ async def post_some_entities(
 @router.get("/some_entities/{some_entity_reference}", response_model=ResponseSchema)
 async def get_some_entities_some_entity_reference(
     some_entity_reference: Annotated[UUID, Path()],
-    uow: SomeModuleSpreadsheetUnitOfWork = Depends(
-        get_some_module_spreadsheet_unit_of_work
-    ),
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(get_uow),
 ):
     async with uow:
         some_entity = await uow.some_entity_repository.find_one(
@@ -112,9 +106,7 @@ async def get_some_entities_some_entity_reference(
 @router.delete("/some_entities", response_model=ResponseSchema[None])
 async def delete_some_entities(
     filter: Filter = Depends(get_filter),
-    uow: SomeModuleSpreadsheetUnitOfWork = Depends(
-        get_some_module_spreadsheet_unit_of_work
-    ),
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(get_uow),
 ):
     async with uow:
         await uow.some_entity_repository.delete_many(
@@ -132,9 +124,7 @@ async def delete_some_entities(
 )
 async def delete_some_entities_some_entity_reference(
     some_entity_reference: Annotated[UUID, Path()],
-    uow: SomeModuleSpreadsheetUnitOfWork = Depends(
-        get_some_module_spreadsheet_unit_of_work
-    ),
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(get_uow),
 ):
     async with uow:
         await uow.some_entity_repository.delete_many(
