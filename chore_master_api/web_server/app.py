@@ -12,6 +12,9 @@ from chore_master_api.web_server.routers.v1.account_center import (
     router as v1_account_center_router,
 )
 from chore_master_api.web_server.routers.v1.auth import router as v1_auth_router
+from chore_master_api.web_server.routers.v1.financial_management import (
+    router as v1_financial_management_router,
+)
 from chore_master_api.web_server.routers.v1.some_module import (
     router as v1_some_module_router,
 )
@@ -49,6 +52,7 @@ def get_app(base_config: Optional[BaseConfigSchema] = None) -> FastAPI:
     v1_router = APIRouter(prefix="/v1")
     v1_router.include_router(v1_auth_router)
     v1_router.include_router(v1_account_center_router)
+    v1_router.include_router(v1_financial_management_router)
     v1_router.include_router(v1_some_module_router)
     base_router.include_router(v1_router)
     app.include_router(base_router)
