@@ -34,6 +34,18 @@ class CreateSomeEntityRequest(BaseModel):
     i: Optional[dict] = None
 
 
+class UpdateSomeEntityRequest(BaseModel):
+    a: Optional[bool] = None
+    b: Optional[int] = None
+    c: Optional[float] = None
+    d: Optional[Decimal] = None
+    e: Optional[str] = None
+    f: Optional[datetime] = None
+    g: Optional[str] = None
+    h: Optional[int] = None
+    i: Optional[dict] = None
+
+
 class SomeEntityFilter(BaseModel):
     reference: Optional[UUID] = None
     a: Optional[bool] = None
@@ -117,6 +129,29 @@ async def get_some_entities_some_entity_reference(
     return ResponseSchema(
         status=StatusEnum.SUCCESS,
         data=some_entity,
+    )
+
+
+@router.patch(
+    "/some_entities/{some_entity_reference}", response_model=ResponseSchema[None]
+)
+async def patch_some_entities_some_entity_reference(
+    some_entity_reference: Annotated[UUID, Path()],
+    update_some_entity_request: UpdateSomeEntityRequest,
+    uow: SomeModuleSpreadsheetUnitOfWork = Depends(get_uow),
+):
+    async with uow:
+        some_entity = await uow.some_entity_repository.find_one(
+            filter={"reference": some_entity_reference}
+        )
+        updated_entity = some_entity.model_copy(
+            update=update_some_entity_request.model_dump(exclude_unset=True)
+        )
+        await uow.some_entity_repository.update_one(updated_entity=updated_entity)
+        await uow.commit()
+    return ResponseSchema[None](
+        status=StatusEnum.SUCCESS,
+        data=None,
     )
 
 
