@@ -23,6 +23,7 @@ get_uow = get_spreadsheet_unit_of_work_factory(
 
 
 class CreateAccountRequest(BaseModel):
+    reference: Optional[UUID] = None
     name: str
 
 

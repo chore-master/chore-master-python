@@ -23,6 +23,7 @@ get_uow = get_spreadsheet_unit_of_work_factory(
 
 
 class CreateSomeEntityRequest(BaseModel):
+    reference: Optional[UUID] = None
     a: Optional[bool] = None
     b: Optional[int] = None
     c: Optional[float] = None
