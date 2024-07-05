@@ -22,9 +22,15 @@ async def main():
         max_balance_amount=("cumulative_sum", "max"),
         balance_amount=("amount_change", "sum"),
     ).reset_index()
+    aggregated_df["return_rate"] = (
+        aggregated_df["balance_amount"] / (-aggregated_df["min_balance_amount"])
+    ).round(4)
     aggregated_df["timedelta_in_days"] = (
         aggregated_df["end_time"] - aggregated_df["start_time"]
     ).dt.days
+    aggregated_df["apr"] = (
+        (aggregated_df["return_rate"] / aggregated_df["timedelta_in_days"]) * 365
+    ).round(2)
     aggregated_df = aggregated_df.sort_values(
         by=["start_time", "end_time"], ascending=[True, True]
     )
@@ -39,6 +45,8 @@ async def main():
             "max_balance_amount",
             "balance_amount",
             "symbol",
+            "return_rate",
+            "apr",
         ],
         index=False,
     )
