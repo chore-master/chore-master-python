@@ -221,8 +221,13 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
 async def main():
     bill_df = pd.DataFrame(columns=get_type_hints(Bill).keys())
     await process_capital_securities_corp(bill_df)
+    bill_type_order = pd.Categorical(["buy", "sell", "fee", "tax"], ordered=True)
+    bill_df["bill_type"] = pd.Categorical(
+        bill_df["bill_type"], categories=bill_type_order, ordered=True
+    )
+
     bill_df = bill_df.sort_values(
-        by=["utc_time", "order_reference"], ascending=[True, True]
+        by=["utc_time", "order_reference", "bill_type"], ascending=[True, True, True]
     )
     bill_df.to_csv("apps/bill_processor/build/bill.csv", index=False)
 

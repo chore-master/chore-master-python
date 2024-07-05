@@ -22,10 +22,21 @@
             }
         },
         {
-            "name": "[Bill Processor] Transform to CSV",
+            "name": "[Bill Processor] Build bill",
             "type": "debugpy",
             "request": "launch",
-            "module": "apps.bill_processor.entrypoints.transform_to_csv",
+            "module": "apps.bill_processor.entrypoints.build_bill",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+            }
+        },
+        {
+            "name": "[Bill Processor] Report pnl from bill",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "apps.bill_processor.entrypoints.report_pnl_from_bill",
             "console": "integratedTerminal",
             "cwd": "${workspaceRoot}",
             "justMyCode": false,
