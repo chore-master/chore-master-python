@@ -1,9 +1,10 @@
 import asyncio
 import os
+import re
 from datetime import datetime, timezone
 from decimal import Decimal
 from io import StringIO
-from typing import TypedDict, get_type_hints
+from typing import Optional, TypedDict, get_type_hints
 from uuid import uuid4
 
 import pandas as pd
@@ -18,34 +19,37 @@ class Bill(TypedDict):
     transaction_type: str
     bill_type: str
     amount_change: Decimal
-    instrument_reference: str
+    symbol: str
     order_reference: str
+    remark: Optional[str]
 
 
 async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame:
     ACCOUNT_REFERENCE = "群益證券"
 
-    def get_normalized_symbol(raw: str) -> str:
-        symbol = (
+    def get_stock_symbol_and_local_name(raw: str) -> tuple[str, str]:
+        serialized_stock_name = (
             raw.replace(" ", "")
             .replace("0056高股息", "0056元大高股息")
             .replace("2006東鋼", "2006東和鋼鐵")
         )
-        if symbol == "00692富邦公":
-            symbol = "00692富邦公司治理"
-        elif symbol == "00710B復華彭":
-            symbol = "00710B復華彭博非投等債"
-        elif symbol == "00850元大臺":
-            symbol = "00850元大臺灣ESG永續"
-        elif symbol == "00850元大臺":
-            symbol = "00850元大臺灣ESG永續"
-        elif symbol == "00888永豐台":
-            symbol = "00888永豐台灣ESG"
-        elif symbol == "00891中信關":
-            symbol = "00891中信關鍵半導體"
-        elif symbol == "00730富邦臺":
-            symbol = "00730富邦臺灣優質高息"
-        return symbol
+        if serialized_stock_name == "00692富邦公":
+            serialized_stock_name = "00692富邦公司治理"
+        elif serialized_stock_name == "00710B復華彭":
+            serialized_stock_name = "00710B復華彭博非投等債"
+        elif serialized_stock_name == "00850元大臺":
+            serialized_stock_name = "00850元大臺灣ESG永續"
+        elif serialized_stock_name == "00850元大臺":
+            serialized_stock_name = "00850元大臺灣ESG永續"
+        elif serialized_stock_name == "00888永豐台":
+            serialized_stock_name = "00888永豐台灣ESG"
+        elif serialized_stock_name == "00891中信關":
+            serialized_stock_name = "00891中信關鍵半導體"
+        elif serialized_stock_name == "00730富邦臺":
+            serialized_stock_name = "00730富邦臺灣優質高息"
+        stock_symbol = re.search(r"\d+", serialized_stock_name).group()
+        stock_local_name = re.search(r"\D+", serialized_stock_name).group()
+        return f"{stock_symbol}.TW", stock_local_name
 
     def get_utc_time(raw: str) -> str:
         local_date = raw.replace("/", "-")
@@ -102,7 +106,7 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                 session_reference = str(uuid4())
 
                 for _i, row in buy_df.iterrows():
-                    symbol = get_normalized_symbol(row.iloc[0])
+                    symbol, local_name = get_stock_symbol_and_local_name(row.iloc[0])
                     utc_time = get_utc_time(row.iloc[1])
                     order_reference = row.iloc[2]
                     amount = Decimal(row.iloc[4])
@@ -117,7 +121,7 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                         "transaction_type": "trade",
                         "bill_type": "sell",
                         "amount_change": -notional,
-                        "instrument_reference": "TWD",
+                        "symbol": "TWD",
                         "order_reference": order_reference,
                     }
                     bill_df.loc[len(bill_df)] = {
@@ -128,8 +132,9 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                         "transaction_type": "trade",
                         "bill_type": "buy",
                         "amount_change": amount,
-                        "instrument_reference": symbol,
+                        "symbol": symbol,
                         "order_reference": order_reference,
+                        "remark": local_name,
                     }
                     if fee > 0:
                         bill_df.loc[len(bill_df)] = {
@@ -140,7 +145,7 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                             "transaction_type": "trade",
                             "bill_type": "fee",
                             "amount_change": -fee,
-                            "instrument_reference": "TWD",
+                            "symbol": "TWD",
                             "order_reference": order_reference,
                         }
                     if tax > 0:
@@ -152,12 +157,13 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                             "transaction_type": "trade",
                             "bill_type": "tax",
                             "amount_change": -tax,
-                            "instrument_reference": "TWD",
+                            "symbol": "TWD",
                             "order_reference": order_reference,
+                            "remark": local_name,
                         }
 
                 for _i, row in sell_df.iterrows():
-                    symbol = get_normalized_symbol(row.iloc[0])
+                    symbol, local_name = get_stock_symbol_and_local_name(row.iloc[0])
                     utc_time = get_utc_time(row.iloc[1])
                     order_reference = row.iloc[2]
                     amount = Decimal(row.iloc[4])
@@ -172,7 +178,7 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                         "transaction_type": "trade",
                         "bill_type": "sell",
                         "amount_change": -amount,
-                        "instrument_reference": symbol,
+                        "symbol": symbol,
                         "order_reference": order_reference,
                     }
                     bill_df.loc[len(bill_df)] = {
@@ -183,7 +189,7 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                         "transaction_type": "trade",
                         "bill_type": "buy",
                         "amount_change": notional,
-                        "instrument_reference": "TWD",
+                        "symbol": "TWD",
                         "order_reference": order_reference,
                     }
                     if fee > 0:
@@ -195,7 +201,7 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                             "transaction_type": "trade",
                             "bill_type": "fee",
                             "amount_change": -fee,
-                            "instrument_reference": "TWD",
+                            "symbol": "TWD",
                             "order_reference": order_reference,
                         }
                     if tax > 0:
@@ -207,7 +213,7 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                             "transaction_type": "trade",
                             "bill_type": "tax",
                             "amount_change": -tax,
-                            "instrument_reference": "TWD",
+                            "symbol": "TWD",
                             "order_reference": order_reference,
                         }
 
@@ -215,8 +221,10 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
 async def main():
     bill_df = pd.DataFrame(columns=get_type_hints(Bill).keys())
     await process_capital_securities_corp(bill_df)
-    bill_df = bill_df.sort_values(by=["utc_time"], ascending=[True])
-    bill_df.to_csv("apps/bill_processor/build/result.csv", index=False)
+    bill_df = bill_df.sort_values(
+        by=["utc_time", "order_reference"], ascending=[True, True]
+    )
+    bill_df.to_csv("apps/bill_processor/build/bill.csv", index=False)
 
 
 asyncio.run(main())
