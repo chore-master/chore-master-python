@@ -21,5 +21,16 @@
                 "GOOGLE_OAUTH_SECRET": "<GOOGLE_OAUTH_SECRET>",
             }
         },
+        {
+            "name": "[Bill Processor] Transform to CSV",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "apps.bill_processor.entrypoints.transform_to_csv",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+            }
+        },
     ]
 }
