@@ -1,7 +1,7 @@
 import asyncio
 import os
 from decimal import Decimal
-from typing import TypedDict, get_type_hints
+from typing import Optional, TypedDict, get_type_hints
 from uuid import uuid4
 
 import pandas as pd
@@ -19,6 +19,8 @@ class ProfitAndLoss(TypedDict):
     tax_amount: Decimal
     pnl_amount: Decimal
     symbol: str
+    return_rate: Decimal
+    apr: Decimal
     max_equity_amount: Decimal
     min_equity_amount: Decimal
 
@@ -119,8 +121,14 @@ async def agg2(bill_df: pd.DataFrame):
             max_equity_amount = Decimal(time_df["equity_amount"].max().item())
             min_equity_amount = Decimal(time_df["equity_amount"].min().item())
             cost_amount = -sell_amount_change
-            return_rate = (pnl_amount / cost_amount).quantize(Decimal("0.0001"))
-            apr = ((return_rate / timedelta_in_days) * 365).quantize(Decimal("0.0001"))
+            if cost_amount == 0:
+                return_rate = None
+                apr = None
+            else:
+                return_rate = (pnl_amount / cost_amount).quantize(Decimal("0.0001"))
+                apr = ((return_rate / timedelta_in_days) * 365).quantize(
+                    Decimal("0.0001")
+                )
             aggregated_df.loc[len(aggregated_df)] = {
                 "reference": str(uuid4()),
                 "session_reference": session_reference,
