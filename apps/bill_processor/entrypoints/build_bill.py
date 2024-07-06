@@ -225,7 +225,6 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                             "amount_change": -tax,
                             "symbol": "TWD",
                             "order_reference": order_reference,
-                            "remark": local_name,
                         }
 
 
