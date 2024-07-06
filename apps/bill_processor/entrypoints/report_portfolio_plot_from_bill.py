@@ -1,15 +1,26 @@
 import asyncio
 import os
 from contextlib import contextmanager
+from datetime import datetime
+from typing import Optional
 
 import pandas as pd
+from dateutil.relativedelta import relativedelta
 from matplotlib import pyplot as plt
-from matplotlib.dates import DateFormatter
+from matplotlib.dates import DateFormatter, MonthLocator
 from matplotlib.ticker import FuncFormatter
 
 
 @contextmanager
-def portfolio_plot():
+def portfolio_plot(subplots_kwargs: Optional[dict] = None):
+    merged_subplots_kwargs = {
+        "nrows": 2,
+        "ncols": 1,
+        "sharex": True,
+    }
+    if subplots_kwargs is not None:
+        merged_subplots_kwargs.update(subplots_kwargs)
+
     def comma_formatter(x, pos):
         return f"{x:,.0f}"
 
@@ -26,17 +37,18 @@ def portfolio_plot():
         "#17becf",
     ]
     plt.rcParams["axes.prop_cycle"] = plt.cycler(color=custom_color_cycle)
-    fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True)
+    fig, axs = plt.subplots(**merged_subplots_kwargs)
     axs[-1].tick_params(axis="x", rotation=30)
     ax_settlement, ax_inventory = axs
     ax_inventory.xaxis.set_major_formatter(DateFormatter("%Y-%m"))
     ax_inventory.yaxis.get_major_formatter().set_scientific(False)
     ax_settlement.yaxis.get_major_formatter().set_scientific(False)
     ax_inventory.yaxis.set_major_formatter(FuncFormatter(comma_formatter))
+    ax_inventory.xaxis.set_major_locator(MonthLocator())
     ax_settlement.yaxis.set_major_formatter(FuncFormatter(comma_formatter))
-    ax_settlement.set_ylabel("Settlement Amount")
+    ax_settlement.set_ylabel("Settlement Amount ($)")
     ax_settlement.axhline(0, color="gray", linestyle="--")
-    ax_inventory.set_ylabel("Inventory Amount")
+    ax_inventory.set_ylabel("Inventory Amount (Shares)")
     ax_inventory.grid(True)
     yield fig, axs
     plt.close()
@@ -51,16 +63,17 @@ async def plot_equity_curve(symbol: str, symbol_df: pd.DataFrame, ax: plt.Axes):
     ax.bar(
         aggregated_df["_utc_time"],
         aggregated_df["amount_change"],
-        label=symbol,
-        width=1.5,
+        label=f"{symbol} (change)",
+        width=1,
     )
     ax.plot(
         aggregated_df["_utc_time"],
         aggregated_df["equity_amount"],
-        label=symbol,
+        label=f"{symbol} (balance)",
         linewidth=0.8,
         marker=".",
-        markersize=1,
+        markersize=2,
+        linestyle="dotted",
     )
 
 
@@ -79,8 +92,16 @@ async def plot_portfolio(
     inventory_bill_df = portofolio_bill_df[
         portofolio_bill_df["symbol"] != settlement_symbol
     ]
+    x_min = inventory_bill_df["_utc_time"].min()
+    x_max = inventory_bill_df["_utc_time"].max() + relativedelta(months=1)
+    x_delta = x_max - x_min
 
-    with portfolio_plot() as (fig, (ax_settlement, ax_inventory)):
+    with portfolio_plot(
+        subplots_kwargs={"figsize": (max(4, x_delta.days / 80), 6)}
+    ) as (
+        fig,
+        (ax_settlement, ax_inventory),
+    ):
         fig.suptitle(f"{portofolio_name}")
 
         await plot_equity_curve(settlement_symbol, settlement_bill_df, ax_settlement)
@@ -88,11 +109,16 @@ async def plot_portfolio(
         for (symbol,), symbol_df in grouped_by_symbol:
             await plot_equity_curve(symbol, symbol_df, ax_inventory)
 
+        ax_inventory.set_xlim(
+            datetime(x_min.year, x_min.month, 1), datetime(x_max.year, x_max.month, 1)
+        )
+
         ax_settlement.legend(loc="upper left", bbox_to_anchor=(1.04, 1))
         ax_inventory.legend(loc="upper left", bbox_to_anchor=(1.04, 1))
         fig.savefig(
             f"apps/bill_processor/build/portofolio_{portofolio_name}.png",
             bbox_inches="tight",
+            dpi=300,
         )
 
 
