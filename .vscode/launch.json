@@ -43,5 +43,16 @@
             "env": {
             }
         },
+        {
+            "name": "[Bill Processor] Report portfolio plot from bill",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "apps.bill_processor.entrypoints.report_portfolio_plot_from_bill",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+            }
+        },
     ]
 }
