@@ -1,7 +1,7 @@
 import asyncio
 import os
 from decimal import Decimal
-from typing import Optional, TypedDict, get_type_hints
+from typing import TypedDict, get_type_hints
 from uuid import uuid4
 
 import pandas as pd
@@ -25,51 +25,51 @@ class ProfitAndLoss(TypedDict):
     min_equity_amount: Decimal
 
 
-async def agg(bill_df: pd.DataFrame):
-    bill_df["cumulative_sum"] = bill_df.groupby(["session_reference", "symbol"])[
-        "amount_change"
-    ].cumsum()
-    bill_df["_utc_time"] = pd.to_datetime(bill_df["utc_time"])
+# async def agg(bill_df: pd.DataFrame):
+#     bill_df["cumulative_sum"] = bill_df.groupby(["session_reference", "symbol"])[
+#         "amount_change"
+#     ].cumsum()
+#     bill_df["_utc_time"] = pd.to_datetime(bill_df["utc_time"])
 
-    grouped = bill_df.groupby(["session_reference", "symbol"])
-    aggregated_df = grouped.agg(
-        start_time=("_utc_time", "min"),
-        end_time=("_utc_time", "max"),
-        min_balance_amount=("cumulative_sum", "min"),
-        max_balance_amount=("cumulative_sum", "max"),
-        balance_amount=("amount_change", "sum"),
-    ).reset_index()
-    aggregated_df["return_rate"] = (
-        aggregated_df["balance_amount"] / (-aggregated_df["min_balance_amount"])
-    ).round(4)
-    aggregated_df["timedelta_in_days"] = (
-        aggregated_df["end_time"] - aggregated_df["start_time"]
-    ).dt.days
-    aggregated_df["apr"] = (
-        (aggregated_df["return_rate"] / aggregated_df["timedelta_in_days"]) * 365
-    ).round(2)
-    aggregated_df = aggregated_df.sort_values(
-        by=["start_time", "end_time"], ascending=[True, True]
-    )
-    aggregated_df.to_csv(
-        "apps/bill_processor/build/pnl.csv",
-        columns=[
-            "session_reference",
-            "start_time",
-            "end_time",
-            "timedelta_in_days",
-            "min_balance_amount",
-            "max_balance_amount",
-            "balance_amount",
-            "symbol",
-            "return_rate",
-            "apr",
-        ],
-        index=False,
-    )
+#     grouped = bill_df.groupby(["session_reference", "symbol"])
+#     aggregated_df = grouped.agg(
+#         start_time=("_utc_time", "min"),
+#         end_time=("_utc_time", "max"),
+#         min_balance_amount=("cumulative_sum", "min"),
+#         max_balance_amount=("cumulative_sum", "max"),
+#         balance_amount=("amount_change", "sum"),
+#     ).reset_index()
+#     aggregated_df["return_rate"] = (
+#         aggregated_df["balance_amount"] / (-aggregated_df["min_balance_amount"])
+#     ).round(4)
+#     aggregated_df["timedelta_in_days"] = (
+#         aggregated_df["end_time"] - aggregated_df["start_time"]
+#     ).dt.days
+#     aggregated_df["apr"] = (
+#         (aggregated_df["return_rate"] / aggregated_df["timedelta_in_days"]) * 365
+#     ).round(2)
+#     aggregated_df = aggregated_df.sort_values(
+#         by=["start_time", "end_time"], ascending=[True, True]
+#     )
+#     aggregated_df.to_csv(
+#         "apps/bill_processor/build/pnl.csv",
+#         columns=[
+#             "session_reference",
+#             "start_time",
+#             "end_time",
+#             "timedelta_in_days",
+#             "min_balance_amount",
+#             "max_balance_amount",
+#             "balance_amount",
+#             "symbol",
+#             "return_rate",
+#             "apr",
+#         ],
+#         index=False,
+#     )
 
 
-async def agg2(bill_df: pd.DataFrame):
+async def aggregate_pnl(bill_df: pd.DataFrame):
     aggregated_df = pd.DataFrame(columns=get_type_hints(ProfitAndLoss).keys())
     grouped_by_session_reference = bill_df.groupby(["session_reference"])
     for (session_reference,), session_df in grouped_by_session_reference:
@@ -147,7 +147,7 @@ async def agg2(bill_df: pd.DataFrame):
                 "min_equity_amount": min_equity_amount,
             }
     aggregated_df = aggregated_df.sort_values(
-        by=["start_time", "end_time"], ascending=[True, True]
+        by=["start_time", "end_time"], ascending=[False, False]
     )
     aggregated_df.to_csv("apps/bill_processor/build/pnl.csv", index=False)
 
@@ -156,9 +156,7 @@ async def main():
     input_root_dir_path = "apps/bill_processor/build"
     file_path = os.path.join(input_root_dir_path, "bill.csv")
     bill_df = pd.read_csv(file_path)
-
-    # await agg(bill_df)
-    await agg2(bill_df)
+    await aggregate_pnl(bill_df)
 
 
 asyncio.run(main())

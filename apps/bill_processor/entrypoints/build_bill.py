@@ -167,7 +167,6 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                             "amount_change": -tax,
                             "symbol": "TWD",
                             "order_reference": order_reference,
-                            "remark": local_name,
                         }
 
                 for _i, row in sell_df.iterrows():
@@ -189,6 +188,7 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                             "amount_change": -amount,
                             "symbol": symbol,
                             "order_reference": order_reference,
+                            "remark": local_name,
                         }
                     if notional != 0:
                         bill_df.loc[len(bill_df)] = {
@@ -225,6 +225,7 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                             "amount_change": -tax,
                             "symbol": "TWD",
                             "order_reference": order_reference,
+                            "remark": local_name,
                         }
 
 
@@ -236,7 +237,7 @@ async def main():
         bill_df["bill_type"], categories=bill_type_order, ordered=True
     )
     bill_df = bill_df.sort_values(
-        by=["utc_time", "order_reference", "bill_type"], ascending=[True, True, True]
+        by=["utc_time", "order_reference", "bill_type"], ascending=[False, False, False]
     )
     bill_df.to_csv("apps/bill_processor/build/bill.csv", index=False)
 
