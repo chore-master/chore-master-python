@@ -91,7 +91,10 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                 sell_df = pd.read_html(
                     StringIO(
                         f"<table><thead>{str(sell_table_header_tr)}</thead><tbody>{str(sell_table_body_trs)}</tbody></table>"
-                    )
+                    ),
+                    converters={
+                        2: str,  # order_reference
+                    },
                 )[0]
                 buy_table = sell_table.find_next("table")
                 _, buy_table_header_tr, *buy_table_body_trs = buy_table.find_all(
@@ -100,7 +103,10 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                 buy_df = pd.read_html(
                     StringIO(
                         f"<table><thead>{str(buy_table_header_tr)}</thead><tbody>{str(buy_table_body_trs)}</tbody></table>"
-                    )
+                    ),
+                    converters={
+                        2: str,  # order_reference
+                    },
                 )[0]
 
                 session_reference = str(uuid4())
@@ -113,29 +119,31 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                     notional = Decimal(row.iloc[6])
                     fee = Decimal(row.iloc[7])
                     tax = Decimal(row.iloc[8])
-                    bill_df.loc[len(bill_df)] = {
-                        "reference": str(uuid4()),
-                        "session_reference": session_reference,
-                        "utc_time": utc_time,
-                        "account_reference": ACCOUNT_REFERENCE,
-                        "transaction_type": "trade",
-                        "bill_type": "sell",
-                        "amount_change": -notional,
-                        "symbol": "TWD",
-                        "order_reference": order_reference,
-                    }
-                    bill_df.loc[len(bill_df)] = {
-                        "reference": str(uuid4()),
-                        "session_reference": session_reference,
-                        "utc_time": utc_time,
-                        "account_reference": ACCOUNT_REFERENCE,
-                        "transaction_type": "trade",
-                        "bill_type": "buy",
-                        "amount_change": amount,
-                        "symbol": symbol,
-                        "order_reference": order_reference,
-                        "remark": local_name,
-                    }
+                    if notional != 0:
+                        bill_df.loc[len(bill_df)] = {
+                            "reference": str(uuid4()),
+                            "session_reference": session_reference,
+                            "utc_time": utc_time,
+                            "account_reference": ACCOUNT_REFERENCE,
+                            "transaction_type": "trade",
+                            "bill_type": "sell",
+                            "amount_change": -notional,
+                            "symbol": "TWD",
+                            "order_reference": order_reference,
+                        }
+                    if amount != 0:
+                        bill_df.loc[len(bill_df)] = {
+                            "reference": str(uuid4()),
+                            "session_reference": session_reference,
+                            "utc_time": utc_time,
+                            "account_reference": ACCOUNT_REFERENCE,
+                            "transaction_type": "trade",
+                            "bill_type": "buy",
+                            "amount_change": amount,
+                            "symbol": symbol,
+                            "order_reference": order_reference,
+                            "remark": local_name,
+                        }
                     if fee > 0:
                         bill_df.loc[len(bill_df)] = {
                             "reference": str(uuid4()),
@@ -170,28 +178,30 @@ async def process_capital_securities_corp(bill_df: pd.DataFrame) -> pd.DataFrame
                     notional = Decimal(row.iloc[6])
                     fee = Decimal(row.iloc[7])
                     tax = Decimal(row.iloc[8])
-                    bill_df.loc[len(bill_df)] = {
-                        "reference": str(uuid4()),
-                        "session_reference": session_reference,
-                        "utc_time": utc_time,
-                        "account_reference": ACCOUNT_REFERENCE,
-                        "transaction_type": "trade",
-                        "bill_type": "sell",
-                        "amount_change": -amount,
-                        "symbol": symbol,
-                        "order_reference": order_reference,
-                    }
-                    bill_df.loc[len(bill_df)] = {
-                        "reference": str(uuid4()),
-                        "session_reference": session_reference,
-                        "utc_time": utc_time,
-                        "account_reference": ACCOUNT_REFERENCE,
-                        "transaction_type": "trade",
-                        "bill_type": "buy",
-                        "amount_change": notional,
-                        "symbol": "TWD",
-                        "order_reference": order_reference,
-                    }
+                    if amount != 0:
+                        bill_df.loc[len(bill_df)] = {
+                            "reference": str(uuid4()),
+                            "session_reference": session_reference,
+                            "utc_time": utc_time,
+                            "account_reference": ACCOUNT_REFERENCE,
+                            "transaction_type": "trade",
+                            "bill_type": "sell",
+                            "amount_change": -amount,
+                            "symbol": symbol,
+                            "order_reference": order_reference,
+                        }
+                    if notional != 0:
+                        bill_df.loc[len(bill_df)] = {
+                            "reference": str(uuid4()),
+                            "session_reference": session_reference,
+                            "utc_time": utc_time,
+                            "account_reference": ACCOUNT_REFERENCE,
+                            "transaction_type": "trade",
+                            "bill_type": "buy",
+                            "amount_change": notional,
+                            "symbol": "TWD",
+                            "order_reference": order_reference,
+                        }
                     if fee > 0:
                         bill_df.loc[len(bill_df)] = {
                             "reference": str(uuid4()),
@@ -225,7 +235,6 @@ async def main():
     bill_df["bill_type"] = pd.Categorical(
         bill_df["bill_type"], categories=bill_type_order, ordered=True
     )
-
     bill_df = bill_df.sort_values(
         by=["utc_time", "order_reference", "bill_type"], ascending=[True, True, True]
     )
