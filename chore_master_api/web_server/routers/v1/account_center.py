@@ -84,7 +84,7 @@ async def patch_integrations_google(
     )
 
     end_user_collection = chore_master_api_db.get_collection("end_user")
-    end_user_collection.update_one(
+    await end_user_collection.update_one(
         filter={"reference": current_end_user["reference"]},
         update={
             "$set": {
