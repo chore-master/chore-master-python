@@ -16,5 +16,5 @@ class Asset(Entity):
 class NetValue(Entity):
     account_reference: UUID
     amount: Decimal
-    settlement_asset_reference: str
+    settlement_asset_reference: UUID
     settled_time: datetime

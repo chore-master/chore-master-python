@@ -44,7 +44,7 @@ class CreateNetValueRequest(BaseModel):
     reference: Optional[UUID] = None
     account_reference: UUID
     amount: Decimal
-    settlement_asset_reference: str
+    settlement_asset_reference: UUID
     settled_time: Optional[datetime] = None
 
 
