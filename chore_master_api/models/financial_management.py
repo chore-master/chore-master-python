@@ -9,8 +9,12 @@ class Account(Entity):
     name: str
 
 
-class Passbook(Entity):
+class Asset(Entity):
+    symbol: str
+
+
+class NetValue(Entity):
     account_reference: UUID
-    balance_amount: Decimal
-    balance_symbol: str
-    created_time: datetime
+    amount: Decimal
+    settlement_asset_reference: str
+    settled_time: datetime

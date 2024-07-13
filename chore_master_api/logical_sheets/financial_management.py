@@ -16,9 +16,20 @@ account_logical_sheet = LogicalSheet(
     ],
 )
 
+asset_logical_sheet = LogicalSheet(
+    logical_name="asset",
+    logical_columns=[
+        *get_base_logical_columns(),
+        LogicalColumn(
+            logical_name="symbol",
+            logical_data_type_name=LogicalDataTypeNameEnum.STRING,
+        ),
+    ],
+)
 
-passbook_logical_sheet = LogicalSheet(
-    logical_name="passbook",
+
+net_value_logical_sheet = LogicalSheet(
+    logical_name="net_value",
     logical_columns=[
         *get_base_logical_columns(),
         LogicalColumn(
@@ -26,15 +37,15 @@ passbook_logical_sheet = LogicalSheet(
             logical_data_type_name=LogicalDataTypeNameEnum.UUID,
         ),
         LogicalColumn(
-            logical_name="balance_amount",
+            logical_name="amount",
             logical_data_type_name=LogicalDataTypeNameEnum.DECIMAL,
         ),
         LogicalColumn(
-            logical_name="balance_symbol",
-            logical_data_type_name=LogicalDataTypeNameEnum.STRING,
+            logical_name="settlement_asset_reference",
+            logical_data_type_name=LogicalDataTypeNameEnum.UUID,
         ),
         LogicalColumn(
-            logical_name="created_time",
+            logical_name="settled_time",
             logical_data_type_name=LogicalDataTypeNameEnum.DATETIME,
         ),
     ],

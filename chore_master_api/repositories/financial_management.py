@@ -2,9 +2,10 @@ from typing import Type
 
 from chore_master_api.logical_sheets.financial_management import (
     account_logical_sheet,
-    passbook_logical_sheet,
+    asset_logical_sheet,
+    net_value_logical_sheet,
 )
-from chore_master_api.models.financial_management import Account, Passbook
+from chore_master_api.models.financial_management import Account, Asset, NetValue
 from modules.google_service.models.logical_sheet import LogicalSheet
 from modules.repositories.base_sheet_repository import BaseSheetRepository
 
@@ -19,11 +20,21 @@ class AccountRepository(BaseSheetRepository[Account]):
         return account_logical_sheet
 
 
-class PassbookRepository(BaseSheetRepository[Passbook]):
+class AssetRepository(BaseSheetRepository[NetValue]):
     @property
-    def entity_class(self) -> Type[Passbook]:
-        return Passbook
+    def entity_class(self) -> Type[NetValue]:
+        return NetValue
 
     @property
     def logical_sheet(self) -> LogicalSheet:
-        return passbook_logical_sheet
+        return asset_logical_sheet
+
+
+class NetValueRepository(BaseSheetRepository[NetValue]):
+    @property
+    def entity_class(self) -> Type[NetValue]:
+        return NetValue
+
+    @property
+    def logical_sheet(self) -> LogicalSheet:
+        return net_value_logical_sheet
