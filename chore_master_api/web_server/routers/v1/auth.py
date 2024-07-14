@@ -135,7 +135,7 @@ async def get_google_callback(
 
     end_user_collection = chore_master_api_db.get_collection("end_user")
     end_user_session_collection = chore_master_api_db.get_collection("end_user_session")
-    end_user = end_user_collection.find_one({"email": google_user_dict["email"]})
+    end_user = await end_user_collection.find_one({"email": google_user_dict["email"]})
     utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     if end_user is None:
@@ -149,14 +149,14 @@ async def get_google_callback(
     else:
         end_user_reference = end_user["reference"]
 
-    active_end_user_session = end_user_session_collection.find_one(
+    active_end_user_session = await end_user_session_collection.find_one(
         {
             "end_user_reference": end_user_reference,
             "is_active": True,
             "expired_time": {"$gt": utc_now},
         }
     )
-    end_user_session_collection.update_many(
+    await end_user_session_collection.update_many(
         {
             "end_user_reference": end_user_reference,
             "expired_time": {"$lt": utc_now},
@@ -196,7 +196,7 @@ async def get_google_callback(
             update_end_user_session_dict["google.refresh_token"] = access_token_dict[
                 "refresh_token"
             ]
-        end_user_session_collection.update_one(
+        await end_user_session_collection.update_one(
             filter={"reference": end_user_session_reference},
             update={"$set": update_end_user_session_dict},
         )

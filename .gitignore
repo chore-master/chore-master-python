@@ -161,3 +161,10 @@ cython_debug/
 #.idea/
 
 .DS_Store
+poetry.lock
+apps/bill_processor/data
+apps/sample_strategy_manager/**/*
+!apps/sample_strategy_manager/*.py
+apps/sample_strategy_manager/typing_extensions.py
+!apps/sample_strategy_manager/*.md
+!apps/sample_strategy_manager/*.txt

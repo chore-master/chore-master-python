@@ -19,7 +19,7 @@ async def get_current_end_user_session(
         raise UnauthenticatedError("current request is not authenticated")
     end_user_session_collection = chore_master_api_db.get_collection("end_user_session")
     utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
-    current_end_user_session = next(
+    current_end_user_session = await anext(
         end_user_session_collection.aggregate(
             pipeline=[
                 {
