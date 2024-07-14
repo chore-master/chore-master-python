@@ -20,10 +20,10 @@ class AccountRepository(BaseSheetRepository[Account]):
         return account_logical_sheet
 
 
-class AssetRepository(BaseSheetRepository[NetValue]):
+class AssetRepository(BaseSheetRepository[Asset]):
     @property
-    def entity_class(self) -> Type[NetValue]:
-        return NetValue
+    def entity_class(self) -> Type[Asset]:
+        return Asset
 
     @property
     def logical_sheet(self) -> LogicalSheet:
