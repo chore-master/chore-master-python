@@ -1,0 +1,16 @@
+name: chore_master_api_local
+services:
+  web_server:
+    build:
+      context: ../../../
+      dockerfile: ./apps/chore_master_api/deployments/web_server/Dockerfile
+    environment:
+      ENV: "local"
+      SERVICE_NAME: "chore_master_api"
+      COMPONENT_NAME: "web_server"
+      PORT: 8080
+      MONGODB_URI: ${WEB_SERVER_MONGODB_URI}
+      GOOGLE_OAUTH_CLIENT_ID: ${WEB_SERVER_GOOGLE_OAUTH_CLIENT_ID}
+      GOOGLE_OAUTH_SECRET: ${WEB_SERVER_GOOGLE_OAUTH_SECRET}
+    ports:
+      - 13000:8080

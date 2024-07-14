@@ -6,11 +6,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel, Json
 
-from chore_master_api.models.some_module import SomeEntity
-from chore_master_api.unit_of_works.some_module_unit_of_work import (
+from apps.chore_master_api.models.some_module import SomeEntity
+from apps.chore_master_api.unit_of_works.some_module_unit_of_work import (
     SomeModuleSpreadsheetUnitOfWork,
 )
-from chore_master_api.web_server.dependencies.unit_of_work import (
+from apps.chore_master_api.web_server.dependencies.unit_of_work import (
     get_spreadsheet_unit_of_work_factory,
 )
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum

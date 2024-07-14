@@ -1,4 +1,4 @@
-from chore_master_api.web_server.schemas.config import (
+from apps.chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
 )
 from modules.base.config import get_base_config

@@ -4,7 +4,9 @@ from uuid import UUID
 
 from fastapi import Cookie, Depends
 
-from chore_master_api.web_server.dependencies.database import get_chore_master_api_db
+from apps.chore_master_api.web_server.dependencies.database import (
+    get_chore_master_api_db,
+)
 from modules.database.mongo_client import MongoDB
 from modules.web_server.exceptions import UnauthenticatedError, UnauthorizedError
 

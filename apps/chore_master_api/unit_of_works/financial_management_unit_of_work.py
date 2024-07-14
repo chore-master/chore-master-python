@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from chore_master_api.repositories.financial_management import (
+from apps.chore_master_api.repositories.financial_management import (
     AccountRepository,
     AssetRepository,
     NetValueRepository,

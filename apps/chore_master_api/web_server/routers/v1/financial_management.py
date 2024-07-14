@@ -6,11 +6,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path
 from pydantic import BaseModel
 
-from chore_master_api.models.financial_management import Account, Asset, NetValue
-from chore_master_api.unit_of_works.financial_management_unit_of_work import (
+from apps.chore_master_api.models.financial_management import Account, Asset, NetValue
+from apps.chore_master_api.unit_of_works.financial_management_unit_of_work import (
     FinancialManagementSpreadsheetUnitOfWork,
 )
-from chore_master_api.web_server.dependencies.unit_of_work import (
+from apps.chore_master_api.web_server.dependencies.unit_of_work import (
     get_spreadsheet_unit_of_work_factory,
 )
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum

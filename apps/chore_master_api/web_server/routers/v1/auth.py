@@ -9,9 +9,11 @@ from fastapi import APIRouter, Depends, Header, Query, Response
 from fastapi.responses import RedirectResponse
 from httpx import AsyncClient
 
-from chore_master_api.config import get_chore_master_api_web_server_config
-from chore_master_api.web_server.dependencies.database import get_chore_master_api_db
-from chore_master_api.web_server.schemas.config import (
+from apps.chore_master_api.config import get_chore_master_api_web_server_config
+from apps.chore_master_api.web_server.dependencies.database import (
+    get_chore_master_api_db,
+)
+from apps.chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
 )
 from modules.database.mongo_client import MongoDB

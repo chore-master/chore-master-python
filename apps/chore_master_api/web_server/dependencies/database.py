@@ -2,8 +2,8 @@ from typing import AsyncIterator
 
 from fastapi import Depends, Request
 
-from chore_master_api.config import get_chore_master_api_web_server_config
-from chore_master_api.web_server.schemas.config import (
+from apps.chore_master_api.config import get_chore_master_api_web_server_config
+from apps.chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
 )
 from modules.base.config import get_base_config

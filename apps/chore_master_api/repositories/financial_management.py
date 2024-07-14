@@ -1,11 +1,11 @@
 from typing import Type
 
-from chore_master_api.logical_sheets.financial_management import (
+from apps.chore_master_api.logical_sheets.financial_management import (
     account_logical_sheet,
     asset_logical_sheet,
     net_value_logical_sheet,
 )
-from chore_master_api.models.financial_management import Account, Asset, NetValue
+from apps.chore_master_api.models.financial_management import Account, Asset, NetValue
 from modules.google_service.models.logical_sheet import LogicalSheet
 from modules.repositories.base_sheet_repository import BaseSheetRepository
 

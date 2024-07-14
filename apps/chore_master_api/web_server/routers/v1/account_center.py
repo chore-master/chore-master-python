@@ -3,15 +3,19 @@ from typing import Optional
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, RootModel
 
-from chore_master_api.logical_sheets.financial_management import (
+from apps.chore_master_api.logical_sheets.financial_management import (
     account_logical_sheet,
     asset_logical_sheet,
     net_value_logical_sheet,
 )
-from chore_master_api.logical_sheets.some_module import some_entity_logical_sheet
-from chore_master_api.web_server.dependencies.auth import get_current_end_user
-from chore_master_api.web_server.dependencies.database import get_chore_master_api_db
-from chore_master_api.web_server.dependencies.google_service import get_google_service
+from apps.chore_master_api.logical_sheets.some_module import some_entity_logical_sheet
+from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
+from apps.chore_master_api.web_server.dependencies.database import (
+    get_chore_master_api_db,
+)
+from apps.chore_master_api.web_server.dependencies.google_service import (
+    get_google_service,
+)
 from modules.database.mongo_client import MongoDB
 from modules.google_service.google_service import GoogleService
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum

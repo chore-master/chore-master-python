@@ -2,8 +2,10 @@ from typing import Type
 
 from fastapi import Depends
 
-from chore_master_api.web_server.dependencies.auth import get_current_end_user
-from chore_master_api.web_server.dependencies.google_service import get_google_service
+from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
+from apps.chore_master_api.web_server.dependencies.google_service import (
+    get_google_service,
+)
 from modules.google_service.google_service import GoogleService
 from modules.unit_of_works.base_spreadsheet_unit_of_work import (
     BaseSpreadsheetUnitOfWork,

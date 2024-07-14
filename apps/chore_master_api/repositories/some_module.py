@@ -1,7 +1,7 @@
 from typing import Type
 
-from chore_master_api.logical_sheets.some_module import some_entity_logical_sheet
-from chore_master_api.models.some_module import SomeEntity
+from apps.chore_master_api.logical_sheets.some_module import some_entity_logical_sheet
+from apps.chore_master_api.models.some_module import SomeEntity
 from modules.google_service.models.logical_sheet import LogicalSheet
 from modules.repositories.base_sheet_repository import BaseSheetRepository
 

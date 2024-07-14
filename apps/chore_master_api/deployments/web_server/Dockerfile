@@ -24,6 +24,6 @@ COPY ./pyproject.toml /app/chore-master-python/pyproject.toml
 RUN poetry install --only chore_master_api
 
 COPY ./modules/ /app/chore-master-python/modules
-COPY ./chore_master_api/ /app/chore-master-python/chore_master_api
+COPY ./apps/chore_master_api/ /app/chore-master-python/apps/chore_master_api
 
-CMD [ "poetry", "run", "python", "-m", "chore_master_api.entrypoints.web_server" ]
+CMD [ "poetry", "run", "python", "-m", "apps.chore_master_api.entrypoints.web_server" ]

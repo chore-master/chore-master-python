@@ -2,7 +2,7 @@ import abc
 import sys
 from typing import Generic, Optional, Type, TypeVar
 
-from chore_master_api.models.base import Entity
+from apps.chore_master_api.models.base import Entity
 from modules.google_service.google_service import GoogleService
 from modules.google_service.models.logical_sheet import LogicalSheet
 from modules.repositories.base_repository import BaseRepository, FilterType

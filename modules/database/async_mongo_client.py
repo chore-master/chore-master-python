@@ -13,7 +13,7 @@ from motor.motor_asyncio import (
 )
 from pymongo.write_concern import WriteConcern
 
-AsyncMongoDB = NewType("Database", AsyncIOMotorDatabase)
+AsyncMongoDB = NewType("AsyncMongoDB", AsyncIOMotorDatabase)
 
 
 class DecimalCodec(TypeCodec):

@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from chore_master_api.models.base import Entity
+from apps.chore_master_api.models.base import Entity
 
 
 class Account(Entity):

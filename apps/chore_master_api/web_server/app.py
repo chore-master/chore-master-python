@@ -4,18 +4,18 @@ from typing import Optional
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from chore_master_api.config import get_chore_master_api_web_server_config
-from chore_master_api.web_server.dependencies.database import (
+from apps.chore_master_api.config import get_chore_master_api_web_server_config
+from apps.chore_master_api.web_server.dependencies.database import (
     get_chore_master_api_mongo_client,
 )
-from chore_master_api.web_server.routers.v1.account_center import (
+from apps.chore_master_api.web_server.routers.v1.account_center import (
     router as v1_account_center_router,
 )
-from chore_master_api.web_server.routers.v1.auth import router as v1_auth_router
-from chore_master_api.web_server.routers.v1.financial_management import (
+from apps.chore_master_api.web_server.routers.v1.auth import router as v1_auth_router
+from apps.chore_master_api.web_server.routers.v1.financial_management import (
     router as v1_financial_management_router,
 )
-from chore_master_api.web_server.routers.v1.some_module import (
+from apps.chore_master_api.web_server.routers.v1.some_module import (
     router as v1_some_module_router,
 )
 from modules.base.config import get_base_config
