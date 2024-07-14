@@ -8,7 +8,7 @@
             "name": "[Chore Master API] Web Server",
             "type": "debugpy",
             "request": "launch",
-            "module": "chore_master_api.entrypoints.web_server",
+            "module": "apps.chore_master_api.entrypoints.web_server",
             "console": "integratedTerminal",
             "cwd": "${workspaceRoot}",
             "justMyCode": false,

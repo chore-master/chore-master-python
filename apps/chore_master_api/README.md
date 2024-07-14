@@ -14,8 +14,8 @@ sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.infra.
 ## Release
 
 ```sh
-TAG="2024-07-14-v1" && \
-git tag $TAG --force && \
+export TAG="2024-07-14-v2"
+git tag $TAG --force
 sudo docker buildx build \
     --platform linux/amd64 \
     -f apps/chore_master_api/deployments/web_server/Dockerfile \
@@ -24,7 +24,7 @@ sudo docker buildx build \
     --build-arg COMMIT_SHORT_SHA="$(git rev-parse --short HEAD)" \
     --build-arg COMMIT_REVISION="$TAG" \
     --tag "gocreating/chore_master_api_web_server:$TAG" \
-    ./ && \
+    ./
 docker push "gocreating/chore_master_api_web_server:$TAG"
 ```
 
