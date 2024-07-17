@@ -48,6 +48,13 @@ class CreateNetValueRequest(BaseModel):
     settled_time: Optional[datetime] = None
 
 
+class UpdateNetValueRequest(BaseModel):
+    account_reference: Optional[UUID] = None
+    amount: Optional[Decimal] = None
+    settlement_asset_reference: Optional[UUID] = None
+    settled_time: Optional[datetime] = None
+
+
 @router.get("/accounts", response_model=ResponseSchema[list])
 async def get_accounts(
     uow: FinancialManagementSpreadsheetUnitOfWork = Depends(get_uow),
@@ -202,6 +209,27 @@ async def post_net_values(
     async with uow:
         net_value = NetValue(**net_value_dict)
         await uow.net_value_repository.insert_one(net_value)
+        await uow.commit()
+    return ResponseSchema[None](
+        status=StatusEnum.SUCCESS,
+        data=None,
+    )
+
+
+@router.patch("/net_values/{net_value_reference}", response_model=ResponseSchema[None])
+async def patch_net_values_net_value_reference(
+    net_value_reference: Annotated[UUID, Path()],
+    update_net_value_request: UpdateNetValueRequest,
+    uow: FinancialManagementSpreadsheetUnitOfWork = Depends(get_uow),
+):
+    async with uow:
+        net_value = await uow.net_value_repository.find_one(
+            filter={"reference": net_value_reference}
+        )
+        updated_entity = net_value.model_copy(
+            update=update_net_value_request.model_dump(exclude_unset=True)
+        )
+        await uow.net_value_repository.update_one(updated_entity=updated_entity)
         await uow.commit()
     return ResponseSchema[None](
         status=StatusEnum.SUCCESS,
