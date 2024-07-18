@@ -24,6 +24,7 @@ beautifulsoup4 = "^4.12.3"
 lxml = "^5.2.2"
 matplotlib = "^3.9.1"
 pandas = "^2.2.2"
+shioaji = {extras = ["speed"], version = "^1.2.3"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"

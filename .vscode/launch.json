@@ -22,6 +22,32 @@
             }
         },
         {
+            "name": "[Bill Processor] Sinotrade",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "apps.bill_processor.entrypoints.sinotrade",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "API_KEY": "<API_KEY>",
+                "SECRET_KEY": "<SECRET_KEY>",
+            }
+        },
+        {
+            "name": "[Bill Processor] Sinotrade Test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "apps.bill_processor.entrypoints.sinotrade_test",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "API_KEY": "<API_KEY>",
+                "SECRET_KEY": "<SECRET_KEY>",
+            }
+        },
+        {
             "name": "[Bill Processor] Build bill",
             "type": "debugpy",
             "request": "launch",
