@@ -3,6 +3,7 @@ from __future__ import annotations
 from apps.chore_master_api.repositories.financial_management import (
     AccountRepository,
     AssetRepository,
+    BillRepository,
     NetValueRepository,
 )
 from modules.unit_of_works.base_spreadsheet_unit_of_work import (
@@ -23,9 +24,13 @@ class FinancialManagementSpreadsheetUnitOfWork(BaseSpreadsheetUnitOfWork):
         self.net_value_repository = NetValueRepository(
             self._google_service, self._spreadsheet_id, batch_update_requests
         )
+        self.bill_repository = BillRepository(
+            self._google_service, self._spreadsheet_id, batch_update_requests
+        )
         return self
 
     async def __aexit__(self, *args):
+        self.bill_repository = None
         self.net_value_repository = None
         self.asset_repository = None
         self.account_repository = None

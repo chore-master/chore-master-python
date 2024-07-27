@@ -6,7 +6,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path
 from pydantic import BaseModel
 
-from apps.chore_master_api.models.financial_management import Account, Asset, NetValue
+from apps.chore_master_api.models.financial_management import (
+    Account,
+    Asset,
+    Bill,
+    NetValue,
+)
 from apps.chore_master_api.unit_of_works.financial_management_unit_of_work import (
     FinancialManagementSpreadsheetUnitOfWork,
 )
@@ -53,6 +58,27 @@ class UpdateNetValueRequest(BaseModel):
     amount: Optional[Decimal] = None
     settlement_asset_reference: Optional[UUID] = None
     settled_time: Optional[datetime] = None
+
+
+class CreateBillRequest(BaseModel):
+    reference: Optional[UUID] = None
+    account_reference: UUID
+    business_type: str
+    accounting_type: str
+    amount_change: Decimal
+    asset_reference: UUID
+    order_reference: Optional[str] = None
+    billed_time: datetime
+
+
+class UpdateBillRequest(BaseModel):
+    account_reference: Optional[UUID] = None
+    business_type: Optional[str] = None
+    accounting_type: Optional[str] = None
+    amount_change: Optional[Decimal] = None
+    asset_reference: Optional[UUID] = None
+    order_reference: Optional[str] = None
+    billed_time: Optional[datetime] = None
 
 
 @router.get("/accounts", response_model=ResponseSchema[list])
@@ -245,6 +271,72 @@ async def delete_net_values_net_value_reference(
     async with uow:
         await uow.net_value_repository.delete_many(
             filter={"reference": net_value_reference}, limit=1
+        )
+        await uow.commit()
+    return ResponseSchema[None](
+        status=StatusEnum.SUCCESS,
+        data=None,
+    )
+
+
+@router.get("/bills", response_model=ResponseSchema[list])
+async def get_bills(
+    uow: FinancialManagementSpreadsheetUnitOfWork = Depends(get_uow),
+):
+    async with uow:
+        entities = await uow.bill_repository.find_many()
+    return ResponseSchema[list](
+        status=StatusEnum.SUCCESS,
+        data=entities,
+    )
+
+
+@router.post("/bills", response_model=ResponseSchema[None])
+async def post_bills(
+    create_entity_request: CreateBillRequest,
+    uow: FinancialManagementSpreadsheetUnitOfWork = Depends(get_uow),
+):
+    entity_dict = {}
+    entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
+    async with uow:
+        entity = Bill(**entity_dict)
+        await uow.bill_repository.insert_one(entity)
+        await uow.commit()
+    return ResponseSchema[None](
+        status=StatusEnum.SUCCESS,
+        data=None,
+    )
+
+
+@router.patch("/bills/{bill_reference}", response_model=ResponseSchema[None])
+async def patch_bills_bill_reference(
+    bill_reference: Annotated[UUID, Path()],
+    update_entity_request: UpdateBillRequest,
+    uow: FinancialManagementSpreadsheetUnitOfWork = Depends(get_uow),
+):
+    async with uow:
+        entity = await uow.bill_repository.find_one(
+            filter={"reference": bill_reference}
+        )
+        updated_entity = entity.model_copy(
+            update=update_entity_request.model_dump(exclude_unset=True)
+        )
+        await uow.bill_repository.update_one(updated_entity=updated_entity)
+        await uow.commit()
+    return ResponseSchema[None](
+        status=StatusEnum.SUCCESS,
+        data=None,
+    )
+
+
+@router.delete("/bills/{bill_reference}", response_model=ResponseSchema[None])
+async def delete_bills_bill_reference(
+    bill_reference: Annotated[UUID, Path()],
+    uow: FinancialManagementSpreadsheetUnitOfWork = Depends(get_uow),
+):
+    async with uow:
+        await uow.bill_repository.delete_many(
+            filter={"reference": bill_reference}, limit=1
         )
         await uow.commit()
     return ResponseSchema[None](
