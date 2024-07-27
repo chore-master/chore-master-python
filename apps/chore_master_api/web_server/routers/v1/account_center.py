@@ -31,6 +31,19 @@ class GetIntegrationGoogleResponse(RootModel):
     root: Optional[dict] = None
 
 
+class UpdateIntegrationSinoTradeRequest(BaseModel):
+    class _UpdateAccountRequest(BaseModel):
+        name: str
+        api_key: str
+        secret_key: str
+
+    accounts: list[_UpdateAccountRequest]
+
+
+class GetIntegrationSinoTradeResponse(RootModel):
+    root: Optional[dict] = None
+
+
 @router.get("/end_users/me", response_model=ResponseSchema[dict])
 async def get_end_users_me(current_end_user: dict = Depends(get_current_end_user)):
     return ResponseSchema[dict](
@@ -106,6 +119,49 @@ async def patch_integrations_google(
                         "financial_management_spreadsheet_id": financial_management_spreadsheet_id,
                     },
                 },
+            }
+        },
+    )
+    return ResponseSchema[None](
+        status=StatusEnum.SUCCESS,
+        data=None,
+    )
+
+
+@router.get(
+    "/integrations/sino_trade",
+    response_model=ResponseSchema[GetIntegrationSinoTradeResponse],
+)
+async def get_integrations_sino_trade(
+    current_end_user: dict = Depends(get_current_end_user),
+):
+    return ResponseSchema[GetIntegrationSinoTradeResponse](
+        status=StatusEnum.SUCCESS,
+        data=GetIntegrationSinoTradeResponse(current_end_user.get("sino_trade")),
+    )
+
+
+@router.patch("/integrations/sino_trade", response_model=ResponseSchema[None])
+async def patch_integrations_sino_trade(
+    update_sino_trade: UpdateIntegrationSinoTradeRequest,
+    current_end_user: dict = Depends(get_current_end_user),
+    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+):
+    end_user_collection = chore_master_api_db.get_collection("end_user")
+    await end_user_collection.update_one(
+        filter={"reference": current_end_user["reference"]},
+        update={
+            "$set": {
+                "sino_trade": {
+                    "account_map": {
+                        account.name: {
+                            "name": account.name,
+                            "api_key": account.api_key,
+                            "secret_key": account.secret_key,
+                        }
+                        for account in update_sino_trade.accounts
+                    }
+                }
             }
         },
     )
