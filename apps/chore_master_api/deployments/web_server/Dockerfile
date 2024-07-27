@@ -14,13 +14,14 @@ ENV COMMIT_REVISION=${COMMIT_REVISION}
 RUN apk --update --upgrade add \
     gcc musl-dev jpeg-dev zlib-dev libffi-dev cairo-dev pango-dev gdk-pixbuf-dev \
     git
-RUN pip install poetry && \
-    poetry config virtualenvs.create false && \
+RUN pip install poetry==1.8.3 && \
+    poetry config virtualenvs.create false --local && \
     poetry config experimental.system-git-client true
 
 WORKDIR /app/chore-master-python
 
 COPY ./apps/chore_master_api/deployments/web_server/pyproject.toml /app/chore-master-python/pyproject.toml
+COPY ./apps/chore_master_api/deployments/web_server/poetry.toml /app/chore-master-python/poetry.toml
 RUN poetry install
 
 COPY ./modules/ /app/chore-master-python/modules
