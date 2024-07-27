@@ -7,9 +7,6 @@ packages = []
 version = "0.1.0"
 
 [tool.poetry.dependencies]
-python = "^3.10"
-
-[tool.poetry.group.chore_master_api.dependencies]
 fastapi = "^0.110.2"
 google-api-python-client = "^2.131.0"
 google-auth = "^2.29.0"
@@ -20,21 +17,3 @@ pyjwt = {extras = ["crypto"], version = "^2.8.0"}
 pymongo = "==4.6.0"
 python = "^3.10"
 uvicorn = "^0.29.0"
-
-[tool.poetry.group.bill_processor.dependencies]
-beautifulsoup4 = "^4.12.3"
-lxml = "^5.2.2"
-matplotlib = "^3.9.1"
-pandas = "^2.2.2"
-python = "^3.10"
-shioaji = {extras = ["speed"], version = "^1.2.3"}
-
-[tool.poetry.group.dev.dependencies]
-black = "^23.7.0"
-isort = "^5.12.0"
-
-[tool.black]
-line-length = 88
-
-[tool.isort]
-profile = "black"

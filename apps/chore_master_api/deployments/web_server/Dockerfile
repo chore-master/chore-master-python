@@ -20,8 +20,8 @@ RUN pip install poetry && \
 
 WORKDIR /app/chore-master-python
 
-COPY ./pyproject.toml /app/chore-master-python/pyproject.toml
-RUN poetry install --only chore_master_api
+COPY ./apps/chore_master_api/deployments/web_server/pyproject.toml /app/chore-master-python/pyproject.toml
+RUN poetry install
 
 COPY ./modules/ /app/chore-master-python/modules
 COPY ./apps/chore_master_api/ /app/chore-master-python/apps/chore_master_api
