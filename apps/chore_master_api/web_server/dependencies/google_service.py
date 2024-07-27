@@ -1,3 +1,4 @@
+import google.auth.exceptions
 from fastapi import Depends
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -30,6 +31,9 @@ async def get_credentials(
     if credentials.expired and credentials.refresh_token:
         try:
             credentials.refresh(Request())
+        except google.auth.exceptions.RefreshError:
+            # TODO: logout the user
+            raise InternalServerError()
         except HttpError as err:
             raise InternalServerError()
     return credentials

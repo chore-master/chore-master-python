@@ -6,6 +6,7 @@ from pydantic import BaseModel, RootModel
 from apps.chore_master_api.logical_sheets.financial_management import (
     account_logical_sheet,
     asset_logical_sheet,
+    bill_logical_sheet,
     net_value_logical_sheet,
 )
 from apps.chore_master_api.logical_sheets.some_module import some_entity_logical_sheet
@@ -102,6 +103,9 @@ async def patch_integrations_google(
     )
     google_service.migrate_logical_sheet(
         financial_management_spreadsheet_id, net_value_logical_sheet
+    )
+    google_service.migrate_logical_sheet(
+        financial_management_spreadsheet_id, bill_logical_sheet
     )
 
     end_user_collection = chore_master_api_db.get_collection("end_user")
