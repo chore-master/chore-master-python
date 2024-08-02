@@ -18,8 +18,8 @@ async def main():
         response_dict = response.json()
         fields = response_dict["fields"]
         entries = response_dict["data"]
-    entry_df = pd.DataFrame(data=entries, columns=fields)
-    entry_df.to_csv("apps/etf/data/entry.csv", index=False)
+    dividend_df = pd.DataFrame(data=entries, columns=fields)
+    dividend_df.to_csv("apps/etf/data/dividend.csv", index=False)
 
 
 asyncio.run(main())
