@@ -63,6 +63,14 @@ class GoogleService:
         files = result.get("files", [])
         return next((f for f in files), None)
 
+    def get_spreadsheet(self, spreadsheet_id: str) -> dict:
+        spreadsheet = (
+            self._sheets_service.spreadsheets()
+            .get(spreadsheetId=spreadsheet_id)
+            .execute()
+        )
+        return spreadsheet
+
     def create_spreadsheet_file(self, parent_folder_id: str, file_name: str) -> dict:
         file_metadata = {
             "name": file_name,

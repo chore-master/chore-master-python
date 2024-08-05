@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Annotated, Literal, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, RootModel
 
 from apps.chore_master_api.logical_sheets.financial_management import (
@@ -19,6 +20,7 @@ from apps.chore_master_api.web_server.dependencies.google_service import (
 )
 from modules.database.mongo_client import MongoDB
 from modules.google_service.google_service import GoogleService
+from modules.web_server.exceptions import NotFoundError
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter(prefix="/account_center", tags=["Account Center"])
@@ -66,6 +68,43 @@ async def get_integrations_google(
         status=StatusEnum.SUCCESS,
         data=GetIntegrationGoogleResponse(current_end_user.get("google")),
     )
+
+
+@router.get("/integrations/google/spreadsheets/{spreadsheet_name}/spreadsheet_url")
+async def get_integrations_google_spreadsheets_spreadsheet_name_spreadsheet_url(
+    spreadsheet_name: Annotated[Literal["some_module", "financial_management"], Path()],
+    sheet_title: Optional[str] = None,
+    current_end_user: dict = Depends(get_current_end_user),
+    google_service: GoogleService = Depends(get_google_service),
+):
+    spreadsheet_id = (
+        current_end_user.get("google", {})
+        .get("spreadsheet", {})
+        .get(f"{spreadsheet_name}_spreadsheet_id")
+    )
+    if spreadsheet_id is None:
+        raise NotFoundError(
+            f"spreadsheet `{spreadsheet_name}` is not found in your chore master account"
+        )
+    spreadsheet = google_service.get_spreadsheet(spreadsheet_id)
+    spreadsheet_url = spreadsheet.get("spreadsheetUrl")
+    if spreadsheet_url is None:
+        raise NotFoundError(
+            f"spreadsheet `{spreadsheet_name}` is not found in your google drive"
+        )
+    if sheet_title is not None:
+        sheets = spreadsheet.get("sheets", [])
+        sheet_id = next(
+            (
+                sheet["properties"]["sheetId"]
+                for sheet in sheets
+                if sheet["properties"]["title"] == sheet_title
+            ),
+            None,
+        )
+        if sheet_id is not None:
+            spreadsheet_url = f"{spreadsheet_url}#gid={sheet_id}"
+    return RedirectResponse(spreadsheet_url)
 
 
 @router.patch("/integrations/google", response_model=ResponseSchema[None])
