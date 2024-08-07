@@ -34,6 +34,18 @@ class GetIntegrationGoogleResponse(RootModel):
     root: Optional[dict] = None
 
 
+class GetIntegrationGoogleDriveFoldersResponse(BaseModel):
+    class _Metadata(BaseModel):
+        next_page_token: Optional[str] = None
+
+    class _Folder(BaseModel):
+        id: str
+        name: str
+
+    metadata: _Metadata
+    list: list[_Folder]
+
+
 class UpdateIntegrationSinoTradeRequest(BaseModel):
     class _UpdateAccountRequest(BaseModel):
         name: str
@@ -67,6 +79,26 @@ async def get_integrations_google(
     return ResponseSchema[GetIntegrationGoogleResponse](
         status=StatusEnum.SUCCESS,
         data=GetIntegrationGoogleResponse(current_end_user.get("google")),
+    )
+
+
+@router.get(
+    "/integrations/google/drive/folders",
+    response_model=ResponseSchema[GetIntegrationGoogleDriveFoldersResponse],
+)
+async def get_integrations_google_drive_folders(
+    page_token: Optional[str] = None,
+    is_in_root: Optional[bool] = True,
+    google_service: GoogleService = Depends(get_google_service),
+):
+    drive_folder_collection = google_service.get_drive_folder_collection(
+        page_token=page_token, is_in_root=is_in_root
+    )
+    return ResponseSchema[GetIntegrationGoogleDriveFoldersResponse](
+        status=StatusEnum.SUCCESS,
+        data=GetIntegrationGoogleDriveFoldersResponse(
+            metadata=drive_folder_collection.metadata, list=drive_folder_collection.list
+        ),
     )
 
 

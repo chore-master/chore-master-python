@@ -3,8 +3,14 @@ from typing import Optional, Tuple
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import Resource, build
+from pydantic import BaseModel
 
 from modules.google_service.models.logical_sheet import LogicalColumn, LogicalSheet
+
+
+class DriveFolderCollection(BaseModel):
+    metadata: dict
+    list: list[dict]
 
 
 class GoogleService:
@@ -43,6 +49,29 @@ class GoogleService:
                 )
                 .execute()
             )
+
+    def get_drive_folder_collection(
+        self, page_token: Optional[str] = None, is_in_root: bool = False
+    ) -> DriveFolderCollection:
+        if is_in_root:
+            query = (
+                "mimeType='application/vnd.google-apps.folder' and 'root' in parents"
+            )
+        else:
+            query = "mimeType='application/vnd.google-apps.folder'"
+        results = (
+            self._drive_service.files()
+            .list(
+                q=query,
+                fields="nextPageToken, files(id, name)",
+                pageToken=page_token,
+            )
+            .execute()
+        )
+        return DriveFolderCollection(
+            metadata={"next_page_token": results.get("nextPageToken")},
+            list=results.get("files", []),
+        )
 
     def find_spreadsheet_file_or_none(
         self, parent_folder_id: str, spreadsheet_name: str
@@ -213,12 +242,14 @@ class GoogleService:
                     logical_columns=[],
                 ),
             )
-            reflected_logical_sheet, reflected_sheet_dict, _ = (
-                self.reflect_logical_sheet(
-                    spreadsheet_id=spreadsheet_id,
-                    sheet_title=logical_sheet.logical_name,
-                    should_include_body=False,
-                )
+            (
+                reflected_logical_sheet,
+                reflected_sheet_dict,
+                _,
+            ) = self.reflect_logical_sheet(
+                spreadsheet_id=spreadsheet_id,
+                sheet_title=logical_sheet.logical_name,
+                should_include_body=False,
             )
 
         sheet_id = reflected_sheet_dict["properties"]["sheetId"]
