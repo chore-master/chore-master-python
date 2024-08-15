@@ -109,6 +109,7 @@ async def get_google_callback(
         key=signing_key.key,
         algorithms=["RS256"],
         audience=chore_master_api_web_server_config.GOOGLE_OAUTH_CLIENT_ID,
+        options={"verify_iat": False},
     )
     """
     {
