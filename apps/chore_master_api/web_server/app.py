@@ -18,6 +18,7 @@ from apps.chore_master_api.web_server.routers.v1.financial_management import (
 from apps.chore_master_api.web_server.routers.v1.some_module import (
     router as v1_some_module_router,
 )
+from apps.chore_master_api.web_server.routers.widget import router as widget_router
 from modules.base.config import get_base_config
 from modules.base.schemas.system import BaseConfigSchema
 from modules.web_server.base_fastapi import BaseFastAPI
@@ -55,5 +56,6 @@ def get_app(base_config: Optional[BaseConfigSchema] = None) -> FastAPI:
     v1_router.include_router(v1_financial_management_router)
     v1_router.include_router(v1_some_module_router)
     base_router.include_router(v1_router)
+    base_router.include_router(widget_router)
     app.include_router(base_router)
     return app
