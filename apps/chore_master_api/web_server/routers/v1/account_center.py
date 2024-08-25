@@ -105,6 +105,15 @@ async def get_integrations_google_drive_folders(
     )
 
 
+@router.get("/integrations/google/drive/web_view_url")
+async def get_integrations_google_drive_web_view_url(
+    file_id: str,
+    google_service: GoogleService = Depends(get_google_service),
+):
+    file_dict = google_service.get_drive_file_by_id(file_id)
+    return RedirectResponse(file_dict["webViewLink"])
+
+
 @router.get("/integrations/google/spreadsheets/{spreadsheet_name}/spreadsheet_url")
 async def get_integrations_google_spreadsheets_spreadsheet_name_spreadsheet_url(
     spreadsheet_name: Annotated[Literal["some_module", "financial_management"], Path()],
