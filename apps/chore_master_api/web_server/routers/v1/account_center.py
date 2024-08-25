@@ -87,12 +87,15 @@ async def get_integrations_google(
     response_model=ResponseSchema[GetIntegrationGoogleDriveFoldersResponse],
 )
 async def get_integrations_google_drive_folders(
+    folder_name_query: Optional[str] = None,
     page_token: Optional[str] = None,
-    parent_folder: Optional[str] = "root",
+    parent_folder: Optional[str] = None,
     google_service: GoogleService = Depends(get_google_service),
 ):
     drive_folder_collection = google_service.get_drive_folder_collection(
-        page_token=page_token, parent_folder=parent_folder
+        folder_name_query=folder_name_query,
+        page_token=page_token,
+        parent_folder=parent_folder,
     )
     return ResponseSchema[GetIntegrationGoogleDriveFoldersResponse](
         status=StatusEnum.SUCCESS,

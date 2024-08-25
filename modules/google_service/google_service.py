@@ -51,16 +51,20 @@ class GoogleService:
             )
 
     def get_drive_folder_collection(
-        self, page_token: Optional[str] = None, parent_folder: Optional[str] = None
+        self,
+        folder_name_query: Optional[str] = None,
+        page_token: Optional[str] = None,
+        parent_folder: Optional[str] = None,
     ) -> DriveFolderCollection:
-        if parent_folder is None:
-            query = "mimeType='application/vnd.google-apps.folder'"
-        else:
-            query = f"mimeType='application/vnd.google-apps.folder' and '{parent_folder}' in parents"
+        q = "mimeType='application/vnd.google-apps.folder'"
+        if parent_folder is not None:
+            q = f"{q} and '{parent_folder}' in parents"
+        if folder_name_query is not None:
+            q = f"{q} and name contains '{folder_name_query}'"
         results = (
             self._drive_service.files()
             .list(
-                q=query,
+                q=q,
                 fields="nextPageToken, files(id, name)",
                 pageToken=page_token,
             )
