@@ -50,6 +50,14 @@ class GoogleService:
                 .execute()
             )
 
+    def get_drive_file_by_id(self, file_id: str) -> dict:
+        file_dict = (
+            self._drive_service.files()
+            .get(fileId=file_id, fields="id, name, webViewLink")
+            .execute()
+        )
+        return file_dict
+
     def get_drive_folder_collection(
         self,
         folder_name_query: Optional[str] = None,
