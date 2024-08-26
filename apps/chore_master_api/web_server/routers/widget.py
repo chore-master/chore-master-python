@@ -10,7 +10,20 @@ async def get_sankey():
     return ResponseSchema[dict](
         status=StatusEnum.SUCCESS,
         data={
-            "nodes": [{"name": "a"}, {"name": "b"}],
-            "links": [{"source": "a", "target": "b", "value": 1}],
+            "nodes": [
+                {"id": "A"},
+                {"id": "B"},
+                {"id": "C"},
+                {"id": "D"},
+                {"id": "E"},
+                {"id": "F"},
+            ],
+            "links": [
+                {"source": "A", "target": "B", "value": 10},
+                {"source": "A", "target": "C", "value": 20},
+                {"source": "B", "target": "D", "value": 30},
+                {"source": "C", "target": "D", "value": 40},
+                {"source": "E", "target": "F", "value": 2},
+            ],
         },
     )
