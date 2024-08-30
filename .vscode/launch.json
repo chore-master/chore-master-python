@@ -80,5 +80,19 @@
             "env": {
             }
         },
+        {
+            "name": "[Trading Bot] Strategy Manager",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "apps.trading_bot.strategy_manager",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+              "ENV": "local",
+              "SERVICE_NAME": "trading_bot",
+              "COMPONENT_NAME": "strategy_manager",
+            }
+        },
     ]
 }
