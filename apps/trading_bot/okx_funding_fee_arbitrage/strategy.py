@@ -58,19 +58,26 @@ class OKXFundingFeeArbitrage(BaseStrategy):
             )
             tickers_df.to_csv(tickers_df_path, float_format=float_format, index=False)
 
-    async def open_positions(self, base: str):
+    async def open_positions(
+        self,
+        base: str,
+        max_single_side_position_notional_str: str = "100",
+        sandbox_mode: bool = True,
+    ):
         logger = Logger(name="activities")
         logger.enable_stdout_handler()
         logger.enable_file_handler(
             root_dir="./apps/trading_bot/okx_funding_fee_arbitrage/build/activities"
         )
-
-        # async with StrategyUtils.okx_context_manager(
-        #     "./apps/trading_bot/.okx-gocreating3.env"
-        # ) as exchange:
-        async with StrategyUtils.okx_context_manager(
-            "./apps/trading_bot/.okx-gocreating3.demo.env", sandbox_mode=True
-        ) as exchange:
+        if sandbox_mode:
+            cm = StrategyUtils.okx_context_manager(
+                "./apps/trading_bot/.okx-gocreating3.demo.env", sandbox_mode=True
+            )
+        else:
+            cm = StrategyUtils.okx_context_manager(
+                "./apps/trading_bot/.okx-gocreating3.env"
+            )
+        async with cm as exchange:
             context = await open_positions.get_context(
                 logger=logger,
                 exchange=exchange,
@@ -88,7 +95,9 @@ class OKXFundingFeeArbitrage(BaseStrategy):
                         open_positions.place_orders(
                             exchange=exchange,
                             context=context,
-                            max_single_side_position_notional=Decimal("100"),
+                            max_single_side_position_notional=Decimal(
+                                max_single_side_position_notional_str
+                            ),
                         )
                     ),
                 ],
@@ -100,19 +109,21 @@ class OKXFundingFeeArbitrage(BaseStrategy):
             except Exception as e:
                 context.logger.error(f"Unknown error", exc_info=e)
 
-    async def close_positions(self, base: str):
+    async def close_positions(self, base: str, sandbox_mode: bool = True):
         logger = Logger(name="activities")
         logger.enable_stdout_handler()
         logger.enable_file_handler(
             root_dir="./apps/trading_bot/okx_funding_fee_arbitrage/build/activities"
         )
-
-        # async with StrategyUtils.okx_context_manager(
-        #     "./apps/trading_bot/.okx-gocreating3.env"
-        # ) as exchange:
-        async with StrategyUtils.okx_context_manager(
-            "./apps/trading_bot/.okx-gocreating3.demo.env", sandbox_mode=True
-        ) as exchange:
+        if sandbox_mode:
+            cm = StrategyUtils.okx_context_manager(
+                "./apps/trading_bot/.okx-gocreating3.demo.env", sandbox_mode=True
+            )
+        else:
+            cm = StrategyUtils.okx_context_manager(
+                "./apps/trading_bot/.okx-gocreating3.env"
+            )
+        async with cm as exchange:
             context = await close_positions.get_context(
                 logger=logger,
                 exchange=exchange,
