@@ -251,7 +251,9 @@ class OKXFundingFeeArbitrage(BaseStrategy):
             columns=[
                 "currency",
                 "contribution_count",
-                "balance_change_contribution",
+                "balance_change_last_cumulative_sum",
+                "balance_change_min_cumulative_sum",
+                "balance_change_max_cumulative_sum",
                 "balance_change_per_contribution",
             ]
         )
@@ -265,7 +267,9 @@ class OKXFundingFeeArbitrage(BaseStrategy):
             result_df.loc[len(result_df)] = {
                 "currency": currency,
                 "contribution_count": contribution_count,
-                "balance_change_contribution": cum_sum.iloc[-1],
+                "balance_change_last_cumulative_sum": cum_sum.iloc[-1],
+                "balance_change_min_cumulative_sum": cum_sum.min(),
+                "balance_change_max_cumulative_sum": cum_sum.max(),
                 "balance_change_per_contribution": cum_sum.iloc[-1]
                 / contribution_count,
             }
