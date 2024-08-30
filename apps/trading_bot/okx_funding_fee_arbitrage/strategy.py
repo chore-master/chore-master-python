@@ -223,3 +223,55 @@ class OKXFundingFeeArbitrage(BaseStrategy):
                     )
 
                 current_window_start_time = current_window_end_time
+
+    async def report_pnl_breakdown(self):
+        since_datetime = datetime(2024, 3, 11, tzinfo=timezone.utc)
+        until_datetime = datetime.max.replace(tzinfo=timezone.utc)
+        now_datetime = datetime.now(tz=timezone.utc)
+        window_size = timedelta(days=1)
+
+        current_window_start_time = since_datetime
+
+        cash_flow_df = pd.DataFrame()
+        while current_window_start_time < until_datetime:
+            current_window_end_time = current_window_start_time + window_size
+            current_window_start_time_str = current_window_start_time.isoformat()
+            current_window_end_time_str = min(
+                current_window_end_time, now_datetime
+            ).isoformat()
+            current_window_cash_flow_df_path = f"./apps/trading_bot/okx_funding_fee_arbitrage/build/daily_cash_flow/from_{current_window_start_time_str}_to_{current_window_end_time_str}.csv"
+            if not os.path.exists(current_window_cash_flow_df_path):
+                break
+            # fee_balance_df_path = f"./apps/trading_bot/okx_funding_fee_arbitrage/build/daily_fee_balance/until_{current_window_end_time_str}.csv"
+            current_window_cash_flow_df = pd.read_csv(current_window_cash_flow_df_path)
+            cash_flow_df = pd.concat([cash_flow_df, current_window_cash_flow_df])
+            current_window_start_time = current_window_end_time
+
+        result_df = pd.DataFrame(
+            columns=[
+                "currency",
+                "contribution_count",
+                "balance_change_contribution",
+                "balance_change_per_contribution",
+            ]
+        )
+        grouped = cash_flow_df[
+            cash_flow_df["summary"].str.startswith("funding fee expense/income")
+        ].groupby("summary")
+        for summary, cash_flow_by_summary_df in grouped:
+            currency = summary.split("(")[1].split("-")[0]
+            contribution_count = len(cash_flow_by_summary_df)
+            cum_sum = cash_flow_by_summary_df["balance_change"].cumsum()
+            result_df.loc[len(result_df)] = {
+                "currency": currency,
+                "contribution_count": contribution_count,
+                "balance_change_contribution": cum_sum.iloc[-1],
+                "balance_change_per_contribution": cum_sum.iloc[-1]
+                / contribution_count,
+            }
+        result_df.sort_values(
+            by=["balance_change_per_contribution"], ascending=[False]
+        ).to_csv(
+            f"./apps/trading_bot/okx_funding_fee_arbitrage/build/pnl_breakdown.csv",
+            index=False,
+        )
