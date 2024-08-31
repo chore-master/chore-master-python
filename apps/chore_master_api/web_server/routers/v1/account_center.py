@@ -19,6 +19,7 @@ from apps.chore_master_api.web_server.dependencies.google_service import (
     get_google_service,
 )
 from modules.database.mongo_client import MongoDB
+from modules.database.relational_database import RelationalDatabase, SchemaMigration
 from modules.google_service.google_service import GoogleService
 from modules.web_server.exceptions import NotFoundError
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
@@ -28,10 +29,12 @@ router = APIRouter(prefix="/account_center", tags=["Account Center"])
 
 class GetIntegrationCoreResponse(BaseModel):
     relational_database_origin: Optional[str] = None
+    relational_database_schema_name: Optional[str] = None
 
 
 class UpdateIntegrationCoreRequest(BaseModel):
     relational_database_origin: str
+    relational_database_schema_name: Optional[str] = None
 
 
 class GetIntegrationGoogleResponse(RootModel):
@@ -84,9 +87,14 @@ async def get_end_users_me(current_end_user: dict = Depends(get_current_end_user
 async def get_integrations_core(
     current_end_user: dict = Depends(get_current_end_user),
 ):
+    core_dict = current_end_user.get("core")
+    relational_database_dict = core_dict.get("relational_database", {})
     return ResponseSchema[GetIntegrationCoreResponse](
         status=StatusEnum.SUCCESS,
-        data=GetIntegrationCoreResponse(**current_end_user.get("core")),
+        data=GetIntegrationCoreResponse(
+            relational_database_origin=relational_database_dict.get("origin"),
+            relational_database_schema_name=relational_database_dict.get("schema_name"),
+        ),
     )
 
 
@@ -97,6 +105,13 @@ async def patch_integrations_core(
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
 ):
     end_user_collection = chore_master_api_db.get_collection("end_user")
+    rdb = RelationalDatabase(
+        origin=update_core.relational_database_origin,
+        schema_name=update_core.relational_database_schema_name,
+    )
+    schema_migration = SchemaMigration(
+        rdb, "./apps/chore_master_api/user_database/migrations"
+    )
     await end_user_collection.update_one(
         filter={"reference": current_end_user["reference"]},
         update={
@@ -105,6 +120,7 @@ async def patch_integrations_core(
                 "core": {
                     "relational_database": {
                         "origin": update_core.relational_database_origin,
+                        "schema_name": update_core.relational_database_schema_name,
                     },
                 },
             }
