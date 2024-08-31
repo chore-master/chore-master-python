@@ -26,12 +26,20 @@ from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 router = APIRouter(prefix="/account_center", tags=["Account Center"])
 
 
-class UpdateIntegrationGoogleRequest(BaseModel):
-    drive_root_folder_id: str
+class GetIntegrationCoreResponse(BaseModel):
+    relational_database_origin: Optional[str] = None
+
+
+class UpdateIntegrationCoreRequest(BaseModel):
+    relational_database_origin: str
 
 
 class GetIntegrationGoogleResponse(RootModel):
     root: Optional[dict] = None
+
+
+class UpdateIntegrationGoogleRequest(BaseModel):
+    drive_root_folder_id: str
 
 
 class GetIntegrationGoogleDriveFoldersResponse(BaseModel):
@@ -46,6 +54,10 @@ class GetIntegrationGoogleDriveFoldersResponse(BaseModel):
     list: list[_Folder]
 
 
+class GetIntegrationSinoTradeResponse(RootModel):
+    root: Optional[dict] = None
+
+
 class UpdateIntegrationSinoTradeRequest(BaseModel):
     class _UpdateAccountRequest(BaseModel):
         name: str
@@ -53,10 +65,6 @@ class UpdateIntegrationSinoTradeRequest(BaseModel):
         secret_key: str
 
     accounts: list[_UpdateAccountRequest]
-
-
-class GetIntegrationSinoTradeResponse(RootModel):
-    root: Optional[dict] = None
 
 
 @router.get("/end_users/me", response_model=ResponseSchema[dict])
@@ -67,6 +75,44 @@ async def get_end_users_me(current_end_user: dict = Depends(get_current_end_user
             "email": current_end_user["email"],
             "is_mounted": current_end_user.get("is_mounted", False),
         },
+    )
+
+
+@router.get(
+    "/integrations/core", response_model=ResponseSchema[GetIntegrationCoreResponse]
+)
+async def get_integrations_core(
+    current_end_user: dict = Depends(get_current_end_user),
+):
+    return ResponseSchema[GetIntegrationCoreResponse](
+        status=StatusEnum.SUCCESS,
+        data=GetIntegrationCoreResponse(**current_end_user.get("core")),
+    )
+
+
+@router.patch("/integrations/core", response_model=ResponseSchema[None])
+async def patch_integrations_core(
+    update_core: UpdateIntegrationCoreRequest,
+    current_end_user: dict = Depends(get_current_end_user),
+    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+):
+    end_user_collection = chore_master_api_db.get_collection("end_user")
+    await end_user_collection.update_one(
+        filter={"reference": current_end_user["reference"]},
+        update={
+            "$set": {
+                "is_mounted": True,
+                "core": {
+                    "relational_database": {
+                        "origin": update_core.relational_database_origin,
+                    },
+                },
+            }
+        },
+    )
+    return ResponseSchema[None](
+        status=StatusEnum.SUCCESS,
+        data=None,
     )
 
 
