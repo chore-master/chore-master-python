@@ -29,6 +29,16 @@ pandas = "^2.2.2"
 python = "^3.10"
 shioaji = {extras = ["speed"], version = "^1.2.3"}
 
+[tool.poetry.group.okx_funding_fee_arbitrage.dependencies]
+ccxt = "^4.2.63"
+fastapi = "^0.110.2"
+pandas = "^2.2.2"
+pydantic = "^2.6.3"
+python = "^3.10"
+python-dotenv = "^1.0.0"
+shortuuid = "^1.0.13"
+uvicorn = "^0.29.0"
+
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
 isort = "^5.12.0"

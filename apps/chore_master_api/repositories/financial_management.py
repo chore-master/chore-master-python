@@ -3,9 +3,15 @@ from typing import Type
 from apps.chore_master_api.logical_sheets.financial_management import (
     account_logical_sheet,
     asset_logical_sheet,
+    bill_logical_sheet,
     net_value_logical_sheet,
 )
-from apps.chore_master_api.models.financial_management import Account, Asset, NetValue
+from apps.chore_master_api.models.financial_management import (
+    Account,
+    Asset,
+    Bill,
+    NetValue,
+)
 from modules.google_service.models.logical_sheet import LogicalSheet
 from modules.repositories.base_sheet_repository import BaseSheetRepository
 
@@ -38,3 +44,13 @@ class NetValueRepository(BaseSheetRepository[NetValue]):
     @property
     def logical_sheet(self) -> LogicalSheet:
         return net_value_logical_sheet
+
+
+class BillRepository(BaseSheetRepository[Bill]):
+    @property
+    def entity_class(self) -> Type[Bill]:
+        return Bill
+
+    @property
+    def logical_sheet(self) -> LogicalSheet:
+        return bill_logical_sheet

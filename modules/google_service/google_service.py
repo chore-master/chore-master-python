@@ -3,8 +3,14 @@ from typing import Optional, Tuple
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import Resource, build
+from pydantic import BaseModel
 
 from modules.google_service.models.logical_sheet import LogicalColumn, LogicalSheet
+
+
+class DriveFolderCollection(BaseModel):
+    metadata: dict
+    list: list[dict]
 
 
 class GoogleService:
@@ -44,6 +50,39 @@ class GoogleService:
                 .execute()
             )
 
+    def get_drive_file_by_id(self, file_id: str) -> dict:
+        file_dict = (
+            self._drive_service.files()
+            .get(fileId=file_id, fields="id, name, webViewLink")
+            .execute()
+        )
+        return file_dict
+
+    def get_drive_folder_collection(
+        self,
+        folder_name_query: Optional[str] = None,
+        page_token: Optional[str] = None,
+        parent_folder: Optional[str] = None,
+    ) -> DriveFolderCollection:
+        q = "mimeType='application/vnd.google-apps.folder'"
+        if parent_folder is not None:
+            q = f"{q} and '{parent_folder}' in parents"
+        if folder_name_query is not None:
+            q = f"{q} and name contains '{folder_name_query}'"
+        results = (
+            self._drive_service.files()
+            .list(
+                q=q,
+                fields="nextPageToken, files(id, name)",
+                pageToken=page_token,
+            )
+            .execute()
+        )
+        return DriveFolderCollection(
+            metadata={"next_page_token": results.get("nextPageToken")},
+            list=results.get("files", []),
+        )
+
     def find_spreadsheet_file_or_none(
         self, parent_folder_id: str, spreadsheet_name: str
     ) -> Optional[dict]:
@@ -62,6 +101,14 @@ class GoogleService:
         )
         files = result.get("files", [])
         return next((f for f in files), None)
+
+    def get_spreadsheet(self, spreadsheet_id: str) -> dict:
+        spreadsheet = (
+            self._sheets_service.spreadsheets()
+            .get(spreadsheetId=spreadsheet_id)
+            .execute()
+        )
+        return spreadsheet
 
     def create_spreadsheet_file(self, parent_folder_id: str, file_name: str) -> dict:
         file_metadata = {
@@ -205,12 +252,14 @@ class GoogleService:
                     logical_columns=[],
                 ),
             )
-            reflected_logical_sheet, reflected_sheet_dict, _ = (
-                self.reflect_logical_sheet(
-                    spreadsheet_id=spreadsheet_id,
-                    sheet_title=logical_sheet.logical_name,
-                    should_include_body=False,
-                )
+            (
+                reflected_logical_sheet,
+                reflected_sheet_dict,
+                _,
+            ) = self.reflect_logical_sheet(
+                spreadsheet_id=spreadsheet_id,
+                sheet_title=logical_sheet.logical_name,
+                should_include_body=False,
             )
 
         sheet_id = reflected_sheet_dict["properties"]["sheetId"]

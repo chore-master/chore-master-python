@@ -50,3 +50,38 @@ net_value_logical_sheet = LogicalSheet(
         ),
     ],
 )
+
+bill_logical_sheet = LogicalSheet(
+    logical_name="bill",
+    logical_columns=[
+        *get_base_logical_columns(),
+        LogicalColumn(
+            logical_name="account_reference",
+            logical_data_type_name=LogicalDataTypeNameEnum.UUID,
+        ),
+        LogicalColumn(
+            logical_name="business_type",
+            logical_data_type_name=LogicalDataTypeNameEnum.STRING,
+        ),
+        LogicalColumn(
+            logical_name="accounting_type",
+            logical_data_type_name=LogicalDataTypeNameEnum.STRING,
+        ),
+        LogicalColumn(
+            logical_name="amount_change",
+            logical_data_type_name=LogicalDataTypeNameEnum.DECIMAL,
+        ),
+        LogicalColumn(
+            logical_name="asset_reference",
+            logical_data_type_name=LogicalDataTypeNameEnum.UUID,
+        ),
+        LogicalColumn(
+            logical_name="order_reference",
+            logical_data_type_name=LogicalDataTypeNameEnum.STRING,
+        ),
+        LogicalColumn(
+            logical_name="billed_time",
+            logical_data_type_name=LogicalDataTypeNameEnum.DATETIME,
+        ),
+    ],
+)
