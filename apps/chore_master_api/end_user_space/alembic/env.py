@@ -2,13 +2,9 @@ import asyncio
 
 import nest_asyncio
 from alembic import context
-from sqlalchemy import pool, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy.schema import MetaData
-
-# from modules.database.config import get_config
-# from modules.database.sa.registry import mapper_registry
-from modules.database.relational_database import RelationalDatabase
 
 nest_asyncio.apply()
 
@@ -16,8 +12,6 @@ nest_asyncio.apply()
 
 # from logging.config import fileConfig
 
-
-# db_config = get_config()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -30,6 +24,7 @@ config = context.config
 # add your model's MetaData object here
 # for 'autogenerate' support
 target_metadata: MetaData = config.attributes["injected_metadata"]
+conn_args: MetaData = config.attributes["injected_conn_args"]
 schema_name = target_metadata.schema
 
 # other values from the config, defined by the needs of env.py,
@@ -79,7 +74,7 @@ async def async_run_migrations_online():
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
+        **conn_args,
     )
 
     async with connectable.connect() as connection:

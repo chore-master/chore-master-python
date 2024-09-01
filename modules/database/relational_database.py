@@ -6,7 +6,7 @@ from alembic.config import Config
 from alembic.runtime.environment import EnvironmentContext
 from alembic.script import ScriptDirectory
 from alembic.script.base import Script
-from sqlalchemy import Column, Table, inspect
+from sqlalchemy import Column, NullPool, Table, event, inspect
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, create_async_engine
 from sqlalchemy.orm import registry, sessionmaker
 from sqlalchemy.schema import CreateSchema, DropSchema, MetaData
@@ -50,18 +50,39 @@ class RelationalDatabase:
         # if schema_name == "":
         #     schema_name = None
         # self._schema_name = schema_name
-        self._async_engine = create_async_engine(
-            origin,
-            # isolation_level="READ COMMITTED",
-            isolation_level="SERIALIZABLE",
-            future=True,
-        )
+        conn_args = {
+            "future": True,
+            "poolclass": NullPool,
+        }
+        if origin.startswith("postgresql"):
+            conn_args.update(
+                {
+                    "isolation_level": "READ COMMITTED",
+                    # https://github.com/sqlalchemy/sqlalchemy/discussions/10246#discussioncomment-6961258
+                    "connect_args": {
+                        "prepared_statement_name_func": lambda: "",
+                        "statement_cache_size": 0,
+                    },
+                }
+            )
+        elif origin.startswith("sqlite"):
+            conn_args.update(
+                {
+                    "isolation_level": "SERIALIZABLE",
+                }
+            )
+        self._conn_args = conn_args
+        self._async_engine = create_async_engine(origin, **self._conn_args)
         # self._metadata = self.get_metadata(schema_name=self.schema_name)
         # self._metadata = metadata
 
     @property
     def origin(self) -> str:
         return self._origin
+
+    @property
+    def conn_args(self) -> dict:
+        return self._conn_args
 
     # @property
     # def schema_name(self) -> str:
@@ -151,6 +172,7 @@ class SchemaMigration:
             os.makedirs(version_location)
         alembic_cfg.set_main_option("version_locations", version_location)
         alembic_cfg.attributes["injected_metadata"] = metadata
+        alembic_cfg.attributes["injected_conn_args"] = self._db.conn_args
         return alembic_cfg
 
     def get_version_location(self) -> str:
