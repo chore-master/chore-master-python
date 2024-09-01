@@ -24,6 +24,8 @@ class BaseSQLAlchemyRepository(
         raise NotImplementedError
 
     async def _count(self, filter: FilterType = None) -> int:
+        if filter is None:
+            filter = {}
         statement = select(func.count(self.entity_class.reference)).filter_by(**filter)
         result = await self._session.execute(statement)
         count = result.scalars().unique().first()
@@ -36,23 +38,25 @@ class BaseSQLAlchemyRepository(
     async def _find_many(
         self, filter: FilterType = None, limit: Optional[int] = None
     ) -> list[ENTITY_TYPE]:
+        if filter is None:
+            filter = {}
         statement = select(self.entity_class).filter_by(**filter).limit(limit)
         result = await self._session.execute(statement)
         entities = result.scalars().unique().all()
         return entities
 
     async def _find_one(self, filter: FilterType = None) -> ENTITY_TYPE:
+        if filter is None:
+            filter = {}
         statement = select(self.entity_class).filter_by(**filter)
         result = await self._session.execute(statement)
         entity = result.scalars().unique().one()
         return entity
 
-    async def _update_many(
-        self, values: dict, filter: FilterType = None, limit: Optional[int] = None
-    ):
-        statement = (
-            update(self.entity_class).filter_by(**filter).values(values).limit(limit)
-        )
+    async def _update_many(self, values: dict, filter: FilterType = None):
+        if filter is None:
+            filter = {}
+        statement = update(self.entity_class).filter_by(**filter).values(values)
         _result = await self._session.execute(statement)
 
     async def _delete_many(

@@ -6,13 +6,13 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, RootModel
 from sqlalchemy.orm import registry
 
-from apps.chore_master_api.logical_sheets.financial_management import (
-    account_logical_sheet,
-    asset_logical_sheet,
-    bill_logical_sheet,
-    net_value_logical_sheet,
-)
-from apps.chore_master_api.logical_sheets.some_module import some_entity_logical_sheet
+# from apps.chore_master_api.logical_sheets.financial_management import (
+#     account_logical_sheet,
+#     asset_logical_sheet,
+#     bill_logical_sheet,
+#     net_value_logical_sheet,
+# )
+# from apps.chore_master_api.logical_sheets.some_module import some_entity_logical_sheet
 from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
 from apps.chore_master_api.web_server.dependencies.database import (
     get_chore_master_api_db,
@@ -277,68 +277,68 @@ async def get_integrations_google_spreadsheets_spreadsheet_name_spreadsheet_url(
     return RedirectResponse(spreadsheet_url)
 
 
-@router.patch("/integrations/google", response_model=ResponseSchema[None])
-async def patch_integrations_google(
-    update_google: UpdateIntegrationGoogleRequest,
-    current_end_user: dict = Depends(get_current_end_user),
-    google_service: GoogleService = Depends(get_google_service),
-    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
-):
-    # Some Module
-    some_module_spreadsheet_file_dict = google_service.migrate_spreadsheet_file(
-        parent_folder_id=update_google.drive_root_folder_id,
-        spreadsheet_name="some_module",
-    )
-    some_module_spreadsheet_id = some_module_spreadsheet_file_dict["id"]
-    google_service.migrate_logical_sheet(
-        some_module_spreadsheet_id, some_entity_logical_sheet
-    )
+# @router.patch("/integrations/google", response_model=ResponseSchema[None])
+# async def patch_integrations_google(
+#     update_google: UpdateIntegrationGoogleRequest,
+#     current_end_user: dict = Depends(get_current_end_user),
+#     google_service: GoogleService = Depends(get_google_service),
+#     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+# ):
+#     # Some Module
+#     some_module_spreadsheet_file_dict = google_service.migrate_spreadsheet_file(
+#         parent_folder_id=update_google.drive_root_folder_id,
+#         spreadsheet_name="some_module",
+#     )
+#     some_module_spreadsheet_id = some_module_spreadsheet_file_dict["id"]
+#     google_service.migrate_logical_sheet(
+#         some_module_spreadsheet_id, some_entity_logical_sheet
+#     )
 
-    # Financial Management
-    financial_management_spreadsheet_file_dict = (
-        google_service.migrate_spreadsheet_file(
-            parent_folder_id=update_google.drive_root_folder_id,
-            spreadsheet_name="financial_management",
-        )
-    )
-    financial_management_spreadsheet_id = financial_management_spreadsheet_file_dict[
-        "id"
-    ]
-    google_service.migrate_logical_sheet(
-        financial_management_spreadsheet_id, account_logical_sheet
-    )
-    google_service.migrate_logical_sheet(
-        financial_management_spreadsheet_id, asset_logical_sheet
-    )
-    google_service.migrate_logical_sheet(
-        financial_management_spreadsheet_id, net_value_logical_sheet
-    )
-    google_service.migrate_logical_sheet(
-        financial_management_spreadsheet_id, bill_logical_sheet
-    )
+#     # Financial Management
+#     financial_management_spreadsheet_file_dict = (
+#         google_service.migrate_spreadsheet_file(
+#             parent_folder_id=update_google.drive_root_folder_id,
+#             spreadsheet_name="financial_management",
+#         )
+#     )
+#     financial_management_spreadsheet_id = financial_management_spreadsheet_file_dict[
+#         "id"
+#     ]
+#     google_service.migrate_logical_sheet(
+#         financial_management_spreadsheet_id, account_logical_sheet
+#     )
+#     google_service.migrate_logical_sheet(
+#         financial_management_spreadsheet_id, asset_logical_sheet
+#     )
+#     google_service.migrate_logical_sheet(
+#         financial_management_spreadsheet_id, net_value_logical_sheet
+#     )
+#     google_service.migrate_logical_sheet(
+#         financial_management_spreadsheet_id, bill_logical_sheet
+#     )
 
-    end_user_collection = chore_master_api_db.get_collection("end_user")
-    await end_user_collection.update_one(
-        filter={"reference": current_end_user["reference"]},
-        update={
-            "$set": {
-                "is_mounted": True,
-                "google": {
-                    "drive": {
-                        "root_folder_id": update_google.drive_root_folder_id,
-                    },
-                    "spreadsheet": {
-                        "some_module_spreadsheet_id": some_module_spreadsheet_id,
-                        "financial_management_spreadsheet_id": financial_management_spreadsheet_id,
-                    },
-                },
-            }
-        },
-    )
-    return ResponseSchema[None](
-        status=StatusEnum.SUCCESS,
-        data=None,
-    )
+#     end_user_collection = chore_master_api_db.get_collection("end_user")
+#     await end_user_collection.update_one(
+#         filter={"reference": current_end_user["reference"]},
+#         update={
+#             "$set": {
+#                 "is_mounted": True,
+#                 "google": {
+#                     "drive": {
+#                         "root_folder_id": update_google.drive_root_folder_id,
+#                     },
+#                     "spreadsheet": {
+#                         "some_module_spreadsheet_id": some_module_spreadsheet_id,
+#                         "financial_management_spreadsheet_id": financial_management_spreadsheet_id,
+#                     },
+#                 },
+#             }
+#         },
+#     )
+#     return ResponseSchema[None](
+#         status=StatusEnum.SUCCESS,
+#         data=None,
+#     )
 
 
 @router.get(
