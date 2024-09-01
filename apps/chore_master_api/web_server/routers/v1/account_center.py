@@ -1,8 +1,10 @@
 from typing import Annotated, Literal, Optional
 
+import alembic
 from fastapi import APIRouter, Depends, Path
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, RootModel
+from sqlalchemy.orm import registry
 
 from apps.chore_master_api.logical_sheets.financial_management import (
     account_logical_sheet,
@@ -15,13 +17,17 @@ from apps.chore_master_api.web_server.dependencies.auth import get_current_end_u
 from apps.chore_master_api.web_server.dependencies.database import (
     get_chore_master_api_db,
 )
+from apps.chore_master_api.web_server.dependencies.end_user_database import (
+    get_end_user_db_migration,
+    get_end_user_db_registry,
+)
 from apps.chore_master_api.web_server.dependencies.google_service import (
     get_google_service,
 )
 from modules.database.mongo_client import MongoDB
-from modules.database.relational_database import RelationalDatabase, SchemaMigration
+from modules.database.relational_database import SchemaMigration
 from modules.google_service.google_service import GoogleService
-from modules.web_server.exceptions import NotFoundError
+from modules.web_server.exceptions import BadRequestError, NotFoundError
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter(prefix="/account_center", tags=["Account Center"])
@@ -98,25 +104,19 @@ async def get_integrations_core(
     )
 
 
-@router.patch("/integrations/core", response_model=ResponseSchema[None])
-async def patch_integrations_core(
+@router.patch(
+    "/integrations/core/relational_database", response_model=ResponseSchema[None]
+)
+async def patch_integrations_core_relational_database(
     update_core: UpdateIntegrationCoreRequest,
     current_end_user: dict = Depends(get_current_end_user),
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
 ):
     end_user_collection = chore_master_api_db.get_collection("end_user")
-    rdb = RelationalDatabase(
-        origin=update_core.relational_database_origin,
-        schema_name=update_core.relational_database_schema_name,
-    )
-    schema_migration = SchemaMigration(
-        rdb, "./apps/chore_master_api/user_database/migrations"
-    )
     await end_user_collection.update_one(
         filter={"reference": current_end_user["reference"]},
         update={
             "$set": {
-                "is_mounted": True,
                 "core": {
                     "relational_database": {
                         "origin": update_core.relational_database_origin,
@@ -130,6 +130,72 @@ async def patch_integrations_core(
         status=StatusEnum.SUCCESS,
         data=None,
     )
+
+
+@router.post(
+    "/integrations/core/relational_database/migrations/generate_revision",
+    response_model=ResponseSchema[None],
+)
+async def post_integrations_core_relational_database_migrations_generate_revision(
+    end_user_db_registry: registry = Depends(get_end_user_db_registry, use_cache=False),
+    end_user_db_migration: SchemaMigration = Depends(
+        get_end_user_db_migration, use_cache=False
+    ),
+):
+    try:
+        end_user_db_migration.generate_revision(metadata=end_user_db_registry.metadata)
+    except alembic.util.exc.CommandError as e:
+        raise BadRequestError(str(e))
+    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.post(
+    "/integrations/core/relational_database/migrations/upgrade",
+    response_model=ResponseSchema[None],
+)
+async def post_integrations_core_relational_database_migrations_upgrade(
+    current_end_user: dict = Depends(get_current_end_user),
+    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+    end_user_db_registry: registry = Depends(get_end_user_db_registry, use_cache=False),
+    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
+):
+    end_user_collection = chore_master_api_db.get_collection("end_user")
+    end_user_db_migration.upgrade(metadata=end_user_db_registry.metadata)
+    await end_user_collection.update_one(
+        filter={"reference": current_end_user["reference"]},
+        update={
+            "$set": {
+                "is_mounted": True,
+            }
+        },
+    )
+    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.post(
+    "/integrations/core/relational_database/migrations/downgrade",
+    response_model=ResponseSchema[None],
+)
+async def post_integrations_core_relational_database_migrations_downgrade(
+    current_end_user: dict = Depends(get_current_end_user),
+    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+    end_user_db_registry: registry = Depends(get_end_user_db_registry, use_cache=False),
+    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
+):
+    end_user_collection = chore_master_api_db.get_collection("end_user")
+    try:
+        end_user_db_migration.downgrade(metadata=end_user_db_registry.metadata)
+    except alembic.util.exc.CommandError as e:
+        raise BadRequestError(str(e))
+    await end_user_collection.update_one(
+        filter={"reference": current_end_user["reference"]},
+        update={
+            "$set": {
+                "is_mounted": False,
+            }
+        },
+    )
+    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
 @router.get(

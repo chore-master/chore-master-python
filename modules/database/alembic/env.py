@@ -4,6 +4,7 @@ import nest_asyncio
 from alembic import context
 from sqlalchemy import pool, text
 from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.schema import MetaData
 
 # from modules.database.config import get_config
 # from modules.database.sa.registry import mapper_registry
@@ -28,9 +29,8 @@ config = context.config
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-db: RelationalDatabase = config.attributes["injected_db"]
-target_metadata = db.metadata
-schema_name = db.schema_name
+target_metadata: MetaData = config.attributes["injected_metadata"]
+schema_name = target_metadata.schema
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
