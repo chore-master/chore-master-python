@@ -3,6 +3,8 @@ from typing import Optional
 
 from alembic import command
 from alembic.config import Config
+from alembic.runtime.environment import EnvironmentContext
+from alembic.script import ScriptDirectory
 from alembic.script.base import Script
 from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, create_async_engine
@@ -110,6 +112,18 @@ class RelationalDatabase:
 
 
 class SchemaMigration:
+    @staticmethod
+    def get_script_dict(script: Script) -> dict:
+        return {
+            "doc": script.doc,
+            "down_revision": script.down_revision,
+            "is_base": script.is_base,
+            "is_branch_point": script.is_branch_point,
+            "is_head": script.is_head,
+            "is_merge_point": script.is_merge_point,
+            "revision": script.revision,
+        }
+
     def __init__(
         self, database: RelationalDatabase, version_dir: str, alembic_dir: str
     ):
@@ -142,6 +156,32 @@ class SchemaMigration:
         if isinstance(script, Script):
             return [script]
         return script
+
+    def all_revisions(self, metadata: MetaData) -> list[dict]:
+        alembic_cfg = self.create_alembic_config(metadata)
+        script = ScriptDirectory.from_config(alembic_cfg)
+        return [
+            self.get_script_dict(script)
+            for script in script.walk_revisions(base="base", head="heads")
+        ]
+
+    def current_revision(self, metadata: MetaData) -> dict:
+        current_revision = None
+
+        def _get_current_revision(rev, _context) -> tuple[str, ...]:
+            nonlocal current_revision
+            current_revision = _context.get_current_heads()
+            return []
+
+        alembic_cfg = self.create_alembic_config(metadata)
+        script = ScriptDirectory.from_config(alembic_cfg)
+
+        with EnvironmentContext(
+            alembic_cfg, script, fn=_get_current_revision, dont_mutate=True
+        ):
+            script.run_env()
+        current_script: Script = next(iter(script.get_all_current(current_revision)))
+        return self.get_script_dict(current_script)
 
     def upgrade(self, metadata: MetaData, revision: str = "head"):
         alembic_cfg = self.create_alembic_config(metadata)

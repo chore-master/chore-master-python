@@ -36,6 +36,8 @@ router = APIRouter(prefix="/account_center", tags=["Account Center"])
 class GetIntegrationCoreResponse(BaseModel):
     relational_database_origin: Optional[str] = None
     relational_database_schema_name: Optional[str] = None
+    all_revisions: list[dict]
+    current_revision: dict
 
 
 class UpdateIntegrationCoreRequest(BaseModel):
@@ -92,14 +94,24 @@ async def get_end_users_me(current_end_user: dict = Depends(get_current_end_user
 )
 async def get_integrations_core(
     current_end_user: dict = Depends(get_current_end_user),
+    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
     core_dict = current_end_user.get("core")
     relational_database_dict = core_dict.get("relational_database", {})
+    all_revisions = end_user_db_migration.all_revisions(
+        metadata=end_user_db_registry.metadata
+    )
+    current_revision = end_user_db_migration.current_revision(
+        metadata=end_user_db_registry.metadata
+    )
     return ResponseSchema[GetIntegrationCoreResponse](
         status=StatusEnum.SUCCESS,
         data=GetIntegrationCoreResponse(
             relational_database_origin=relational_database_dict.get("origin"),
             relational_database_schema_name=relational_database_dict.get("schema_name"),
+            all_revisions=all_revisions,
+            current_revision=current_revision,
         ),
     )
 
