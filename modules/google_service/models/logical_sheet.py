@@ -10,7 +10,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from apps.chore_master_api.models.base import Entity
+from apps.chore_master_api.end_user_space.models.base import Entity
 
 
 class LogicalDataTypeNameEnum(str, Enum):

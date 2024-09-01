@@ -7,9 +7,9 @@ from modules.database.sqlalchemy.types import DateTime, String
 def get_base_columns():
     return [
         Column("reference", String, primary_key=True, index=True, nullable=False),
-        Column("create_time", DateTime, index=True, server_default=func.now()),
+        Column("created_time", DateTime, index=True, server_default=func.now()),
         Column(
-            "update_time",
+            "updated_time",
             DateTime,
             index=True,
             server_default=func.now(),

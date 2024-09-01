@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from apps.chore_master_api.models.base import Entity
+from apps.chore_master_api.end_user_space.models.base import Entity
 
 
 class Account(Entity):

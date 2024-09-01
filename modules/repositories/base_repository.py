@@ -1,7 +1,7 @@
 import abc
 from typing import Generic, Optional, TypeVar
 
-from apps.chore_master_api.models.base import Entity
+from apps.chore_master_api.end_user_space.models.base import Entity
 
 ABSTRACT_ENTITY_TYPE = TypeVar("ABSTRACT_ENTITY_TYPE", bound=Entity)
 ENTITY_TYPE = TypeVar("ENTITY_TYPE", bound=Entity)

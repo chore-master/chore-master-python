@@ -111,15 +111,11 @@ class RelationalDatabase:
 
 class SchemaMigration:
     def __init__(
-        self,
-        database: RelationalDatabase,
-        version_dir: str,
-        alembic_dir: str = "./modules/database/alembic",
+        self, database: RelationalDatabase, version_dir: str, alembic_dir: str
     ):
         self._db = database
         self._version_dir = version_dir
         self._alembic_dir = alembic_dir
-        # self._alembic_cfg = self.get_alembic_config()
 
     def create_alembic_config(self, metadata: MetaData) -> Config:
         # https://alembic.sqlalchemy.org/en/latest/api/config.html

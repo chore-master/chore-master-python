@@ -1,7 +1,10 @@
 from fastapi import Depends
 from sqlalchemy.orm import registry
 
-from apps.chore_master_api.end_user_database.end_user_orm import EndUserORM
+from apps.chore_master_api.end_user_space.end_user_orm import EndUserORM
+from apps.chore_master_api.end_user_space.unit_of_works.some_module_unit_of_work import (
+    SomeModuleSQLAlchemyUnitOfWork,
+)
 from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
 from modules.database.relational_database import RelationalDatabase, SchemaMigration
 
@@ -31,6 +34,15 @@ async def get_end_user_db_migration(
     end_user_db: RelationalDatabase = Depends(get_end_user_db),
 ) -> SchemaMigration:
     schema_migration = SchemaMigration(
-        end_user_db, "./apps/chore_master_api/end_user_database/migrations"
+        database=end_user_db,
+        version_dir="./apps/chore_master_api/end_user_space/migrations",
+        alembic_dir="./apps/chore_master_api/end_user_space/alembic",
     )
     return schema_migration
+
+
+async def get_some_module_uow(
+    end_user_db: RelationalDatabase = Depends(get_end_user_db),
+    _end_user_db_registry: registry = Depends(get_end_user_db_registry),
+) -> SomeModuleSQLAlchemyUnitOfWork:
+    return SomeModuleSQLAlchemyUnitOfWork(relational_database=end_user_db)

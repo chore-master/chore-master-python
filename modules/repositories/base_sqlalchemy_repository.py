@@ -5,7 +5,7 @@ from sqlalchemy import func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from apps.chore_master_api.models.base import Entity
+from apps.chore_master_api.end_user_space.models.base import Entity
 from modules.repositories.base_repository import BaseRepository, FilterType
 
 ENTITY_TYPE = TypeVar("ENTITY_TYPE", bound=Entity)

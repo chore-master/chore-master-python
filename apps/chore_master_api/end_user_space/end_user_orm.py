@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Table
 from sqlalchemy.orm import configure_mappers, registry
 
-from apps.chore_master_api.end_user_database.tables.base import get_base_columns
-from apps.chore_master_api.models.some_module import SomeEntity
+from apps.chore_master_api.end_user_space.models.some_module import SomeEntity
+from apps.chore_master_api.end_user_space.tables.base import get_base_columns
 from modules.database.sqlalchemy import types
 
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from apps.chore_master_api.repositories.some_module import SomeEntityRepository
+from apps.chore_master_api.end_user_space.repositories.some_module import (
+    SomeEntityRepository,
+)
 from modules.unit_of_works.base_sqlalchemy_unit_of_work import BaseSQLAlchemyUnitOfWork
 
 

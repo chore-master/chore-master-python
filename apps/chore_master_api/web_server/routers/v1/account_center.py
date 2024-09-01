@@ -17,7 +17,7 @@ from apps.chore_master_api.web_server.dependencies.auth import get_current_end_u
 from apps.chore_master_api.web_server.dependencies.database import (
     get_chore_master_api_db,
 )
-from apps.chore_master_api.web_server.dependencies.end_user_database import (
+from apps.chore_master_api.web_server.dependencies.end_user_space import (
     get_end_user_db_migration,
     get_end_user_db_registry,
 )
