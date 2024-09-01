@@ -48,7 +48,8 @@ class RelationalDatabase:
         # self._schema_name = schema_name
         self._async_engine = create_async_engine(
             origin,
-            isolation_level="READ COMMITTED",
+            # isolation_level="READ COMMITTED",
+            isolation_level="SERIALIZABLE",
             future=True,
         )
         # self._metadata = self.get_metadata(schema_name=self.schema_name)

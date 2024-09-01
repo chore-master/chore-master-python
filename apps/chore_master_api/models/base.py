@@ -1,8 +1,8 @@
 import shortuuid
-from pydantic import BaseModel, Field
+from sqlmodel import Field, SQLModel
 
 
-class Entity(BaseModel):
+class Entity(SQLModel):
     reference: str = Field(
         default_factory=lambda: shortuuid.ShortUUID().random(length=8)
     )

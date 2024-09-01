@@ -137,10 +137,8 @@ async def patch_integrations_core_relational_database(
     response_model=ResponseSchema[None],
 )
 async def post_integrations_core_relational_database_migrations_generate_revision(
-    end_user_db_registry: registry = Depends(get_end_user_db_registry, use_cache=False),
-    end_user_db_migration: SchemaMigration = Depends(
-        get_end_user_db_migration, use_cache=False
-    ),
+    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
     try:
         end_user_db_migration.generate_revision(metadata=end_user_db_registry.metadata)
@@ -156,7 +154,7 @@ async def post_integrations_core_relational_database_migrations_generate_revisio
 async def post_integrations_core_relational_database_migrations_upgrade(
     current_end_user: dict = Depends(get_current_end_user),
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
-    end_user_db_registry: registry = Depends(get_end_user_db_registry, use_cache=False),
+    end_user_db_registry: registry = Depends(get_end_user_db_registry),
     end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
     end_user_collection = chore_master_api_db.get_collection("end_user")
@@ -179,7 +177,7 @@ async def post_integrations_core_relational_database_migrations_upgrade(
 async def post_integrations_core_relational_database_migrations_downgrade(
     current_end_user: dict = Depends(get_current_end_user),
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
-    end_user_db_registry: registry = Depends(get_end_user_db_registry, use_cache=False),
+    end_user_db_registry: registry = Depends(get_end_user_db_registry),
     end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
     end_user_collection = chore_master_api_db.get_collection("end_user")

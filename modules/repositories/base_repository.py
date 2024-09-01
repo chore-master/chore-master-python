@@ -30,6 +30,11 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
         entity = await self._find_one(filter=filter)
         return entity
 
+    async def update_many(
+        self, values: dict, filter: FilterType = None, limit: Optional[int] = None
+    ) -> list[ABSTRACT_ENTITY_TYPE]:
+        await self._update_many(values=values, filter=filter, limit=limit)
+
     async def delete_many(self, filter: FilterType = None, limit: Optional[int] = None):
         await self._delete_many(filter=filter, limit=limit)
 
@@ -52,6 +57,12 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     async def _find_one(self, filter: FilterType = None) -> ABSTRACT_ENTITY_TYPE:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    async def _update_many(
+        self, values: dict, filter: FilterType = None, limit: Optional[int] = None
+    ):
         raise NotImplementedError
 
     @abc.abstractmethod

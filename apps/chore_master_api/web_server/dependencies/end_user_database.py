@@ -6,6 +6,15 @@ from apps.chore_master_api.web_server.dependencies.auth import get_current_end_u
 from modules.database.relational_database import RelationalDatabase, SchemaMigration
 
 
+async def get_end_user_db(
+    current_end_user: dict = Depends(get_current_end_user),
+) -> RelationalDatabase:
+    core_dict = current_end_user.get("core")
+    relational_database_dict = core_dict.get("relational_database", {})
+    origin = relational_database_dict.get("origin")
+    return RelationalDatabase(origin)
+
+
 async def get_end_user_db_registry(
     current_end_user: dict = Depends(get_current_end_user),
 ) -> registry:
@@ -18,17 +27,8 @@ async def get_end_user_db_registry(
     return end_user_db_registry
 
 
-async def get_end_user_db(
-    current_end_user: dict = Depends(get_current_end_user),
-) -> RelationalDatabase:
-    core_dict = current_end_user.get("core")
-    relational_database_dict = core_dict.get("relational_database", {})
-    origin = relational_database_dict.get("origin")
-    return RelationalDatabase(origin)
-
-
 async def get_end_user_db_migration(
-    end_user_db: RelationalDatabase = Depends(get_end_user_db, use_cache=False),
+    end_user_db: RelationalDatabase = Depends(get_end_user_db),
 ) -> SchemaMigration:
     schema_migration = SchemaMigration(
         end_user_db, "./apps/chore_master_api/end_user_database/migrations"
