@@ -19,6 +19,7 @@ from apps.chore_master_api.web_server.dependencies.database import (
     get_chore_master_api_db,
 )
 from apps.chore_master_api.web_server.dependencies.end_user_space import (
+    get_end_user_db,
     get_end_user_db_migration,
     get_end_user_db_registry,
 )
@@ -26,7 +27,7 @@ from apps.chore_master_api.web_server.dependencies.google_service import (
     get_google_service,
 )
 from modules.database.mongo_client import MongoDB
-from modules.database.relational_database import SchemaMigration
+from modules.database.relational_database import RelationalDatabase, SchemaMigration
 from modules.google_service.google_service import GoogleService
 from modules.web_server.exceptions import BadRequestError, NotFoundError
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
@@ -139,10 +140,18 @@ async def patch_integrations_core_relational_database(
             }
         },
     )
-    return ResponseSchema[None](
-        status=StatusEnum.SUCCESS,
-        data=None,
-    )
+    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.post(
+    "/integrations/core/relational_database/reset", response_model=ResponseSchema[None]
+)
+async def post_integrations_core_relational_database_reset(
+    end_user_db: RelationalDatabase = Depends(get_end_user_db),
+    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+):
+    await end_user_db.drop_tables(metadata=end_user_db_registry.metadata)
+    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
 @router.post(

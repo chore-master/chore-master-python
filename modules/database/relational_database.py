@@ -6,10 +6,12 @@ from alembic.config import Config
 from alembic.runtime.environment import EnvironmentContext
 from alembic.script import ScriptDirectory
 from alembic.script.base import Script
-from sqlalchemy import inspect
+from sqlalchemy import Column, Table, inspect
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, create_async_engine
 from sqlalchemy.orm import registry, sessionmaker
 from sqlalchemy.schema import CreateSchema, DropSchema, MetaData
+
+from modules.database.sqlalchemy import types
 
 
 class RelationalDatabase:
@@ -100,11 +102,14 @@ class RelationalDatabase:
     #     async with self._async_engine.begin() as conn:
     #         await conn.execute(DropSchema(self.schema_name))
 
-    # async def drop_tables(self):
-    #     reflected_metadata = MetaData(schema=self.schema_name)
-    #     async with self._async_engine.begin() as conn:
-    #         await conn.run_sync(reflected_metadata.reflect)
-    #         await conn.run_sync(reflected_metadata.drop_all)
+    async def drop_tables(self, metadata: MetaData):
+        Table(
+            "alembic_version",
+            metadata,
+            Column("version_num", types.String, nullable=False),
+        )
+        async with self._async_engine.begin() as conn:
+            await conn.run_sync(metadata.drop_all)
 
     # async def create_schema(self):
     #     async with self._async_engine.begin() as conn:
@@ -169,9 +174,9 @@ class SchemaMigration:
     def applied_revision(self, metadata: MetaData) -> Optional[dict]:
         current_revision = None
 
-        def _get_current_revision(rev, _context) -> tuple[str, ...]:
+        def _get_current_revision(_rev, context) -> tuple[str, ...]:
             nonlocal current_revision
-            current_revision = _context.get_current_heads()
+            current_revision = context.get_current_heads()
             return []
 
         alembic_cfg = self.create_alembic_config(metadata)
