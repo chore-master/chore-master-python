@@ -1,3 +1,4 @@
+import os
 from typing import Annotated, Literal, Optional
 
 import alembic
@@ -37,7 +38,7 @@ class GetIntegrationCoreResponse(BaseModel):
     relational_database_origin: Optional[str] = None
     relational_database_schema_name: Optional[str] = None
     all_revisions: list[dict]
-    current_revision: dict
+    applied_revision: Optional[dict] = None
 
 
 class UpdateIntegrationCoreRequest(BaseModel):
@@ -84,7 +85,7 @@ async def get_end_users_me(current_end_user: dict = Depends(get_current_end_user
         status=StatusEnum.SUCCESS,
         data={
             "email": current_end_user["email"],
-            "is_mounted": current_end_user.get("is_mounted", False),
+            # "is_mounted": current_end_user.get("is_mounted", False),
         },
     )
 
@@ -102,7 +103,7 @@ async def get_integrations_core(
     all_revisions = end_user_db_migration.all_revisions(
         metadata=end_user_db_registry.metadata
     )
-    current_revision = end_user_db_migration.current_revision(
+    applied_revision = end_user_db_migration.applied_revision(
         metadata=end_user_db_registry.metadata
     )
     return ResponseSchema[GetIntegrationCoreResponse](
@@ -111,7 +112,7 @@ async def get_integrations_core(
             relational_database_origin=relational_database_dict.get("origin"),
             relational_database_schema_name=relational_database_dict.get("schema_name"),
             all_revisions=all_revisions,
-            current_revision=current_revision,
+            applied_revision=applied_revision,
         ),
     )
 
@@ -164,21 +165,21 @@ async def post_integrations_core_relational_database_migrations_generate_revisio
     response_model=ResponseSchema[None],
 )
 async def post_integrations_core_relational_database_migrations_upgrade(
-    current_end_user: dict = Depends(get_current_end_user),
-    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+    # current_end_user: dict = Depends(get_current_end_user),
+    # chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
     end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
-    end_user_collection = chore_master_api_db.get_collection("end_user")
+    # end_user_collection = chore_master_api_db.get_collection("end_user")
     end_user_db_migration.upgrade(metadata=end_user_db_registry.metadata)
-    await end_user_collection.update_one(
-        filter={"reference": current_end_user["reference"]},
-        update={
-            "$set": {
-                "is_mounted": True,
-            }
-        },
-    )
+    # await end_user_collection.update_one(
+    #     filter={"reference": current_end_user["reference"]},
+    #     update={
+    #         "$set": {
+    #             "is_mounted": True,
+    #         }
+    #     },
+    # )
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
@@ -187,24 +188,45 @@ async def post_integrations_core_relational_database_migrations_upgrade(
     response_model=ResponseSchema[None],
 )
 async def post_integrations_core_relational_database_migrations_downgrade(
-    current_end_user: dict = Depends(get_current_end_user),
-    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+    # current_end_user: dict = Depends(get_current_end_user),
+    # chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
     end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
-    end_user_collection = chore_master_api_db.get_collection("end_user")
+    # end_user_collection = chore_master_api_db.get_collection("end_user")
     try:
         end_user_db_migration.downgrade(metadata=end_user_db_registry.metadata)
     except alembic.util.exc.CommandError as e:
         raise BadRequestError(str(e))
-    await end_user_collection.update_one(
-        filter={"reference": current_end_user["reference"]},
-        update={
-            "$set": {
-                "is_mounted": False,
-            }
-        },
+    # await end_user_collection.update_one(
+    #     filter={"reference": current_end_user["reference"]},
+    #     update={
+    #         "$set": {
+    #             "is_mounted": False,
+    #         }
+    #     },
+    # )
+    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.delete(
+    "/integrations/core/relational_database/migrations/{revision}",
+    response_model=ResponseSchema[None],
+)
+async def delete_integrations_core_relational_database_migrations_revision(
+    revision: Annotated[str, Path()],
+    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
+):
+    all_revisions = end_user_db_migration.all_revisions(
+        metadata=end_user_db_registry.metadata
     )
+    script_path = next(
+        (rev["path"] for rev in all_revisions if rev["revision"] == revision), None
+    )
+    if script_path is None:
+        raise NotFoundError(f"revision `{revision}` is not found")
+    os.remove(script_path)
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 

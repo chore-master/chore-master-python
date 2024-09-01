@@ -122,6 +122,7 @@ class SchemaMigration:
             "is_head": script.is_head,
             "is_merge_point": script.is_merge_point,
             "revision": script.revision,
+            "path": script.path,
         }
 
     def __init__(
@@ -165,7 +166,7 @@ class SchemaMigration:
             for script in script.walk_revisions(base="base", head="heads")
         ]
 
-    def current_revision(self, metadata: MetaData) -> dict:
+    def applied_revision(self, metadata: MetaData) -> Optional[dict]:
         current_revision = None
 
         def _get_current_revision(rev, _context) -> tuple[str, ...]:
@@ -180,7 +181,11 @@ class SchemaMigration:
             alembic_cfg, script, fn=_get_current_revision, dont_mutate=True
         ):
             script.run_env()
-        current_script: Script = next(iter(script.get_all_current(current_revision)))
+        current_script: Optional[Script] = next(
+            iter(script.get_all_current(current_revision)), None
+        )
+        if current_script is None:
+            return None
         return self.get_script_dict(current_script)
 
     def upgrade(self, metadata: MetaData, revision: str = "head"):
