@@ -209,6 +209,30 @@ async def post_integrations_core_relational_database_migrations_downgrade(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
+@router.get(
+    "/integrations/core/relational_database/migrations/{revision}",
+    response_model=ResponseSchema[dict],
+)
+async def delete_integrations_core_relational_database_migrations_revision(
+    revision: Annotated[str, Path()],
+    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
+):
+    all_revisions = end_user_db_migration.all_revisions(
+        metadata=end_user_db_registry.metadata
+    )
+    script_path = next(
+        (rev["path"] for rev in all_revisions if rev["revision"] == revision), None
+    )
+    if script_path is None:
+        raise NotFoundError(f"revision `{revision}` is not found")
+    with open(script_path, "r") as f:
+        script_content = f.read()
+    return ResponseSchema(
+        status=StatusEnum.SUCCESS, data={"script_content": script_content}
+    )
+
+
 @router.delete(
     "/integrations/core/relational_database/migrations/{revision}",
     response_model=ResponseSchema[None],
