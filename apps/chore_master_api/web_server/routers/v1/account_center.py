@@ -80,6 +80,21 @@ class UpdateIntegrationSinoTradeRequest(BaseModel):
     accounts: list[_UpdateAccountRequest]
 
 
+class GetIntegrationOkxTradeResponse(RootModel):
+    root: Optional[dict] = None
+
+
+class UpdateIntegrationOkxTradeRequest(BaseModel):
+    class _UpdateAccountRequest(BaseModel):
+        env: str
+        name: str
+        password: str
+        passphrase: str
+        api_key: str
+
+    accounts: list[_UpdateAccountRequest]
+
+
 @router.get("/end_users/me", response_model=ResponseSchema[dict])
 async def get_end_users_me(current_end_user: dict = Depends(get_current_end_user)):
     return ResponseSchema[dict](
@@ -440,6 +455,51 @@ async def patch_integrations_sino_trade(
                             "secret_key": account.secret_key,
                         }
                         for account in update_sino_trade.accounts
+                    }
+                }
+            }
+        },
+    )
+    return ResponseSchema[None](
+        status=StatusEnum.SUCCESS,
+        data=None,
+    )
+
+
+@router.get(
+    "/integrations/okx_trade",
+    response_model=ResponseSchema[GetIntegrationOkxTradeResponse],
+)
+async def get_integrations_okx_trade(
+    current_end_user: dict = Depends(get_current_end_user),
+):
+    return ResponseSchema[GetIntegrationOkxTradeResponse](
+        status=StatusEnum.SUCCESS,
+        data=GetIntegrationOkxTradeResponse(current_end_user.get("okx_trade")),
+    )
+
+
+@router.patch("/integrations/okx_trade", response_model=ResponseSchema[None])
+async def patch_integrations_okx_trade(
+    update_okx_trade: UpdateIntegrationOkxTradeRequest,
+    current_end_user: dict = Depends(get_current_end_user),
+    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+):
+    end_user_collection = chore_master_api_db.get_collection("end_user")
+    await end_user_collection.update_one(
+        filter={"reference": current_end_user["reference"]},
+        update={
+            "$set": {
+                "okx_trade": {
+                    "account_map": {
+                        account.name: {
+                            "env": account.env,
+                            "name": account.name,
+                            "password": account.password,
+                            "passphrase": account.passphrase,
+                            "api_key": account.api_key,
+                        }
+                        for account in update_okx_trade.accounts
                     }
                 }
             }
