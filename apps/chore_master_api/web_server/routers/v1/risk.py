@@ -1,8 +1,12 @@
 import logging
 from collections import defaultdict
+from datetime import datetime
+from decimal import Decimal
+from math import erf, pi
 
 import ccxt.async_support as ccxt
 from fastapi import APIRouter, Body, Depends
+from numpy import exp, log, sqrt
 from pydantic import BaseModel
 
 from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
@@ -24,23 +28,23 @@ class ReadPositionResponse(BaseModel):
         symbol: str
         instrument: str
         account_name: str
-        max_leverage: float
+        max_leverage: float | None
         side: str
         token_amount: float
         contract_amount: float
-        liquidation_price: float
+        liquidation_price: float | None
         entry_price: float
         mark_price: float
         profit_and_loss: float
         realized_pnl: float
         unrealized_pnl: float
-        percentage_to_liquidation: float
-        current_margin: float
-        initial_margin: float
-        maintenance_margin: float
-        margin_ratio: float
+        percentage_to_liquidation: float | None
+        current_margin: float | None
+        initial_margin: float | None
+        maintenance_margin: float | None
+        margin_ratio: float | None
 
-    positions: dict[str, Position]
+    positions: list[Position]
 
 
 class ReadPositionFxRiskResponse(BaseModel):
@@ -57,7 +61,7 @@ class ReadPositionFxRiskResponse(BaseModel):
         vega: float
         theta: float
 
-    positions_fx_risk: dict[str, PositionFxRisk]
+    positions_fx_risk: list[PositionFxRisk]
 
 
 class ReadPositionIrRiskResponse(BaseModel):
@@ -71,7 +75,7 @@ class ReadPositionIrRiskResponse(BaseModel):
         dv01: float
         rho: float
 
-    positions_fx_risk: dict[str, PositionIrRisk]
+    positions_ir_risk: list[PositionIrRisk]
 
 
 class ReadPositionAlertResponse(BaseModel):
@@ -84,7 +88,7 @@ class ReadPositionAlertResponse(BaseModel):
         aggregated_delta: float
         aggregated_profit_and_loss: float
 
-    positions_fx_risk: dict[str, PositionRiskAlert]
+    positions_fx_risk: list[PositionRiskAlert]
 
 
 @router.get("/abc", response_model=ResponseSchema[ReadAbcResponse])
@@ -174,6 +178,8 @@ async def post_okx_positions(
         else:
             logging.info(f"selected_okx_account_name: {selected_okx_account_name}")
 
+    aggregated_positions = []
+
     for selected_account_name, okx_account in okx_accounts.items():
         exchange = ccxt.okx(
             {
@@ -187,8 +193,8 @@ async def post_okx_positions(
         # fetch all positions
         raw_positions = await exchange.fetch_positions()
         # generate position by expression
-        positions = {
-            position["symbol"]: ReadPositionResponse.Position(
+        positions = [
+            ReadPositionResponse.Position(
                 symbol=position["symbol"],
                 account_name=selected_account_name,
                 max_leverage=position["leverage"],
@@ -206,6 +212,8 @@ async def post_okx_positions(
                         (position["liquidationPrice"] - position["markPrice"])
                         / position["markPrice"]
                     )
+                    if position["liquidationPrice"] is not None
+                    else None
                 ),
                 current_margin=position["initialMargin"],
                 initial_margin=position["collateral"],
@@ -214,11 +222,77 @@ async def post_okx_positions(
                 instrument=await get_insturment_by_symbol(position["symbol"], exchange),
             )
             for position in raw_positions
-        }
+        ]
+
+        aggregated_positions.extend(positions)
 
     return ResponseSchema(
-        status=StatusEnum.SUCCESS, data=ReadPositionResponse(positions=positions)
+        status=StatusEnum.SUCCESS,
+        data=ReadPositionResponse(positions=aggregated_positions),
     )
+
+
+def black_scholes(option_type, S, K, T, r, sigma):
+    d1 = (log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * sqrt(T))
+    d2 = d1 - sigma * sqrt(T)
+
+    if option_type == "call":
+        price = S * (0.5 * (1.0 + erf(d1 / np.sqrt(2.0)))) - K * exp(-r * T) * (
+            0.5 * (1.0 + erf(d2 / sqrt(2.0)))
+        )
+    else:
+        price = K * exp(-r * T) * (0.5 * (1.0 + erf(-d2 / sqrt(2.0)))) - S * (
+            0.5 * (1.0 + erf(-d1 / sqrt(2.0)))
+        )
+
+    return price
+
+
+# Vega function (the derivative of option price with respect to volatility)
+def vega(S, K, T, r, sigma):
+    d1 = (log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * sqrt(T))
+    return S * sqrt(T) * exp(-0.5 * d1**2) / sqrt(2 * pi)
+
+
+# Newton-Raphson method to calculate implied volatility
+def find_implied_volatility(
+    option_type,
+    option_price,
+    S,
+    K,
+    T,
+    r,
+    initial_guess=0.2,
+    tolerance=1e-6,
+    max_iterations=100,
+):
+    sigma = initial_guess  # Initial guess for volatility
+    for i in range(max_iterations):
+        price = black_scholes(
+            option_type, S, K, T, r, sigma
+        )  # Current option price using guessed sigma
+        v = vega(S, K, T, r, sigma)  # Current vega (sensitivity of price to volatility)
+
+        price_diff = (
+            price - option_price
+        )  # Difference between market price and Black-Scholes price
+        if (
+            abs(price_diff) < tolerance
+        ):  # If the difference is within the tolerance, we're done
+            return sigma
+
+        sigma -= price_diff / v  # Update sigma using Newton's method
+
+    return sigma  # Return the result (may not have converged fully)
+
+
+# Rho function (the derivative of option price with respect to risk-free interest rate)
+def get_rho(option_type, S, K, T, r, sigma):
+    d2 = (log(S / K) + (r - 0.5 * sigma**2) * T) / (sigma * sqrt(T))
+    if option_type == "call":
+        return K * T * exp(-r * T) * (0.5 * (1.0 + erf(d2 / sqrt(2.0))))
+    else:
+        return -K * T * exp(-r * T) * (0.5 * (1.0 + erf(-d2 / sqrt(2.0))))
 
 
 @router.post("/fxrisk", response_model=ResponseSchema[ReadPositionFxRiskResponse])
@@ -231,7 +305,7 @@ async def post_okx_fx_risk(
     Sample request body:
     ```
     {
-        "selected_okx_accounts": ["okx-data-01"]
+        "selected_okx_account_names": ["okx-data-01"]
     }
     ```
 
@@ -242,9 +316,9 @@ async def post_okx_fx_risk(
     positions = positions_response.data.positions
 
     # Initialize positions_fx_risk dictionary
-    positions_fx_risk = defaultdict(dict)
+    positions_fx_risk = []
     # Iterate over each position and calculate the FX risk metrics
-    for symbol, position in positions.items():
+    for position in positions:
         exchange = ccxt.okx(
             {
                 "enableRateLimit": True,
@@ -252,7 +326,9 @@ async def post_okx_fx_risk(
             }
         )
         # This is just a placeholder, replace with your actual logic to compute risk metrics
-        base_currency, quote_currency = await get_currencies_by_symbol(symbol, exchange)
+        base_currency, quote_currency = await get_currencies_by_symbol(
+            position.symbol, exchange
+        )
 
         delta = 0.0
         gamma = 0.0
@@ -260,31 +336,108 @@ async def post_okx_fx_risk(
         theta = 0.0
 
         if position.instrument == "spot":
-            delta = position.token_amount
+            delta = position.token_amount * (+1 if position.side == "long" else -1)
             gamma = 0.0
             vega = 0.0
             theta = 0.0
 
         elif position.instrument == "future":
-            delta = position.token_amount
+            market_info = await get_okx_market_info_by_symbol(position.symbol, exchange)
+            maturity_time = datetime.strptime(
+                market_info["expiryDatetime"], "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
+            current_time = datetime.utcnow()
+            days_to_maturity = float((maturity_time - current_time).days)
+            if days_to_maturity < 1:
+                seconds_to_maturity = (maturity_time - current_time).seconds
+                days_to_maturity = seconds_to_maturity / (24 * 60 * 60)
+            time_to_maturity = days_to_maturity / 365
+            time_to_maturity_tomorrow = max((days_to_maturity - 1), 0.0) / 365
+            if days_to_maturity <= 1.0:
+                theta = 0.0
+            else:
+                # get the spot price from the order book
+                spot_symbol = base_currency + "/" + quote_currency
+                spot_price = await exchange.fetch_ticker(spot_symbol)
+                implied_term_rate = (
+                    (position.mark_price - spot_price["last"])
+                    / spot_price["last"]
+                    / time_to_maturity
+                )
+                term_price_today = spot_price["last"] * (
+                    1 + implied_term_rate * time_to_maturity
+                )
+                theoretical_term_price_in_tomorrow = spot_price["last"] * (
+                    1 + implied_term_rate * time_to_maturity_tomorrow
+                )
+                theta = (
+                    (theoretical_term_price_in_tomorrow - term_price_today)
+                    * position.token_amount
+                    * (+1 if position.side == "long" else -1)
+                )
+            delta = position.token_amount * (+1 if position.side == "long" else -1)
             gamma = 0.0
             vega = 0.0
-            theta = 0.0
 
         elif position.instrument == "option":
-            # TODO: Implement the calculation of greeks for options
-            delta = position.token_amount
-            gamma = 0.0
-            vega = 0.0
-            theta = 0.0
+            continue
+            market_info = await get_okx_market_info_by_symbol(position.symbol, exchange)
+            spot_symbol = base_currency + "/" + quote_currency
+            spot_price = await exchange.fetch_ticker(spot_symbol)
+            option_type = market_info["info"]["optionType"]
+            maturity_time = market_info["info"]["settlementTime"]
+            strike_price = market_info["info"]["strike"]
+            # Days to maturity
+            current_time = datetime.now().timestamp()
+            days_to_maturity = (maturity_time - current_time) / (24 * 60 * 60)
+            time_to_maturity = days_to_maturity / 365
+            time_to_maturity_tomorrow = (days_to_maturity - 1) / 365
+
+            # Implied volatility
+            option_ticker = await exchange.fetch_ticker(position.symbol)
+            option_price = option_ticker["last"]
+            implied_term_rate = (1 / spot_price["last"]) ** (1 / days_to_maturity) - 1
+            sigma = find_implied_volatility(
+                option_type,
+                option_price,
+                spot_price["last"],
+                strike_price,
+                time_to_maturity,
+                implied_term_rate,
+                max_iterations=1000,
+            )
+
+            # Black-Scholes parameters
+            d1 = (
+                log(spot_price / strike_price)
+                + (implied_term_rate + 0.5 * sigma**2) * time_to_maturity
+            ) / (sigma * sqrt(time_to_maturity))
+            d2 = d1 - sigma * sqrt(time_to_maturity)
+
+            # CDF and PDF from numpy equivalent for normal distribution
+            norm_cdf = lambda x: (1.0 + erf(x / sqrt(2.0))) / 2.0
+            norm_pdf = lambda x: exp(-0.5 * x**2) / sqrt(2 * pi)
+
+            # Calculate Greeks
+            delta = norm_cdf(d1) if option_type == "call" else norm_cdf(d1) - 1
+            gamma = norm_pdf(d1) / (spot_price * sigma * sqrt(time_to_maturity))
+            vega = spot_price * norm_pdf(d1) * sqrt(time_to_maturity)
+            theta = (
+                -spot_price * norm_pdf(d1) * sigma / (2 * sqrt(time_to_maturity))
+            ) - (
+                implied_term_rate
+                * strike_price
+                * exp(-implied_term_rate * time_to_maturity)
+                * norm_cdf(d2 if option_type == "call" else -d2)
+            )
 
         elif position.instrument == "perpetual":
-            delta = position.token_amount
+            delta = position.token_amount * (+1 if position.side == "long" else -1)
             gamma = 0.0
             vega = 0.0
             theta = 0.0
         else:
-            logging.info(f"symbol: {symbol}, greeks do not calculate")
+            logging.info(f"symbol: {position.symbol}, greeks do not calculate")
 
         fx_risk = ReadPositionFxRiskResponse.PositionFxRisk(
             symbol=position.symbol,
@@ -301,7 +454,7 @@ async def post_okx_fx_risk(
         )
 
         # Add to the positions_fx_risk dictionary with the symbol as the key
-        positions_fx_risk[symbol] = fx_risk
+        positions_fx_risk.append(fx_risk)
 
     # Return the response with the calculated positions_fx_risk
     return ResponseSchema(
@@ -310,7 +463,7 @@ async def post_okx_fx_risk(
     )
 
 
-@router.post("/irrisk", response_model=ResponseSchema[ReadPositionResponse])
+@router.post("/irrisk", response_model=ResponseSchema[ReadPositionIrRiskResponse])
 async def post_okx_ir_risk(
     selected_okx_accounts: OKXPositionRequest,
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
@@ -320,78 +473,122 @@ async def post_okx_ir_risk(
     Sample request body:
     ```
     {
-        "selected_okx_accounts": ["okx-data-01"]
+        "selected_okx_account_names": ["okx-data-01"]
     }
     ```
 
     """
-    end_user_collection = chore_master_api_db.get_collection("end_user")
-    account_info = end_user_collection.find(
-        filter={"reference": current_end_user["reference"]}, projection={"_id": 0}
+    positions_response = await post_okx_positions(
+        selected_okx_accounts, chore_master_api_db, current_end_user
     )
-    account_info = (await account_info.to_list(length=1))[0]
-    if "okx_trade" not in account_info:
-        return ResponseSchema(
-            status=StatusEnum.SUCCESS, data=ReadAbcResponse(a="some string")
-        )
-    elif "account_map" not in account_info["okx_trade"]:
-        return ResponseSchema(
-            status=StatusEnum.SUCCESS, data=ReadAbcResponse(a="some string")
-        )
+    positions = positions_response.data.positions
 
-    okx_account_info = account_info["okx_trade"]["account_map"]
-
-    okx_accounts = defaultdict(dict)
-
-    for selected_okx_account_name in selected_okx_accounts.selected_okx_account_names:
-        if selected_okx_account_name in okx_account_info:
-            okx_accounts[selected_okx_account_name] = okx_account_info[
-                selected_okx_account_name
-            ]
-        else:
-            logging.info(f"selected_okx_account_name: {selected_okx_account_name}")
-
-    for selected_account_name, okx_account in okx_accounts.items():
+    # Initialize positions_fx_risk dictionary
+    positions_ir_risk = []
+    # Iterate over each position and calculate the FX risk metrics
+    for position in positions:
         exchange = ccxt.okx(
             {
-                "apiKey": okx_account["api_key"],
-                "secret": okx_account["passphrase"],
-                "password": okx_account["password"],
                 "enableRateLimit": True,
                 # "sandbox": False if okx_account["env"] == "MAINNET" else True,
             }
         )
-        # fetch all positions
-        raw_positions = await exchange.fetch_positions()
-        # generate position by expression
-        positions = {
-            position["symbol"]: ReadPositionResponse.Position(
-                symbol=position["symbol"],
-                account_name=selected_account_name,
-                max_leverage=position["leverage"],
-                side=position["side"],
-                token_amount=position["contracts"] * position["contractSize"],
-                contract_amount=position["contracts"],
-                liquidation_price=position["liquidationPrice"],
-                entry_price=position["entryPrice"],
-                mark_price=position["markPrice"],
-                profit_and_loss=position["unrealizedPnl"] + position["realizedPnl"],
-                realized_pnl=position["realizedPnl"],
-                unrealized_pnl=position["unrealizedPnl"],
-                percentage_to_liquidation=(
-                    abs(
-                        (position["liquidationPrice"] - position["markPrice"])
-                        / position["markPrice"]
-                    )
-                ),
-                current_margin=position["initialMargin"],
-                initial_margin=position["collateral"],
-                maintenance_margin=position["maintenanceMargin"],
-                margin_ratio=position["marginRatio"],
+        # This is just a placeholder, replace with your actual logic to compute risk metrics
+        base_currency, quote_currency = await get_currencies_by_symbol(
+            position.symbol, exchange
+        )
+
+        # DV01 and Rho change interest rate by 1 percentage point
+        change_in_interest_rate = 0.01
+
+        dvo1 = 0.0
+        rho = 0.0
+
+        if position.instrument == "spot":
+            dvo1 = 0.0
+            rho = 0.0
+
+        elif position.instrument == "future":
+            market_info = await get_okx_market_info_by_symbol(position.symbol, exchange)
+            maturity_time = datetime.strptime(
+                market_info["expiryDatetime"], "%Y-%m-%dT%H:%M:%S.%fZ"
             )
-            for position in raw_positions
-        }
+            current_time = datetime.utcnow()
+            days_to_maturity = float((maturity_time - current_time).days)
+            if days_to_maturity < 1:
+                seconds_to_maturity = (maturity_time - current_time).seconds
+                days_to_maturity = seconds_to_maturity / (24 * 60 * 60)
+            time_to_maturity = days_to_maturity / 365
+            if days_to_maturity <= 1.0:
+                dvo1 = 0.0
+            else:
+                # get the spot price from the order book
+                spot_symbol = base_currency + "/" + quote_currency
+                spot_price = await exchange.fetch_ticker(spot_symbol)
+                implied_term_rate = (
+                    (position.mark_price - spot_price["last"])
+                    / spot_price["last"]
+                    / time_to_maturity
+                )
+                term_price_today = spot_price["last"] * (
+                    1 + implied_term_rate * time_to_maturity
+                )
+                term_price_after_change_in_interest_rate = spot_price["last"] * (
+                    1 + (implied_term_rate + change_in_interest_rate) * time_to_maturity
+                )
+                dvo1 = (
+                    (term_price_after_change_in_interest_rate - term_price_today)
+                    * position.token_amount
+                    * (+1 if position.side == "long" else -1)
+                )
+            rho = 0.0
+
+        elif position.instrument == "option":
+            market_info = await get_okx_market_info_by_symbol(position.symbol, exchange)
+            if quote_currency == "USD":
+                spot_symbol = base_currency + "/" + quote_currency + "T"
+            spot_price = await exchange.fetch_ticker(spot_symbol)
+            option_type = "put" if market_info["id"][-1:] == "P" else "call"
+            maturity_time = datetime.strptime(
+                market_info["expiryDatetime"], "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
+            strike_price = float(Decimal(market_info["strike"]))
+            # Days to maturity
+            current_time = datetime.now()
+            days_to_maturity = float((maturity_time - current_time).days)
+            if days_to_maturity < 1:
+                seconds_to_maturity = (maturity_time - current_time).seconds
+                days_to_maturity = seconds_to_maturity / (24 * 60 * 60)
+            time_to_maturity = days_to_maturity / 365
+
+            # Implied volatility
+            option_ticker = await exchange.fetch_ticker(position.symbol)
+            option_price = option_ticker["last"]
+            implied_term_rate = 0  # TODO: build yield curve
+            sigma = 0.1  # TODO: find_implied_volatility
+
+            rho = 0.1
+            dvo1 = 0.0
+        elif position.instrument == "perpetual":
+            dvo1 = 0.0
+            rho = 0.0
+        else:
+            logging.info(f"symbol: {position.symbol}, greeks do not calculate")
+
+        # generate position by expression
+        ir_risk = ReadPositionIrRiskResponse.PositionIrRisk(
+            symbol=position.symbol,
+            base_currency=base_currency,
+            quote_currency=quote_currency,
+            account_name=position.account_name,
+            side=position.side,
+            token_amount=position.token_amount,
+            dv01=dvo1,
+            rho=rho,
+        )
+        positions_ir_risk.append(ir_risk)
 
     return ResponseSchema(
-        status=StatusEnum.SUCCESS, data=ReadPositionResponse(positions=positions)
+        status=StatusEnum.SUCCESS,
+        data=ReadPositionIrRiskResponse(positions_ir_risk=positions_ir_risk),
     )
