@@ -31,13 +31,13 @@ class ReadPositionResponse(BaseModel):
         max_leverage: float | None
         side: str
         token_amount: float
-        contract_amount: float
+        contract_amount: float | None
         liquidation_price: float | None
-        entry_price: float
-        mark_price: float
-        profit_and_loss: float
-        realized_pnl: float
-        unrealized_pnl: float
+        entry_price: float | None
+        mark_price: float | None
+        profit_and_loss: float | None
+        realized_pnl: float | None
+        unrealized_pnl: float | None
         percentage_to_liquidation: float | None
         current_margin: float | None
         initial_margin: float | None
@@ -192,6 +192,10 @@ async def post_okx_positions(
         )
         # fetch all positions
         raw_positions = await exchange.fetch_positions()
+        raw_balances = await exchange.fetch_balance({"type": "trading"})
+        raw_balances_funding_account = await exchange.fetch_balance({"type": "funding"})
+        finance_account = await exchange.privateGetFinanceSavingsBalance()
+
         # generate position by expression
         positions = [
             ReadPositionResponse.Position(
@@ -224,7 +228,86 @@ async def post_okx_positions(
             for position in raw_positions
         ]
 
+        spot_positions = [
+            ReadPositionResponse.Position(
+                symbol=balance["ccy"],
+                account_name=selected_account_name,
+                max_leverage=None,
+                side="long",
+                token_amount=balance["eq"],
+                contract_amount=None,
+                liquidation_price=None,
+                entry_price=None,
+                mark_price=None,
+                profit_and_loss=None,
+                realized_pnl=None,
+                unrealized_pnl=None,
+                percentage_to_liquidation=None,
+                current_margin=None,
+                initial_margin=None,
+                maintenance_margin=None,
+                margin_ratio=(
+                    float(Decimal(balance["mgnRatio"]))
+                    if balance["mgnRatio"] != ""
+                    else None
+                ),
+                instrument="spot",
+            )
+            for balance in raw_balances["info"]["data"][0]["details"]
+        ]
+
+        spot_positions_funding = [
+            ReadPositionResponse.Position(
+                symbol=balance["ccy"],
+                account_name=selected_account_name,
+                max_leverage=None,
+                side="long",
+                token_amount=balance["bal"],
+                contract_amount=None,
+                liquidation_price=None,
+                entry_price=None,
+                mark_price=None,
+                profit_and_loss=None,
+                realized_pnl=None,
+                unrealized_pnl=None,
+                percentage_to_liquidation=None,
+                current_margin=None,
+                initial_margin=None,
+                maintenance_margin=None,
+                margin_ratio=None,
+                instrument="spot",
+            )
+            for balance in raw_balances_funding_account["info"]["data"]
+        ]
+
+        spot_positions_finance = [
+            ReadPositionResponse.Position(
+                symbol=balance["ccy"],
+                account_name=selected_account_name,
+                max_leverage=None,
+                side="long",
+                token_amount=balance["amt"],
+                contract_amount=None,
+                liquidation_price=None,
+                entry_price=None,
+                mark_price=None,
+                profit_and_loss=None,
+                realized_pnl=None,
+                unrealized_pnl=None,
+                percentage_to_liquidation=None,
+                current_margin=None,
+                initial_margin=None,
+                maintenance_margin=None,
+                margin_ratio=None,
+                instrument="spot",
+            )
+            for balance in finance_account["data"]
+        ]
+
         aggregated_positions.extend(positions)
+        aggregated_positions.extend(spot_positions)
+        aggregated_positions.extend(spot_positions_funding)
+        aggregated_positions.extend(spot_positions_finance)
 
     return ResponseSchema(
         status=StatusEnum.SUCCESS,
@@ -237,7 +320,7 @@ def black_scholes(option_type, S, K, T, r, sigma):
     d2 = d1 - sigma * sqrt(T)
 
     if option_type == "call":
-        price = S * (0.5 * (1.0 + erf(d1 / np.sqrt(2.0)))) - K * exp(-r * T) * (
+        price = S * (0.5 * (1.0 + erf(d1 / sqrt(2.0)))) - K * exp(-r * T) * (
             0.5 * (1.0 + erf(d2 / sqrt(2.0)))
         )
     else:
