@@ -67,6 +67,7 @@ class ReadPositionFxRiskResponse(BaseModel):
 class ReadPositionIrRiskResponse(BaseModel):
     class PositionIrRisk(BaseModel):
         symbol: str
+        instrument: str
         base_currency: str
         quote_currency: str
         account_name: str
@@ -147,7 +148,7 @@ async def post_okx_positions(
     Sample request body:
     ```
     {
-        "selected_okx_accounts": ["okx-data-01"]
+        "selected_okx_account_name": ["okx-data-01"]
     }
     ```
 
@@ -232,7 +233,7 @@ async def post_okx_positions(
             ReadPositionResponse.Position(
                 symbol=balance["ccy"],
                 account_name=selected_account_name,
-                max_leverage=None,
+                max_leverage=1,
                 side="long",
                 token_amount=balance["eq"],
                 contract_amount=None,
@@ -260,7 +261,7 @@ async def post_okx_positions(
             ReadPositionResponse.Position(
                 symbol=balance["ccy"],
                 account_name=selected_account_name,
-                max_leverage=None,
+                max_leverage=1,
                 side="long",
                 token_amount=balance["bal"],
                 contract_amount=None,
@@ -284,7 +285,7 @@ async def post_okx_positions(
             ReadPositionResponse.Position(
                 symbol=balance["ccy"],
                 account_name=selected_account_name,
-                max_leverage=None,
+                max_leverage=1,
                 side="long",
                 token_amount=balance["amt"],
                 contract_amount=None,
@@ -400,6 +401,8 @@ async def post_okx_fx_risk(
 
     # Initialize positions_fx_risk dictionary
     positions_fx_risk = []
+
+    exchange_rate_map = defaultdict(dict)
     # Iterate over each position and calculate the FX risk metrics
     for position in positions:
         exchange = ccxt.okx(
@@ -409,9 +412,30 @@ async def post_okx_fx_risk(
             }
         )
         # This is just a placeholder, replace with your actual logic to compute risk metrics
-        base_currency, quote_currency = await get_currencies_by_symbol(
-            position.symbol, exchange
-        )
+        if position.instrument != "spot":
+            base_currency, quote_currency = await get_currencies_by_symbol(
+                position.symbol, exchange
+            )
+        else:
+            base_currency = position.symbol
+            quote_currency = "USDT"
+
+        if base_currency + "/" + quote_currency in exchange_rate_map:
+            exchange_rate = exchange_rate_map[base_currency + "/" + quote_currency]
+        else:
+
+            # Get base currency to quote currency exchange rate
+            query_symbol = (
+                base_currency + "/" + quote_currency + "T"
+                if quote_currency == "USD"
+                else base_currency + "/" + quote_currency
+            )
+            exchange_rate = (
+                (await exchange.fetch_ticker(query_symbol))["last"]
+                if base_currency != quote_currency
+                else 1
+            )
+            exchange_rate_map[query_symbol] = exchange_rate
 
         delta = 0.0
         gamma = 0.0
@@ -419,7 +443,14 @@ async def post_okx_fx_risk(
         theta = 0.0
 
         if position.instrument == "spot":
-            delta = position.token_amount * (+1 if position.side == "long" else -1)
+            if base_currency == quote_currency:
+                delta = 0.0
+            else:
+                delta = position.token_amount * (
+                    +0.01 * exchange_rate
+                    if position.side == "long"
+                    else -0.01 * exchange_rate
+                )
             gamma = 0.0
             vega = 0.0
             theta = 0.0
@@ -458,7 +489,11 @@ async def post_okx_fx_risk(
                     * position.token_amount
                     * (+1 if position.side == "long" else -1)
                 )
-            delta = position.token_amount * (+1 if position.side == "long" else -1)
+            delta = position.token_amount * (
+                +0.01 * exchange_rate
+                if position.side == "long"
+                else -0.01 * exchange_rate
+            )
             gamma = 0.0
             vega = 0.0
 
@@ -515,7 +550,11 @@ async def post_okx_fx_risk(
             )
 
         elif position.instrument == "perpetual":
-            delta = position.token_amount * (+1 if position.side == "long" else -1)
+            delta = position.token_amount * (
+                +0.01 * exchange_rate
+                if position.side == "long"
+                else -0.01 * exchange_rate
+            )
             gamma = 0.0
             vega = 0.0
             theta = 0.0
@@ -576,10 +615,13 @@ async def post_okx_ir_risk(
                 # "sandbox": False if okx_account["env"] == "MAINNET" else True,
             }
         )
-        # This is just a placeholder, replace with your actual logic to compute risk metrics
-        base_currency, quote_currency = await get_currencies_by_symbol(
-            position.symbol, exchange
-        )
+        if position.instrument != "spot":
+            base_currency, quote_currency = await get_currencies_by_symbol(
+                position.symbol, exchange
+            )
+        else:
+            base_currency = position.symbol
+            quote_currency = "USDT"
 
         # DV01 and Rho change interest rate by 1 percentage point
         change_in_interest_rate = 0.01
@@ -661,6 +703,7 @@ async def post_okx_ir_risk(
         # generate position by expression
         ir_risk = ReadPositionIrRiskResponse.PositionIrRisk(
             symbol=position.symbol,
+            instrument=position.instrument,
             base_currency=base_currency,
             quote_currency=quote_currency,
             account_name=position.account_name,
