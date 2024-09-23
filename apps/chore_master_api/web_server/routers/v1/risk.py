@@ -92,6 +92,19 @@ class ReadPositionAlertResponse(BaseModel):
     positions_fx_risk: list[PositionRiskAlert]
 
 
+class ReadPositionRiskSummaryResponse(BaseModel):
+    class PositionRiskSummary(BaseModel):
+        aggregated_dv01: float
+        aggregated_gamma: float
+        aggregated_theta: float
+        aggregated_vega: float
+        aggregated_rho: float
+        aggregated_delta: float
+        numeraire_currency: str
+
+    positions_risk: PositionRiskSummary
+
+
 @router.get("/abc", response_model=ResponseSchema[ReadAbcResponse])
 async def get_some_entities():
     return ResponseSchema(
@@ -717,4 +730,162 @@ async def post_okx_ir_risk(
     return ResponseSchema(
         status=StatusEnum.SUCCESS,
         data=ReadPositionIrRiskResponse(positions_ir_risk=positions_ir_risk),
+    )
+
+
+@router.post(
+    "/risk_summary", response_model=ResponseSchema[ReadPositionRiskSummaryResponse]
+)
+async def post_okx_alert(
+    selected_okx_accounts: OKXPositionRequest,
+    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+    current_end_user: dict = Depends(get_current_end_user),
+):
+    """
+    Sample request body:
+    ```
+    {
+        "selected_okx_account_names": ["okx-data-01"]
+    }
+    ```
+
+    """
+    # Risk metrics numeraire currency
+    numeraire_currency = "USDT"
+
+    # call the fx risk and ir risk function
+    fx_risk_response = await post_okx_fx_risk(
+        selected_okx_accounts, chore_master_api_db, current_end_user
+    )
+    ir_risk_response = await post_okx_ir_risk(
+        selected_okx_accounts, chore_master_api_db, current_end_user
+    )
+
+    # Aggregate the FX and IR risk metrics by symbol
+    aggregated_delta = 0.0
+    aggregated_vega = 0.0
+    aggregated_gamma = 0.0
+    aggregated_theta = 0.0
+    aggregated_dv01 = 0.0
+    aggregated_rho = 0.0
+
+    exchange_rate_map = defaultdict(dict)
+
+    exchange = ccxt.okx(
+        {
+            "enableRateLimit": True,
+            # "sandbox": False if okx_account["env"] == "MAINNET" else True,
+        }
+    )
+
+    for fx_risk in fx_risk_response.data.positions_fx_risk:
+        if fx_risk.quote_currency == numeraire_currency:
+            aggregated_delta += fx_risk.delta
+            aggregated_vega += fx_risk.vega
+            aggregated_gamma += fx_risk.gamma
+            aggregated_theta += fx_risk.theta
+        else:
+            query_symbol = (
+                fx_risk.quote_currency + "T" + "/" + numeraire_currency
+                if fx_risk.quote_currency == "USD"
+                else fx_risk.quote_currency + "/" + numeraire_currency
+            )
+            if query_symbol in exchange_rate_map:
+                exchange_rate = exchange_rate_map[query_symbol]
+                aggregated_delta += fx_risk.delta * exchange_rate
+                aggregated_vega += fx_risk.vega * exchange_rate
+                aggregated_gamma += fx_risk.gamma * exchange_rate
+                aggregated_theta += fx_risk.theta * exchange_rate
+            else:
+                inverse_query_symbol = (
+                    numeraire_currency + "/" + fx_risk.quote_currency + "T"
+                    if fx_risk.quote_currency == "USD"
+                    else numeraire_currency + "/" + fx_risk.quote_currency
+                )
+                try:
+                    exchange_rate = (
+                        (await exchange.fetch_ticker(query_symbol))["last"]
+                        if query_symbol.split("/")[0] != query_symbol.split("/")[1]
+                        else 1
+                    )
+                    exchange_rate_map[query_symbol] = exchange_rate
+                    aggregated_delta += fx_risk.delta * exchange_rate
+                    aggregated_vega += fx_risk.vega * exchange_rate
+                    aggregated_gamma += fx_risk.gamma * exchange_rate
+                    aggregated_theta += fx_risk.theta * exchange_rate
+                except:
+                    try:
+                        exchange_rate = 1 / (
+                            (await exchange.fetch_ticker(inverse_query_symbol))["last"]
+                            if inverse_query_symbol.split("/")[0]
+                            else 1
+                        )
+                        exchange_rate_map[query_symbol] = exchange_rate
+                        aggregated_delta += fx_risk.delta * exchange_rate
+                        aggregated_vega += fx_risk.vega * exchange_rate
+                        aggregated_gamma += fx_risk.gamma * exchange_rate
+                        aggregated_theta += fx_risk.theta * exchange_rate
+                    except:
+                        logging.info(
+                            f"symbol: {fx_risk.symbol}, exchange rate not found"
+                        )
+
+    for ir_risk in ir_risk_response.data.positions_ir_risk:
+        if ir_risk.quote_currency == numeraire_currency:
+            aggregated_dv01 += ir_risk.dv01
+            aggregated_rho += ir_risk.rho
+        else:
+            query_symbol = (
+                ir_risk.quote_currency + "T" + "/" + numeraire_currency
+                if ir_risk.quote_currency == "USD"
+                else ir_risk.quote_currency + "/" + numeraire_currency
+            )
+            if query_symbol in exchange_rate_map:
+                exchange_rate = exchange_rate_map[query_symbol]
+                aggregated_dv01 += ir_risk.dv01 * exchange_rate
+                aggregated_rho += ir_risk.rho * exchange_rate
+            else:
+                inverse_query_symbol = (
+                    numeraire_currency + "/" + ir_risk.quote_currency + "T"
+                    if ir_risk.quote_currency == "USD"
+                    else numeraire_currency + "/" + ir_risk.quote_currency
+                )
+                try:
+                    exchange_rate = (
+                        (await exchange.fetch_ticker(query_symbol))["last"]
+                        if query_symbol.split("/")[0] != query_symbol.split("/")[1]
+                        else 1
+                    )
+                    exchange_rate_map[query_symbol] = exchange_rate
+                    aggregated_dv01 += ir_risk.dv01 * exchange_rate
+                    aggregated_rho += ir_risk.rho * exchange_rate
+                except:
+                    try:
+                        exchange_rate = 1 / (
+                            (await exchange.fetch_ticker(inverse_query_symbol))["last"]
+                            if inverse_query_symbol.split("/")[0]
+                            != inverse_query_symbol.split("/")[1]
+                            else 1
+                        )
+                        exchange_rate_map[query_symbol] = exchange_rate
+                        aggregated_dv01 += ir_risk.dv01 * exchange_rate
+                        aggregated_rho += ir_risk.rho * exchange_rate
+                    except:
+                        logging.info(
+                            f"symbol: {ir_risk.symbol}, exchange rate not found"
+                        )
+
+    position_risk_summary = ReadPositionRiskSummaryResponse.PositionRiskSummary(
+        aggregated_dv01=aggregated_dv01,
+        aggregated_gamma=aggregated_gamma,
+        aggregated_theta=aggregated_theta,
+        aggregated_vega=aggregated_vega,
+        aggregated_rho=aggregated_rho,
+        aggregated_delta=aggregated_delta,
+        numeraire_currency=numeraire_currency,
+    )
+
+    return ResponseSchema(
+        status=StatusEnum.SUCCESS,
+        data=ReadPositionRiskSummaryResponse(positions_risk=position_risk_summary),
     )
