@@ -17,7 +17,7 @@ class GetUserDatabaseRevisionsResponse(BaseModel):
     response_model=ResponseSchema[GetUserDatabaseRevisionsResponse],
 )
 async def get_user_database_revisions():
-    directory_path = "./apps/chore_master_api/user_database/migrations"
+    directory_path = "./apps/chore_master_api/end_user_space/migrations"
     if os.path.isdir(directory_path):
         file_names = [
             f
