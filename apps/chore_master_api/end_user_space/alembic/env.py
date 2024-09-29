@@ -93,6 +93,7 @@ async def async_run_migrations_online():
             context.configure(
                 connection=connection,
                 target_metadata=target_metadata,
+                render_as_batch=True,  # https://alembic.sqlalchemy.org/en/latest/batch.html#batch-mode-with-autogenerate
                 # 魔改區開始
                 # https://gist.github.com/h4/fc9b6d350544ff66491308b535762fee
                 version_table_schema=schema_name,
