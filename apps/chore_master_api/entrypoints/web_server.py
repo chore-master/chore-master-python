@@ -12,7 +12,7 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=chore_master_api_web_server_config.PORT,
         reload=chore_master_api_web_server_config.UVICORN_AUTO_RELOAD,
-        reload_dirs=["modules", f"{base_config.SERVICE_NAME}"],
+        reload_dirs=["modules", f"apps/{base_config.SERVICE_NAME}"],
     )
 else:
     app = get_app()

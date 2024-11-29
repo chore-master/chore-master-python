@@ -1,7 +1,7 @@
 import abc
 from typing import Generic, Optional, TypeVar
 
-from apps.chore_master_api.models.base import Entity
+from apps.chore_master_api.end_user_space.models.base import Entity
 
 ABSTRACT_ENTITY_TYPE = TypeVar("ABSTRACT_ENTITY_TYPE", bound=Entity)
 ENTITY_TYPE = TypeVar("ENTITY_TYPE", bound=Entity)
@@ -30,6 +30,11 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
         entity = await self._find_one(filter=filter)
         return entity
 
+    async def update_many(
+        self, values: dict, filter: FilterType = None
+    ) -> list[ABSTRACT_ENTITY_TYPE]:
+        await self._update_many(values=values, filter=filter)
+
     async def delete_many(self, filter: FilterType = None, limit: Optional[int] = None):
         await self._delete_many(filter=filter, limit=limit)
 
@@ -52,6 +57,12 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     async def _find_one(self, filter: FilterType = None) -> ABSTRACT_ENTITY_TYPE:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    async def _update_many(
+        self, values: dict, filter: FilterType = None, limit: Optional[int] = None
+    ):
         raise NotImplementedError
 
     @abc.abstractmethod
