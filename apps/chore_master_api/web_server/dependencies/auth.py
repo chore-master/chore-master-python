@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Annotated, Optional
+from uuid import UUID
 
 from fastapi import Cookie, Depends
 
@@ -25,7 +26,7 @@ async def get_current_end_user_session(
             pipeline=[
                 {
                     "$match": {
-                        "reference": end_user_session_reference,
+                        "reference": UUID(end_user_session_reference),
                         "is_active": True,
                         "expired_time": {"$gt": utc_now},
                     }
