@@ -3,6 +3,8 @@ from decimal import Decimal
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path
+from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 
 from apps.chore_master_api.end_user_space.models.financial_management import (
     Account,
@@ -62,6 +64,8 @@ class ReadNetValueResponse(BaseQueryEntityResponse):
     amount: Decimal
     settlement_asset_reference: str
     settled_time: datetime
+    account: ReadAccountResponse
+    settlement_asset: ReadAssetResponse
 
 
 class UpdateNetValueRequest(BaseUpdateEntityRequest):
@@ -232,8 +236,22 @@ async def get_net_values(
 ):
     async with uow:
         entities = await uow.net_value_repository.find_many()
+        statement = select(NetValue).options(
+            joinedload(NetValue.account),
+            joinedload(NetValue.settlement_asset),
+        )
+        result = await uow.session.execute(statement)
+        entities = result.scalars().unique().all()
         return ResponseSchema(
-            status=StatusEnum.SUCCESS, data=[entity.model_dump() for entity in entities]
+            status=StatusEnum.SUCCESS,
+            data=[
+                {
+                    **entity.model_dump(),
+                    "account": entity.account.model_dump(),
+                    "settlement_asset": entity.settlement_asset.model_dump(),
+                }
+                for entity in entities
+            ],
         )
 
 

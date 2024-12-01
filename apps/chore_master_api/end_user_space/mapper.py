@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Table
-from sqlalchemy.orm import configure_mappers, registry
+from sqlalchemy.orm import configure_mappers, registry, relationship
 
 from apps.chore_master_api.end_user_space.models.financial_management import (
     Account,
@@ -70,7 +70,24 @@ class Mapper:
         )
         if getattr(NetValue, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
-                NetValue, financial_management_net_value_table
+                NetValue,
+                financial_management_net_value_table,
+                properties={
+                    "account": relationship(
+                        "Account",
+                        foreign_keys=[
+                            financial_management_net_value_table.columns.account_reference
+                        ],
+                        primaryjoin="NetValue.account_reference == Account.reference",
+                    ),
+                    "settlement_asset": relationship(
+                        "Asset",
+                        foreign_keys=[
+                            financial_management_net_value_table.columns.settlement_asset_reference
+                        ],
+                        primaryjoin="NetValue.settlement_asset_reference == Asset.reference",
+                    ),
+                },
             )
 
         financial_management_bill_table = Table(
