@@ -113,6 +113,9 @@ async def get_accounts(
 ):
     async with uow:
         entities = await uow.account_repository.find_many()
+        statement = select(Account).order_by(Account.name.asc())
+        result = await uow.session.execute(statement)
+        entities = result.scalars().unique().all()
         return ResponseSchema(
             status=StatusEnum.SUCCESS,
             data=[entity.model_dump() for entity in entities],
@@ -236,9 +239,13 @@ async def get_net_values(
 ):
     async with uow:
         entities = await uow.net_value_repository.find_many()
-        statement = select(NetValue).options(
-            joinedload(NetValue.account),
-            joinedload(NetValue.settlement_asset),
+        statement = (
+            select(NetValue)
+            .options(
+                joinedload(NetValue.account),
+                joinedload(NetValue.settlement_asset),
+            )
+            .order_by(NetValue.settled_time.desc())
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
