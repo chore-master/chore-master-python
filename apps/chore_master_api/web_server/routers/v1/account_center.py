@@ -95,7 +95,7 @@ class UpdateIntegrationOkxTradeRequest(BaseModel):
     accounts: list[_UpdateAccountRequest]
 
 
-@router.get("/end_users/me", response_model=ResponseSchema[dict])
+@router.get("/end_users/me")
 async def get_end_users_me(current_end_user: dict = Depends(get_current_end_user)):
     return ResponseSchema[dict](
         status=StatusEnum.SUCCESS,
@@ -106,9 +106,7 @@ async def get_end_users_me(current_end_user: dict = Depends(get_current_end_user
     )
 
 
-@router.get(
-    "/integrations/core", response_model=ResponseSchema[GetIntegrationCoreResponse]
-)
+@router.get("/integrations/core")
 async def get_integrations_core(
     current_end_user: dict = Depends(get_current_end_user),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
@@ -133,9 +131,7 @@ async def get_integrations_core(
     )
 
 
-@router.patch(
-    "/integrations/core/relational_database", response_model=ResponseSchema[None]
-)
+@router.patch("/integrations/core/relational_database")
 async def patch_integrations_core_relational_database(
     update_core: UpdateIntegrationCoreRequest,
     current_end_user: dict = Depends(get_current_end_user),
@@ -158,9 +154,7 @@ async def patch_integrations_core_relational_database(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.post(
-    "/integrations/core/relational_database/reset", response_model=ResponseSchema[None]
-)
+@router.post("/integrations/core/relational_database/reset")
 async def post_integrations_core_relational_database_reset(
     end_user_db: RelationalDatabase = Depends(get_end_user_db),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
@@ -169,10 +163,7 @@ async def post_integrations_core_relational_database_reset(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.post(
-    "/integrations/core/relational_database/migrations/generate_revision",
-    response_model=ResponseSchema[None],
-)
+@router.post("/integrations/core/relational_database/migrations/generate_revision")
 async def post_integrations_core_relational_database_migrations_generate_revision(
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
     end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
@@ -184,10 +175,7 @@ async def post_integrations_core_relational_database_migrations_generate_revisio
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.post(
-    "/integrations/core/relational_database/migrations/upgrade",
-    response_model=ResponseSchema[None],
-)
+@router.post("/integrations/core/relational_database/migrations/upgrade")
 async def post_integrations_core_relational_database_migrations_upgrade(
     # current_end_user: dict = Depends(get_current_end_user),
     # chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
@@ -207,10 +195,7 @@ async def post_integrations_core_relational_database_migrations_upgrade(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.post(
-    "/integrations/core/relational_database/migrations/downgrade",
-    response_model=ResponseSchema[None],
-)
+@router.post("/integrations/core/relational_database/migrations/downgrade")
 async def post_integrations_core_relational_database_migrations_downgrade(
     # current_end_user: dict = Depends(get_current_end_user),
     # chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
@@ -233,10 +218,7 @@ async def post_integrations_core_relational_database_migrations_downgrade(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get(
-    "/integrations/core/relational_database/migrations/{revision}",
-    response_model=ResponseSchema[dict],
-)
+@router.get("/integrations/core/relational_database/migrations/{revision}")
 async def delete_integrations_core_relational_database_migrations_revision(
     revision: Annotated[str, Path()],
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
@@ -257,10 +239,7 @@ async def delete_integrations_core_relational_database_migrations_revision(
     )
 
 
-@router.delete(
-    "/integrations/core/relational_database/migrations/{revision}",
-    response_model=ResponseSchema[None],
-)
+@router.delete("/integrations/core/relational_database/migrations/{revision}")
 async def delete_integrations_core_relational_database_migrations_revision(
     revision: Annotated[str, Path()],
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
@@ -278,9 +257,7 @@ async def delete_integrations_core_relational_database_migrations_revision(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get(
-    "/integrations/google", response_model=ResponseSchema[GetIntegrationGoogleResponse]
-)
+@router.get("/integrations/google")
 async def get_integrations_google(
     current_end_user: dict = Depends(get_current_end_user),
 ):
@@ -290,10 +267,7 @@ async def get_integrations_google(
     )
 
 
-@router.get(
-    "/integrations/google/drive/folders",
-    response_model=ResponseSchema[GetIntegrationGoogleDriveFoldersResponse],
-)
+@router.get("/integrations/google/drive/folders")
 async def get_integrations_google_drive_folders(
     folder_name_query: Optional[str] = None,
     page_token: Optional[str] = None,
@@ -423,10 +397,7 @@ async def get_integrations_google_spreadsheets_spreadsheet_name_spreadsheet_url(
 #     )
 
 
-@router.get(
-    "/integrations/sino_trade",
-    response_model=ResponseSchema[GetIntegrationSinoTradeResponse],
-)
+@router.get("/integrations/sino_trade")
 async def get_integrations_sino_trade(
     current_end_user: dict = Depends(get_current_end_user),
 ):
@@ -436,7 +407,7 @@ async def get_integrations_sino_trade(
     )
 
 
-@router.patch("/integrations/sino_trade", response_model=ResponseSchema[None])
+@router.patch("/integrations/sino_trade")
 async def patch_integrations_sino_trade(
     update_sino_trade: UpdateIntegrationSinoTradeRequest,
     current_end_user: dict = Depends(get_current_end_user),
@@ -466,10 +437,7 @@ async def patch_integrations_sino_trade(
     )
 
 
-@router.get(
-    "/integrations/okx_trade",
-    response_model=ResponseSchema[GetIntegrationOkxTradeResponse],
-)
+@router.get("/integrations/okx_trade")
 async def get_integrations_okx_trade(
     current_end_user: dict = Depends(get_current_end_user),
 ):
@@ -479,7 +447,7 @@ async def get_integrations_okx_trade(
     )
 
 
-@router.patch("/integrations/okx_trade", response_model=ResponseSchema[None])
+@router.patch("/integrations/okx_trade")
 async def patch_integrations_okx_trade(
     update_okx_trade: UpdateIntegrationOkxTradeRequest,
     current_end_user: dict = Depends(get_current_end_user),

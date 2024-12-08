@@ -37,7 +37,7 @@ class LoginRequest(BaseModel):
     password: str
 
 
-@router.post("/login", response_model=ResponseSchema[None])
+@router.post("/login")
 async def post_login(
     login_request: LoginRequest,
     response: Response,
@@ -300,7 +300,7 @@ async def get_google_callback(
     return response
 
 
-@router.post("/logout", response_model=ResponseSchema[None])
+@router.post("/logout")
 async def post_logout(
     response: Response,
     chore_master_api_web_server_config: ChoreMasterAPIWebServerConfigSchema = Depends(

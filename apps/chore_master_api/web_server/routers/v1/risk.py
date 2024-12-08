@@ -5,7 +5,7 @@ from decimal import Decimal
 from math import erf, pi
 
 import ccxt.async_support as ccxt
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Depends
 from numpy import exp, log, sqrt
 from pydantic import BaseModel
 
@@ -105,7 +105,7 @@ class ReadPositionRiskSummaryResponse(BaseModel):
     positions_risk: PositionRiskSummary
 
 
-@router.get("/abc", response_model=ResponseSchema[ReadAbcResponse])
+@router.get("/abc")
 async def get_some_entities():
     return ResponseSchema(
         status=StatusEnum.SUCCESS, data=ReadAbcResponse(a="some string")
@@ -151,7 +151,7 @@ async def get_currencies_by_symbol(symbol: str, exchange: ccxt.okx) -> tuple[str
     return target_market["base"], target_market["quote"]
 
 
-@router.post("/positions", response_model=ResponseSchema[ReadPositionResponse])
+@router.post("/positions")
 async def post_okx_positions(
     selected_okx_accounts: OKXPositionRequest,
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
@@ -172,11 +172,11 @@ async def post_okx_positions(
     )
     account_info = (await account_info.to_list(length=1))[0]
     if "okx_trade" not in account_info:
-        return ResponseSchema(
+        return ResponseSchema[ReadPositionResponse](
             status=StatusEnum.SUCCESS, data=ReadAbcResponse(a="some string")
         )
     elif "account_map" not in account_info["okx_trade"]:
-        return ResponseSchema(
+        return ResponseSchema[ReadPositionResponse](
             status=StatusEnum.SUCCESS, data=ReadAbcResponse(a="some string")
         )
 
@@ -323,7 +323,7 @@ async def post_okx_positions(
         aggregated_positions.extend(spot_positions_funding)
         aggregated_positions.extend(spot_positions_finance)
 
-    return ResponseSchema(
+    return ResponseSchema[ReadPositionResponse](
         status=StatusEnum.SUCCESS,
         data=ReadPositionResponse(positions=aggregated_positions),
     )
@@ -392,7 +392,7 @@ def get_rho(option_type, S, K, T, r, sigma):
         return -K * T * exp(-r * T) * (0.5 * (1.0 + erf(-d2 / sqrt(2.0))))
 
 
-@router.post("/fxrisk", response_model=ResponseSchema[ReadPositionFxRiskResponse])
+@router.post("/fxrisk")
 async def post_okx_fx_risk(
     selected_okx_accounts: OKXPositionRequest,
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
@@ -592,13 +592,13 @@ async def post_okx_fx_risk(
         positions_fx_risk.append(fx_risk)
 
     # Return the response with the calculated positions_fx_risk
-    return ResponseSchema(
+    return ResponseSchema[ReadPositionFxRiskResponse](
         status=StatusEnum.SUCCESS,
         data=ReadPositionFxRiskResponse(positions_fx_risk=positions_fx_risk),
     )
 
 
-@router.post("/irrisk", response_model=ResponseSchema[ReadPositionIrRiskResponse])
+@router.post("/irrisk")
 async def post_okx_ir_risk(
     selected_okx_accounts: OKXPositionRequest,
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
@@ -727,15 +727,13 @@ async def post_okx_ir_risk(
         )
         positions_ir_risk.append(ir_risk)
 
-    return ResponseSchema(
+    return ResponseSchema[ReadPositionIrRiskResponse](
         status=StatusEnum.SUCCESS,
         data=ReadPositionIrRiskResponse(positions_ir_risk=positions_ir_risk),
     )
 
 
-@router.post(
-    "/risk_summary", response_model=ResponseSchema[ReadPositionRiskSummaryResponse]
-)
+@router.post("/risk_summary")
 async def post_okx_alert(
     selected_okx_accounts: OKXPositionRequest,
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
@@ -885,7 +883,7 @@ async def post_okx_alert(
         numeraire_currency=numeraire_currency,
     )
 
-    return ResponseSchema(
+    return ResponseSchema[ReadPositionRiskSummaryResponse](
         status=StatusEnum.SUCCESS,
         data=ReadPositionRiskSummaryResponse(positions_risk=position_risk_summary),
     )

@@ -105,7 +105,7 @@ class UpdateBillRequest(BaseUpdateEntityRequest):
     billed_time: Optional[datetime] = None
 
 
-@router.get("/accounts", response_model=ResponseSchema[list[ReadAccountResponse]])
+@router.get("/accounts")
 async def get_accounts(
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
         get_financial_management_uow
@@ -116,13 +116,13 @@ async def get_accounts(
         statement = select(Account).order_by(Account.name.asc())
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        return ResponseSchema(
+        return ResponseSchema[list[ReadAccountResponse]](
             status=StatusEnum.SUCCESS,
             data=[entity.model_dump() for entity in entities],
         )
 
 
-@router.post("/accounts", response_model=ResponseSchema[None])
+@router.post("/accounts")
 async def post_accounts(
     create_entity_request: CreateAccountRequest,
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
@@ -138,7 +138,7 @@ async def post_accounts(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.patch("/accounts/{account_reference}", response_model=ResponseSchema[None])
+@router.patch("/accounts/{account_reference}")
 async def patch_accounts_account_reference(
     account_reference: Annotated[str, Path()],
     update_entity_request: UpdateAccountRequest,
@@ -155,7 +155,7 @@ async def patch_accounts_account_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/accounts/{account_reference}", response_model=ResponseSchema[None])
+@router.delete("/accounts/{account_reference}")
 async def delete_accounts_account_reference(
     account_reference: Annotated[str, Path()],
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
@@ -170,7 +170,7 @@ async def delete_accounts_account_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/assets", response_model=ResponseSchema[list[ReadAssetResponse]])
+@router.get("/assets")
 async def get_assets(
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
         get_financial_management_uow
@@ -178,12 +178,12 @@ async def get_assets(
 ):
     async with uow:
         entities = await uow.asset_repository.find_many()
-        return ResponseSchema(
+        return ResponseSchema[list[ReadAssetResponse]](
             status=StatusEnum.SUCCESS, data=[entity.model_dump() for entity in entities]
         )
 
 
-@router.post("/assets", response_model=ResponseSchema[None])
+@router.post("/assets")
 async def post_assets(
     create_entity_request: CreateAssetRequest,
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
@@ -199,7 +199,7 @@ async def post_assets(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.patch("/assets/{asset_reference}", response_model=ResponseSchema[None])
+@router.patch("/assets/{asset_reference}")
 async def patch_assets_asset_reference(
     asset_reference: Annotated[str, Path()],
     update_entity_request: UpdateAssetRequest,
@@ -216,7 +216,7 @@ async def patch_assets_asset_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/assets/{asset_reference}", response_model=ResponseSchema[None])
+@router.delete("/assets/{asset_reference}")
 async def delete_assets_asset_reference(
     asset_reference: Annotated[str, Path()],
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
@@ -231,7 +231,7 @@ async def delete_assets_asset_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/net_values", response_model=ResponseSchema[list[ReadNetValueResponse]])
+@router.get("/net_values")
 async def get_net_values(
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
         get_financial_management_uow
@@ -249,7 +249,7 @@ async def get_net_values(
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        return ResponseSchema(
+        return ResponseSchema[list[ReadNetValueResponse]](
             status=StatusEnum.SUCCESS,
             data=[
                 {
@@ -262,7 +262,7 @@ async def get_net_values(
         )
 
 
-@router.post("/net_values", response_model=ResponseSchema[None])
+@router.post("/net_values")
 async def post_net_values(
     create_entity_request: CreateNetValueRequest,
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
@@ -278,7 +278,7 @@ async def post_net_values(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.patch("/net_values/{net_value_reference}", response_model=ResponseSchema[None])
+@router.patch("/net_values/{net_value_reference}")
 async def patch_net_values_net_value_reference(
     net_value_reference: Annotated[str, Path()],
     update_entity_request: UpdateNetValueRequest,
@@ -295,7 +295,7 @@ async def patch_net_values_net_value_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/net_values/{net_value_reference}", response_model=ResponseSchema[None])
+@router.delete("/net_values/{net_value_reference}")
 async def delete_net_values_net_value_reference(
     net_value_reference: Annotated[str, Path()],
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
@@ -310,7 +310,7 @@ async def delete_net_values_net_value_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/bills", response_model=ResponseSchema[list[ReadBillResponse]])
+@router.get("/bills")
 async def get_bills(
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
         get_financial_management_uow
@@ -318,12 +318,12 @@ async def get_bills(
 ):
     async with uow:
         entities = await uow.bill_repository.find_many()
-        return ResponseSchema(
+        return ResponseSchema[list[ReadBillResponse]](
             status=StatusEnum.SUCCESS, data=[entity.model_dump() for entity in entities]
         )
 
 
-@router.post("/bills", response_model=ResponseSchema[None])
+@router.post("/bills")
 async def post_bills(
     create_entity_request: CreateBillRequest,
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
@@ -339,7 +339,7 @@ async def post_bills(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.patch("/bills/{bill_reference}", response_model=ResponseSchema[None])
+@router.patch("/bills/{bill_reference}")
 async def patch_bills_bill_reference(
     bill_reference: Annotated[str, Path()],
     update_entity_request: UpdateBillRequest,
@@ -356,7 +356,7 @@ async def patch_bills_bill_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/bills/{bill_reference}", response_model=ResponseSchema[None])
+@router.delete("/bills/{bill_reference}")
 async def delete_bills_bill_reference(
     bill_reference: Annotated[str, Path()],
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(

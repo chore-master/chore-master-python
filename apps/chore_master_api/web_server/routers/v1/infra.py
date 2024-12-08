@@ -12,10 +12,7 @@ class GetUserDatabaseRevisionsResponse(BaseModel):
     file_names: list[str]
 
 
-@router.get(
-    "/user_database/revisions",
-    response_model=ResponseSchema[GetUserDatabaseRevisionsResponse],
-)
+@router.get("/user_database/revisions")
 async def get_user_database_revisions():
     directory_path = "./apps/chore_master_api/end_user_space/migrations"
     if os.path.isdir(directory_path):

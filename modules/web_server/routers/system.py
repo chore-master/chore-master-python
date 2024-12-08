@@ -15,7 +15,6 @@ router = APIRouter(tags=["System"])
     "/health",
     name="Service Healthcheck",
     description="Provide a simple healthcheck of the service",
-    response_model=ResponseSchema[HealthSchema],
 )
 def get_liveness():
     return ResponseSchema[HealthSchema](
@@ -23,7 +22,7 @@ def get_liveness():
     )
 
 
-@router.get("/inspect", response_model=ResponseSchema[InspectSchema])
+@router.get("/inspect")
 def get_inspect():
     base_config = get_base_config()
     return ResponseSchema[InspectSchema](

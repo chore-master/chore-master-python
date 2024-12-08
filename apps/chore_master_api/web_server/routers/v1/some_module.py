@@ -88,9 +88,7 @@ async def get_some_entity_filter(
     )
 
 
-@router.get(
-    "/some_entities", response_model=ResponseSchema[list[ReadSomeEntityResponse]]
-)
+@router.get("/some_entities")
 async def get_some_entities(
     filter: SomeEntityFilter = Depends(get_some_entity_filter),
     uow: SomeModuleSQLAlchemyUnitOfWork = Depends(get_some_module_uow),
@@ -99,12 +97,12 @@ async def get_some_entities(
         entities = await uow.some_entity_repository.find_many(
             filter=filter.model_dump(exclude_unset=True, exclude_none=True)
         )
-        return ResponseSchema(
+        return ResponseSchema[list[ReadSomeEntityResponse]](
             status=StatusEnum.SUCCESS, data=[entity.model_dump() for entity in entities]
         )
 
 
-@router.delete("/some_entities", response_model=ResponseSchema[None])
+@router.delete("/some_entities")
 async def delete_some_entities(
     filter: SomeEntityFilter = Depends(get_some_entity_filter),
     uow: SomeModuleSQLAlchemyUnitOfWork = Depends(get_some_module_uow),
@@ -120,7 +118,7 @@ async def delete_some_entities(
     )
 
 
-@router.post("/some_entities", response_model=ResponseSchema[None])
+@router.post("/some_entities")
 async def post_some_entities(
     create_entity_request: CreateSomeEntityRequest,
     uow: SomeModuleSQLAlchemyUnitOfWork = Depends(get_some_module_uow),
@@ -143,10 +141,7 @@ async def post_some_entities(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get(
-    "/some_entities/{some_entity_reference}",
-    response_model=ResponseSchema[ReadSomeEntityResponse],
-)
+@router.get("/some_entities/{some_entity_reference}")
 async def get_some_entities_some_entity_reference(
     some_entity_reference: Annotated[str, Path()],
     uow: SomeModuleSQLAlchemyUnitOfWork = Depends(get_some_module_uow),
@@ -155,12 +150,12 @@ async def get_some_entities_some_entity_reference(
         entity = await uow.some_entity_repository.find_one(
             filter={"reference": some_entity_reference}
         )
-        return ResponseSchema(status=StatusEnum.SUCCESS, data=entity.model_dump())
+        return ResponseSchema[ReadSomeEntityResponse](
+            status=StatusEnum.SUCCESS, data=entity.model_dump()
+        )
 
 
-@router.patch(
-    "/some_entities/{some_entity_reference}", response_model=ResponseSchema[None]
-)
+@router.patch("/some_entities/{some_entity_reference}")
 async def patch_some_entities_some_entity_reference(
     some_entity_reference: Annotated[str, Path()],
     update_entity_request: UpdateSomeEntityRequest,
@@ -175,9 +170,7 @@ async def patch_some_entities_some_entity_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete(
-    "/some_entities/{some_entity_reference}", response_model=ResponseSchema[None]
-)
+@router.delete("/some_entities/{some_entity_reference}")
 async def delete_some_entities_some_entity_reference(
     some_entity_reference: Annotated[str, Path()],
     uow: SomeModuleSQLAlchemyUnitOfWork = Depends(get_some_module_uow),
