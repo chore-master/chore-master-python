@@ -13,9 +13,17 @@ class StatusEnum(int, Enum):
     FAILED = 1
 
 
+class MetadataSchema(BaseModel):
+    class OffsetPagination(BaseModel):
+        count: int
+
+    offset_pagination: Optional[OffsetPagination] = None
+
+
 class ResponseSchema(BaseModel, Generic[DataT]):
     status: StatusEnum
     data: DataT
+    metadata: Optional[MetadataSchema] = None
 
 
 class ErrorSchema(BaseModel):

@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path
+from sqlalchemy import func
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
@@ -18,12 +19,24 @@ from apps.chore_master_api.end_user_space.unit_of_works.financial_management imp
 from apps.chore_master_api.web_server.dependencies.end_user_space import (
     get_financial_management_uow,
 )
+from apps.chore_master_api.web_server.dependencies.pagination import (
+    get_offset_pagination,
+    get_time_cursor_pagination,
+)
+from apps.chore_master_api.web_server.schemas.dto import (
+    OffsetPagination,
+    TimeCursorPagination,
+)
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
 )
 from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
-from modules.web_server.schemas.response import ResponseSchema, StatusEnum
+from modules.web_server.schemas.response import (
+    MetadataSchema,
+    ResponseSchema,
+    StatusEnum,
+)
 
 router = APIRouter(prefix="/financial_management", tags=["Financial Management"])
 
@@ -233,19 +246,37 @@ async def delete_assets_asset_reference(
 
 @router.get("/net_values")
 async def get_net_values(
+    offset_pagination: OffsetPagination = Depends(get_offset_pagination),
+    time_cursor_pagination: TimeCursorPagination = Depends(get_time_cursor_pagination),
     uow: FinancialManagementSQLAlchemyUnitOfWork = Depends(
         get_financial_management_uow
     ),
 ):
     async with uow:
-        entities = await uow.net_value_repository.find_many()
-        statement = (
-            select(NetValue)
-            .options(
-                joinedload(NetValue.account),
-                joinedload(NetValue.settlement_asset),
+        statement = select(NetValue).order_by(NetValue.settled_time.desc())
+        if time_cursor_pagination.is_from_request:
+            metadata = None
+            if time_cursor_pagination.start_time is not None:
+                statement = statement.filter(
+                    NetValue.settled_time >= time_cursor_pagination.start_time
+                )
+            if time_cursor_pagination.end_time is not None:
+                statement = statement.filter(
+                    NetValue.settled_time <= time_cursor_pagination.end_time
+                )
+            statement = statement.limit(time_cursor_pagination.limit)
+        else:
+            count_statement = select(func.count()).select_from(NetValue)
+            count = await uow.session.scalar(count_statement)
+            metadata = MetadataSchema(
+                offset_pagination=MetadataSchema.OffsetPagination(count=count)
             )
-            .order_by(NetValue.settled_time.desc())
+            statement = statement.offset(offset_pagination.offset).limit(
+                offset_pagination.limit
+            )
+        statement = statement.options(
+            joinedload(NetValue.account),
+            joinedload(NetValue.settlement_asset),
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
@@ -259,6 +290,7 @@ async def get_net_values(
                 }
                 for entity in entities
             ],
+            metadata=metadata,
         )
 
 
