@@ -94,7 +94,9 @@ class RelationalDatabase:
     #     return self._metadata
 
     def get_async_session(self) -> sessionmaker[AsyncSession]:
-        async_session_factory = sessionmaker(self._async_engine, class_=AsyncSession)
+        async_session_factory = sessionmaker(
+            self._async_engine, class_=AsyncSession, autoflush=False
+        )
         return async_session_factory
 
     # async def reflect_metadata(self):
