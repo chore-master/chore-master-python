@@ -26,7 +26,8 @@ async def get_current_end_user_session(
             pipeline=[
                 {
                     "$match": {
-                        "reference": UUID(end_user_session_reference),
+                        # "reference": UUID(end_user_session_reference),
+                        "reference": end_user_session_reference,
                         "is_active": True,
                         "expired_time": {"$gt": utc_now},
                     }
