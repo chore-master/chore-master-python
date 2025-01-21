@@ -28,9 +28,9 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
 
     if base_config.ENV == EnvEnum.LOCAL:
         UVICORN_AUTO_RELOAD = True
-        FRONTEND_ORIGIN = "http://localhost:3000"
+        FRONTEND_ORIGIN = "http://localhost:2000"
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
-        IAM_API_ORIGIN = "http://localhost:13000"
+        IAM_API_ORIGIN = "http://localhost:10000"
         SESSION_COOKIE_DOMAIN = "localhost"
     elif base_config.ENV == EnvEnum.DEVELOPING:
         FRONTEND_ORIGIN = "https://dev--chore-master.lation.app"

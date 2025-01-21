@@ -7,7 +7,7 @@ from modules.web_server.schemas.config import WebServerConfigSchema
 def get_web_server_config() -> WebServerConfigSchema:
     base_config = get_base_config()
 
-    PORT = int(get_env("PORT", "13000"))
+    PORT = int(get_env("PORT", "10000"))
 
     if base_config.ENV == EnvEnum.LOCAL:
         pass

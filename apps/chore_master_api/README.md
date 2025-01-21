@@ -7,8 +7,9 @@ poetry install
 ```
 
 ```sh
-sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.infra.yml up -d
-sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.infra.yml down
+# it may take a while to start
+sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.infra.yml -p chore_master_infra up -d
+sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.infra.yml -p chore_master_infra down
 ```
 
 ## Release
