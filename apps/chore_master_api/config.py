@@ -18,7 +18,7 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
     IAM_API_ORIGIN = None
     ALLOW_ORIGINS = ["*"]
 
-    SESSION_COOKIE_KEY = "end_user_session_reference"
+    SESSION_COOKIE_KEY = "cm_end_user_session_reference"
     SESSION_COOKIE_DOMAIN = "localhost"
     GOOGLE_OAUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
     GOOGLE_OAUTH_TOKEN_URI = "https://oauth2.googleapis.com/token"

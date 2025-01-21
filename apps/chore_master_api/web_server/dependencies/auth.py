@@ -13,7 +13,7 @@ from modules.web_server.exceptions import UnauthenticatedError, UnauthorizedErro
 
 async def get_current_end_user_session(
     end_user_session_reference: Annotated[
-        Optional[str], Cookie(alias="end_user_session_reference")
+        Optional[str], Cookie(alias="cm_end_user_session_reference")
     ] = None,
     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
 ) -> dict:
