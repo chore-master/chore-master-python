@@ -10,21 +10,24 @@ from apps.chore_master_api.end_user_space.unit_of_works.some_module import (
 )
 from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
 from modules.database.relational_database import RelationalDatabase, SchemaMigration
+from modules.web_server.exceptions import BadRequestError
 
 
 async def get_end_user_db(
     current_end_user: dict = Depends(get_current_end_user),
 ) -> RelationalDatabase:
-    core_dict = current_end_user.get("core")
+    core_dict = current_end_user.get("core", {})
     relational_database_dict = core_dict.get("relational_database", {})
     origin = relational_database_dict.get("origin")
+    if origin is None:
+        raise BadRequestError("End user database is not set")
     return RelationalDatabase(origin)
 
 
 async def get_end_user_db_registry(
     current_end_user: dict = Depends(get_current_end_user),
 ) -> registry:
-    core_dict = current_end_user.get("core")
+    core_dict = current_end_user.get("core", {})
     relational_database_dict = core_dict.get("relational_database", {})
     schema_name = relational_database_dict.get("schema_name")
     metadata = RelationalDatabase.create_metadata(schema_name=schema_name)
