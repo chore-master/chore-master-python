@@ -175,6 +175,12 @@ async def get_web3_ecosystem():
             "name": "TRON Foundation",
             "from_person": ["person_justin_sun"],
         },
+        {
+            "id": "org_curve_dao",
+            "name": "Curve DAO",
+            "from_person": ["person_michael_egorov"],
+            "to_token": ["token_crv"],
+        },
     ]
 
     apps = [
@@ -218,6 +224,12 @@ async def get_web3_ecosystem():
             "name": "Telegram",
             "from_person": ["person_pavel_durov"],
             "to_network": ["network_ton"],
+        },
+        {
+            "id": "app_curve_finance",
+            "name": "Curve Finance",
+            "from_person": ["person_michael_egorov"],
+            "to_network": ["network_ethereum"],
         },
     ]
 
@@ -294,6 +306,16 @@ async def get_web3_ecosystem():
             "id": "token_trx",
             "name": "TRX",
             "full_name": "Tronix",
+        },
+        {
+            "id": "token_crv",
+            "name": "CRV",
+            "full_name": "Curve DAO Token",
+        },
+        {
+            "id": "token_vecrv",
+            "name": "veCRV",
+            "from_token": ["token_crv"],
         },
     ]
 
