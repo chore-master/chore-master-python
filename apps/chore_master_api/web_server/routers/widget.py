@@ -64,6 +64,12 @@ async def get_web3_ecosystem():
             "id": "chain_aptos",
             "name": "Aptos",
         },
+        {
+            "id": "chain_ton",
+            "name": "TON",
+            "full_name": "The Open Network",
+            "to_token": ["token_ton"],
+        },
     ]
 
     people = [
@@ -99,6 +105,14 @@ async def get_web3_ecosystem():
             "id": "person_pierre_person",
             "name": "Pierre PERSON",
             "avatar_url": "https://pbs.twimg.com/profile_images/1792630849612976129/8Qdeh-Yb_400x400.jpg",
+        },
+        {
+            "id": "person_pavel_durov",
+            "name": "Pavel Durov",
+        },
+        {
+            "id": "person_nikolai_durov",
+            "name": "Nikolai Durov",
         },
     ]
 
@@ -139,6 +153,11 @@ async def get_web3_ecosystem():
             "name": "Leavitt Innovations",
             "from_person": ["person_corey_caplan"],
         },
+        {
+            "id": "org_ton_foundation",
+            "name": "TON Foundation",
+            "from_person": ["person_pavel_durov", "person_nikolai_durov"],
+        },
     ]
 
     apps = [
@@ -176,6 +195,12 @@ async def get_web3_ecosystem():
             "id": "app_pump_fun",
             "name": "Pump.fun",
             "to_chain": ["chain_solana"],
+        },
+        {
+            "id": "app_telegram",
+            "name": "Telegram",
+            "from_person": ["person_pavel_durov"],
+            "to_chain": ["chain_ton"],
         },
     ]
 
@@ -242,6 +267,12 @@ async def get_web3_ecosystem():
             "id": "token_vedolo",
             "name": "veDOLO",
             "from_token": ["token_odolo"],
+        },
+        {
+            "id": "token_ton",
+            "name": "TON",
+            "full_name": "Toncoin",
+            "from_app": ["app_telegram"],
         },
     ]
 
