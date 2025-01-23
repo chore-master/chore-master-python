@@ -10,65 +10,72 @@ async def get_web3_ecosystem():
     color_map = {
         "person": "blue",
         "organiation": "red",
-        "blockchain": "grey",
+        "network": "grey",
         "project": "green",
         "token": "yellow",
     }
 
-    blockchains = [
+    networks = [
         {
-            "id": "chain_ethereum",
+            "id": "network_ethereum",
             "name": "Ethereum",
             "to_token": ["token_eth"],
         },
         {
-            "id": "chain_solana",
+            "id": "network_solana",
             "name": "Solana",
             "to_token": ["token_sol"],
         },
         {
-            "id": "chain_tron",
+            "id": "network_tron",
             "name": "Tron",
         },
         {
-            "id": "chain_bsc",
+            "id": "network_bsc",
             "name": "BSC",
         },
         {
-            "id": "chain_base",
+            "id": "network_base",
             "name": "Base",
             "from_person": ["person_jesse_pollak"],
         },
         {
-            "id": "chain_bitcoin",
+            "id": "network_bitcoin",
             "name": "Bitcoin",
             "to_token": ["token_btc"],
         },
         {
-            "id": "chain_arbitrum",
+            "id": "network_arbitrum",
             "name": "Arbitrum",
         },
         {
-            "id": "chain_avalanche",
+            "id": "network_avalanche",
             "name": "Avalanche",
         },
         {
-            "id": "chain_sui",
+            "id": "network_sui",
             "name": "Sui",
         },
         {
-            "id": "chain_hyperliquid",
+            "id": "network_hyperliquid",
             "name": "Hyperliquid",
         },
         {
-            "id": "chain_aptos",
+            "id": "network_aptos",
             "name": "Aptos",
         },
         {
-            "id": "chain_ton",
+            "id": "network_ton",
             "name": "TON",
             "full_name": "The Open Network",
             "to_token": ["token_ton"],
+        },
+        {
+            "id": "network_tron",
+            "name": "TRON",
+            "full_name": "TRON（波場）",
+            "from_person": ["person_justin_sun"],
+            "to_token": ["token_trx"],
         },
     ]
 
@@ -114,6 +121,11 @@ async def get_web3_ecosystem():
             "id": "person_nikolai_durov",
             "name": "Nikolai Durov",
         },
+        {
+            "id": "person_justin_sun",
+            "name": "Justin Sun",
+            "full_name": "Justin Sun（孫宇晨）",
+        },
     ]
 
     organiations = [
@@ -158,6 +170,11 @@ async def get_web3_ecosystem():
             "name": "TON Foundation",
             "from_person": ["person_pavel_durov", "person_nikolai_durov"],
         },
+        {
+            "id": "org_tron_foundation",
+            "name": "TRON Foundation",
+            "from_person": ["person_justin_sun"],
+        },
     ]
 
     apps = [
@@ -165,42 +182,42 @@ async def get_web3_ecosystem():
             "id": "app_termstructure",
             "name": "Term Structure",
             "from_org": ["org_term_structure_labs"],
-            "to_chain": ["chain_ethereum", "chain_arbitrum"],
+            "to_network": ["network_ethereum", "network_arbitrum"],
         },
         {
             "id": "app_termmax",
             "name": "TermMax",
             "from_org": ["org_term_structure_labs"],
-            "to_chain": ["chain_ethereum", "chain_arbitrum"],
+            "to_network": ["network_ethereum", "network_arbitrum"],
         },
         {
             "id": "app_ethena",
             "name": "Ethena",
             "from_org": ["org_ethena_labs"],
-            "to_chain": ["chain_ethereum"],
+            "to_network": ["network_ethereum"],
         },
         {
             "id": "app_usual",
             "name": "Usual",
             "from_org": ["org_usual_money"],
-            "to_chain": ["chain_ethereum", "chain_arbitrum"],
+            "to_network": ["network_ethereum", "network_arbitrum"],
         },
         {
             "id": "app_dolomite",
             "name": "Dolomite",
             "from_org": ["org_leavitt_innovations"],
-            "to_chain": ["chain_arbitrum"],
+            "to_network": ["network_arbitrum"],
         },
         {
             "id": "app_pump_fun",
             "name": "Pump.fun",
-            "to_chain": ["chain_solana"],
+            "to_network": ["network_solana"],
         },
         {
             "id": "app_telegram",
             "name": "Telegram",
             "from_person": ["person_pavel_durov"],
-            "to_chain": ["chain_ton"],
+            "to_network": ["network_ton"],
         },
     ]
 
@@ -272,13 +289,17 @@ async def get_web3_ecosystem():
             "id": "token_ton",
             "name": "TON",
             "full_name": "Toncoin",
-            "from_app": ["app_telegram"],
+        },
+        {
+            "id": "token_trx",
+            "name": "TRX",
+            "full_name": "Tronix",
         },
     ]
 
     links = []
-    entities = [*people, *organiations, *blockchains, *apps, *tokens]
-    dimensions = ["person", "org", "chain", "app", "token"]
+    entities = [*people, *organiations, *networks, *apps, *tokens]
+    dimensions = ["person", "org", "network", "app", "token"]
     for dimension in dimensions:
         for entity in entities:
             key = f"from_{dimension}"
@@ -307,9 +328,9 @@ async def get_web3_ecosystem():
         *[
             {
                 **item,
-                "color": color_map["blockchain"],
+                "color": color_map["network"],
             }
-            for item in blockchains
+            for item in networks
         ],
         *[
             {
