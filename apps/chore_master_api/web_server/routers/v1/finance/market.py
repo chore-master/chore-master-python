@@ -142,6 +142,10 @@ async def get_ecosystem():
             "id": "person_robert_leshner",
             "name": "Robert Leshner",
         },
+        {
+            "id": "person_stani_kulechov",
+            "name": "Stani Kulechov",
+        },
     ]
 
     organiations = [
@@ -213,6 +217,12 @@ async def get_ecosystem():
             "from_person": ["person_robert_leshner"],
             "to_token": ["token_comp"],
         },
+        {
+            "id": "org_aave_labs",
+            "name": "Aave Labs",
+            "from_person": ["person_stani_kulechov"],
+            "to_token": ["token_aave"],
+        },
     ]
 
     apps = [
@@ -273,6 +283,12 @@ async def get_ecosystem():
             "id": "app_compound_finance",
             "name": "Compound Finance",
             "from_org": ["org_compound_labs"],
+            "to_network": ["network_ethereum"],
+        },
+        {
+            "id": "app_aave",
+            "name": "Aave",
+            "from_org": ["org_aave_labs"],
             "to_network": ["network_ethereum"],
         },
     ]
@@ -382,6 +398,11 @@ async def get_ecosystem():
             "id": "token_comp",
             "name": "COMP",
             "full_name": "Compound",
+        },
+        {
+            "id": "token_aave",
+            "name": "AAVE",
+            "full_name": "Aave",
         },
     ]
 
