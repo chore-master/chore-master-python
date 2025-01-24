@@ -77,6 +77,11 @@ async def get_ecosystem():
             "from_person": ["person_justin_sun"],
             "to_token": ["token_trx"],
         },
+        {
+            "id": "network_ape_chain",
+            "name": "Ape Chain",
+            "to_token": ["token_ape"],
+        },
     ]
 
     people = [
@@ -154,6 +159,14 @@ async def get_ecosystem():
             "id": "person_mike_silagadze",
             "name": "Mike Silagadze",
             "avatar_url": "https://www.ether.fi/_next/image?url=%2Fimages%2Fabout%2Fprofiles%2Fmike.webp&w=256&q=75",
+        },
+        {
+            "id": "person_greg_solano",
+            "name": "Greg Solano",
+        },
+        {
+            "id": "person_wylie_aronow",
+            "name": "Wylie Aronow",
         },
     ]
 
@@ -254,6 +267,17 @@ async def get_ecosystem():
             "from_person": ["person_mike_silagadze"],
             "to_token": ["token_ethfi"],
         },
+        {
+            "id": "org_yuga_labs",
+            "name": "Yuga Labs",
+            "from_person": ["person_greg_solano", "person_wylie_aronow"],
+        },
+        {
+            "id": "org_ape_coin_dao",
+            "name": "ApeCoin DAO",
+            "to_token": ["token_ape"],
+            "to_network": ["network_bsc"],
+        },
     ]
 
     apps = [
@@ -334,6 +358,12 @@ async def get_ecosystem():
             "from_org": ["org_ether_fi_dao"],
             "to_network": ["network_ethereum"],
         },
+        {
+            "id": "app_ape_express",
+            "name": "Ape Express",
+            "from_org": ["org_yuga_labs"],
+            "to_network": ["network_ape_chain"],
+        },
     ]
 
     tokens = [
@@ -351,11 +381,6 @@ async def get_ecosystem():
             "id": "token_sol",
             "name": "SOL",
             "full_name": "Solana",
-        },
-        {
-            "id": "token_bayc",
-            "name": "BAYC",
-            "full_name": "Bored Ape Yacht Club",
         },
         {
             "id": "token_usual",
@@ -472,6 +497,33 @@ async def get_ecosystem():
             "id": "token_eeth",
             "name": "eETH",
             "from_app": ["app_ether_fi"],
+        },
+        {
+            "id": "token_bayc",
+            "name": "BAYC",
+            "full_name": "Bored Ape Yacht Club",
+            "from_org": ["org_yuga_labs"],
+            "to_network": ["network_ethereum"],
+        },
+        {
+            "id": "token_mayc",
+            "name": "MAYC",
+            "full_name": "Mutant Ape Yacht Club",
+            "from_org": ["org_yuga_labs"],
+            "to_network": ["network_ethereum"],
+        },
+        {
+            "id": "token_bakc",
+            "name": "BAKC",
+            "full_name": "Bored Ape Kennel Club",
+            "from_org": ["org_yuga_labs"],
+            "to_network": ["network_ethereum"],
+        },
+        {
+            "id": "token_ape",
+            "name": "APE",
+            "full_name": "ApeCoin",
+            "to_network": ["network_ape_chain"],
         },
     ]
 
