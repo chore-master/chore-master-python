@@ -150,6 +150,11 @@ async def get_ecosystem():
             "id": "person_rune_christensen",
             "name": "Rune Christensen",
         },
+        {
+            "id": "person_mike_silagadze",
+            "name": "Mike Silagadze",
+            "avatar_url": "https://www.ether.fi/_next/image?url=%2Fimages%2Fabout%2Fprofiles%2Fmike.webp&w=256&q=75",
+        },
     ]
 
     organiations = [
@@ -243,6 +248,12 @@ async def get_ecosystem():
             "name": "Spark Protocol",
             "from_org": ["org_phoenix_labs"],
         },
+        {
+            "id": "org_ether_fi_dao",
+            "name": "Ether.Fi DAO",
+            "from_person": ["person_mike_silagadze"],
+            "to_token": ["token_ethfi"],
+        },
     ]
 
     apps = [
@@ -315,6 +326,12 @@ async def get_ecosystem():
             "id": "app_spark_lend",
             "name": "Spark Lend",
             "from_org": ["org_spark_protocol"],
+            "to_network": ["network_ethereum"],
+        },
+        {
+            "id": "app_ether_fi",
+            "name": "ether.fi",
+            "from_org": ["org_ether_fi_dao"],
             "to_network": ["network_ethereum"],
         },
     ]
@@ -445,6 +462,16 @@ async def get_ecosystem():
             "name": "sDAI",
             "full_name": "Savings Dai",
             "from_token": ["token_dai"],
+        },
+        {
+            "id": "token_ethfi",
+            "name": "ETHFI",
+            "full_name": "Ether.fi",
+        },
+        {
+            "id": "token_eeth",
+            "name": "eETH",
+            "from_app": ["app_ether_fi"],
         },
     ]
 
