@@ -126,6 +126,18 @@ async def get_ecosystem():
             "name": "Justin Sun",
             "full_name": "Justin Sun（孫宇晨）",
         },
+        {
+            "id": "person_konstantin_lomashuk",
+            "name": "Konstantin Lomashuk",
+        },
+        {
+            "id": "person_vasiliy_shapovalov",
+            "name": "Vasiliy Shapovalov",
+        },
+        {
+            "id": "person_jordan_fish",
+            "name": "Jordan Fish",
+        },
     ]
 
     organiations = [
@@ -181,6 +193,16 @@ async def get_ecosystem():
             "from_person": ["person_michael_egorov"],
             "to_token": ["token_crv"],
         },
+        {
+            "id": "org_lido_dao",
+            "name": "Lido DAO",
+            "from_person": [
+                "person_konstantin_lomashuk",
+                "person_vasiliy_shapovalov",
+                "person_jordan_fish",
+            ],
+            "to_token": ["token_ldo"],
+        },
     ]
 
     apps = [
@@ -229,6 +251,12 @@ async def get_ecosystem():
             "id": "app_curve_finance",
             "name": "Curve Finance",
             "from_person": ["person_michael_egorov"],
+            "to_network": ["network_ethereum"],
+        },
+        {
+            "id": "app_lido",
+            "name": "Lido",
+            "from_org": ["org_lido_dao"],
             "to_network": ["network_ethereum"],
         },
     ]
@@ -316,6 +344,23 @@ async def get_ecosystem():
             "id": "token_vecrv",
             "name": "veCRV",
             "from_token": ["token_crv"],
+        },
+        {
+            "id": "token_ldo",
+            "name": "LDO",
+            "full_name": "Lido DAO Token",
+        },
+        {
+            "id": "token_steth",
+            "name": "stETH",
+            "full_name": "Lido Staked ETH",
+            "from_app": ["app_lido"],
+        },
+        {
+            "id": "token_wsteth",
+            "name": "wstETH",
+            "full_name": "Wrapped stETH",
+            "from_token": ["token_steth"],
         },
     ]
 
