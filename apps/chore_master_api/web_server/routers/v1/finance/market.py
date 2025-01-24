@@ -146,6 +146,10 @@ async def get_ecosystem():
             "id": "person_stani_kulechov",
             "name": "Stani Kulechov",
         },
+        {
+            "id": "person_rune_christensen",
+            "name": "Rune Christensen",
+        },
     ]
 
     organiations = [
@@ -223,6 +227,22 @@ async def get_ecosystem():
             "from_person": ["person_stani_kulechov"],
             "to_token": ["token_aave"],
         },
+        {
+            "id": "org_maker_dao",
+            "name": "MakerDAO",
+            "from_person": ["person_rune_christensen"],
+            "to_token": ["token_mkr", "token_dai"],
+        },
+        {
+            "id": "org_phoenix_labs",
+            "name": "Phoenix Labs",
+            "from_org": ["org_maker_dao"],
+        },
+        {
+            "id": "org_spark_protocol",
+            "name": "Spark Protocol",
+            "from_org": ["org_phoenix_labs"],
+        },
     ]
 
     apps = [
@@ -289,6 +309,12 @@ async def get_ecosystem():
             "id": "app_aave",
             "name": "Aave",
             "from_org": ["org_aave_labs"],
+            "to_network": ["network_ethereum"],
+        },
+        {
+            "id": "app_spark_lend",
+            "name": "Spark Lend",
+            "from_org": ["org_spark_protocol"],
             "to_network": ["network_ethereum"],
         },
     ]
@@ -403,6 +429,22 @@ async def get_ecosystem():
             "id": "token_aave",
             "name": "AAVE",
             "full_name": "Aave",
+        },
+        {
+            "id": "token_mkr",
+            "name": "MKR",
+            "full_name": "MakerDAO",
+        },
+        {
+            "id": "token_dai",
+            "name": "DAI",
+            "full_name": "Dai",
+        },
+        {
+            "id": "token_sdai",
+            "name": "sDAI",
+            "full_name": "Savings Dai",
+            "from_token": ["token_dai"],
         },
     ]
 
