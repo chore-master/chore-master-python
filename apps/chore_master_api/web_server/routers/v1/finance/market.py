@@ -138,6 +138,10 @@ async def get_ecosystem():
             "id": "person_jordan_fish",
             "name": "Jordan Fish",
         },
+        {
+            "id": "person_robert_leshner",
+            "name": "Robert Leshner",
+        },
     ]
 
     organiations = [
@@ -203,6 +207,12 @@ async def get_ecosystem():
             ],
             "to_token": ["token_ldo"],
         },
+        {
+            "id": "org_compound_labs",
+            "name": "Compound Labs",
+            "from_person": ["person_robert_leshner"],
+            "to_token": ["token_comp"],
+        },
     ]
 
     apps = [
@@ -257,6 +267,12 @@ async def get_ecosystem():
             "id": "app_lido",
             "name": "Lido",
             "from_org": ["org_lido_dao"],
+            "to_network": ["network_ethereum"],
+        },
+        {
+            "id": "app_compound_finance",
+            "name": "Compound Finance",
+            "from_org": ["org_compound_labs"],
             "to_network": ["network_ethereum"],
         },
     ]
@@ -361,6 +377,11 @@ async def get_ecosystem():
             "name": "wstETH",
             "full_name": "Wrapped stETH",
             "from_token": ["token_steth"],
+        },
+        {
+            "id": "token_comp",
+            "name": "COMP",
+            "full_name": "Compound",
         },
     ]
 
