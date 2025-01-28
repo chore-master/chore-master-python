@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -25,6 +26,7 @@ def get_app(base_config: Optional[BaseConfigSchema] = None) -> FastAPI:
             chore_master_api_web_server_config
         ):
             app.state.chore_master_api_mongo_client = chore_master_api_mongo_client
+            app.state.mutex = asyncio.Lock()
             yield
 
     app = BaseFastAPI(

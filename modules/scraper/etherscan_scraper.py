@@ -12,6 +12,7 @@ class EtherscanScraper:
     class AdvancedFilterDict(TypedDict):
         to_address: str
         to_address_name: Optional[str]
+        to_address_icon_title: Optional[str]
         quantity: float
 
     @staticmethod
@@ -101,9 +102,15 @@ class EtherscanScraper:
             rows = soup.find_all("tr")[1:]
             for row in rows:
                 cols = row.find_all("td")
+                to_address_icon = cols[9].find("img")
+                if to_address_icon is None:
+                    to_address_icon_title = None
+                else:
+                    to_address_icon_title = to_address_icon["data-bs-title"]
                 advanced_filter_dict = self.AdvancedFilterDict(
                     to_address=self.parse_address(cols[9].find("a")["href"]),
                     to_address_name=cols[9].text.strip(),
+                    to_address_icon_title=to_address_icon_title,
                     quantity=self.parse_float(cols[10].text),
                 )
                 advanced_filter_dicts.append(advanced_filter_dict)
