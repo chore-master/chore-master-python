@@ -682,12 +682,25 @@ async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
         nodes = [
             {"id": identifier, "column": 0} for identifier in from_identifier_set
         ] + [{"id": identifier, "column": 1} for identifier in to_identifier_set]
+        if token_symbol == "USDC":
+            threshold = 50_000_000
+        elif token_symbol == "USDT":
+            threshold = 50_000_000
+        elif token_symbol == "wstETH":
+            threshold = 1_000_000
+        elif token_symbol == "weETH":
+            threshold = 1_000_000
+        elif token_symbol == "WBTC":
+            threshold = 10_000_000
+        else:
+            threshold = 0
         links = [
             [from_identifier, to_identifier, quantity * token_price]
             for (
                 from_identifier,
                 to_identifier,
             ), quantity in identifier_to_quantity_map.items()
+            if quantity * token_price > threshold
         ]
         series.append(
             {
