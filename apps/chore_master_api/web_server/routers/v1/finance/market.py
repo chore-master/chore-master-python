@@ -1,5 +1,14 @@
+import json
+import os
+from collections import defaultdict
+from typing import Mapping
+
+import httpx
 from fastapi import APIRouter
 
+from modules.scraper.cloud_flare_solver import CloudflareSolver
+from modules.scraper.etherscan_scraper import EtherscanScraper
+from modules.utils.cache_utils import FileSystemCache
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter(prefix="/market")
@@ -582,5 +591,82 @@ async def get_ecosystem():
         data={
             "nodes": nodes,
             "links": links,
+        },
+    )
+
+
+@router.get("/a_token_transactions")
+async def get_a_token_transactions():
+    cloudflare_cache = FileSystemCache(base_dir=".cache/cloudflare")
+    cloudflare_context_text = cloudflare_cache.get(keys=["context.json"])
+    if cloudflare_context_text is None:
+        async with CloudflareSolver() as cf_solver:
+            user_agent = cf_solver.user_agent
+            cf_clearance = await cf_solver.get_clearance_token(
+                url="https://etherscan.io/tokenholdings?a=0xc049f307dc4db93747c943c33eb99d5ac2164b45"
+            )
+            cloudflare_cache.set(
+                keys=["context.json"],
+                value=json.dumps(
+                    {
+                        "user_agent": user_agent,
+                        "cf_clearance": cf_clearance,
+                    }
+                ),
+            )
+    else:
+        cloudflare_context = json.loads(cloudflare_context_text)
+        user_agent = cloudflare_context["user_agent"]
+        cf_clearance = cloudflare_context["cf_clearance"]
+
+    series = []
+    token_symbol_to_token_map = json.load(
+        open(os.path.join(os.path.dirname(__file__), "token_symbol_to_token_map.json"))
+    )
+    for token_symbol, token_dict in token_symbol_to_token_map.items():
+        token_price = token_dict["price"]
+        from_identifier_set = set()
+        to_identifier_set = set()
+        identifier_to_quantity_map: Mapping[str, float] = defaultdict(lambda: 0.0)
+        async with httpx.AsyncClient(timeout=None) as client:
+            etherscan_scraper = EtherscanScraper(
+                client=client,
+                cf_clearance=cf_clearance,
+                user_agent=user_agent,
+                is_debugging=True,
+            )
+            for sender_address in token_dict.get("sender_addresses", []):
+                advanced_filter_dicts = await etherscan_scraper.get_advanced_filter(
+                    from_address=sender_address,
+                    token_address=token_dict["address"],
+                )
+                for advanced_filter_dict in advanced_filter_dicts:
+                    from_identifier_set.add(sender_address)
+                    to_identifier = advanced_filter_dict["to_address_name"]
+                    to_identifier_set.add(to_identifier)
+                    identifier_to_quantity_map[
+                        (sender_address, to_identifier)
+                    ] += advanced_filter_dict["quantity"]
+        nodes = [
+            {"id": identifier, "column": 0} for identifier in from_identifier_set
+        ] + [{"id": identifier, "column": 1} for identifier in to_identifier_set]
+        links = [
+            [from_identifier, to_identifier, quantity * token_price]
+            for (
+                from_identifier,
+                to_identifier,
+            ), quantity in identifier_to_quantity_map.items()
+        ]
+        series.append(
+            {
+                "name": token_symbol,
+                "nodes": nodes,
+                "links": links,
+            }
+        )
+    return ResponseSchema[dict](
+        status=StatusEnum.SUCCESS,
+        data={
+            "series": series,
         },
     )

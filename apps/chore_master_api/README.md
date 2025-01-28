@@ -4,6 +4,8 @@
 
 ```sh
 poetry install
+poetry run python -m patchright install-deps chromium
+poetry run python -m patchright install chromium
 ```
 
 ```sh
