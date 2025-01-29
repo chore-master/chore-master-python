@@ -1,7 +1,6 @@
 {
     "ETH": {
         "address": "eth",
-        "price": 3183.0,
         "sender_addresses": [
             "0xf0bb20865277abd641a307ece5ee04e79073416c",
             "0x9600a48ed0f931d0c422d574e3275a90d8b22745",
@@ -207,7 +206,6 @@
     },
     "weETH": {
         "address": "0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee",
-        "price": 3183.0,
         "sender_addresses": [
             "0xed80e4cca763de95000d915dd4b89d7092640128",
             "0xecbf6e57d9430b8f79927e6109183846fab55d25",
@@ -313,7 +311,6 @@
     },
     "wstETH": {
         "address": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
-        "price": 3183.0,
         "sender_addresses": [
             "0x659195fb6c4d77cf116564cb6487d2effd60bce3",
             "0x4dcb388488622e47683ead1a147947140a31e485",
@@ -519,7 +516,6 @@
     },
     "USDT": {
         "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
-        "price": 1.0,
         "sender_addresses": [
             "0xa9ed0db00e5c29e7e18a55db159ea33fb5fea60a",
             "0xa339d279e0a3a9ede11eceac2ec9529eebdae12c",
@@ -725,7 +721,6 @@
     },
     "WBTC": {
         "address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
-        "price": 102901.0,
         "sender_addresses": [
             "0xb4d3bea9d824c4dd7ded7ccc93e6212e3f0b186a",
             "0xc98cddf7abaffc682094d72a52a4fa7195a04289",
@@ -931,7 +926,6 @@
     },
     "USDC": {
         "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-        "price": 1.0,
         "sender_addresses": [
             "0xa9ed0db00e5c29e7e18a55db159ea33fb5fea60a",
             "0x7c697d6cff279f3f9c2401d0ea2ac7e7ede0e2c3",

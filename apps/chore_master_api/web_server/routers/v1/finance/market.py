@@ -635,12 +635,12 @@ async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
         # token_symbol_cache_text = token_symbol_cache.get(keys=keys)
         # if token_symbol_cache_text is not None:
         #     token_symbol_cache_dict = json.loads(token_symbol_cache_text)
-        #     from_identifier_set = set(token_symbol_cache_dict["from_identifier_set"])
-        #     to_identifier_set = set(token_symbol_cache_dict["to_identifier_set"])
-        #     identifier_to_quantity_map = {
+        #     from_node_set = set(token_symbol_cache_dict["from_node_set"])
+        #     to_node_set = set(token_symbol_cache_dict["to_node_set"])
+        #     node_to_weight_map = {
         #         tuple(k.split("|")): v
         #         for k, v in token_symbol_cache_dict[
-        #             "identifier_to_quantity_map"
+        #             "node_to_weight_map"
         #         ].items()
         #     }
         # else:
@@ -652,9 +652,9 @@ async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
                 user_agent=user_agent,
                 is_debugging=True,
             )
-            from_identifier_set = set()
-            to_identifier_set = set()
-            identifier_to_quantity_map: Mapping[str, float] = defaultdict(lambda: 0.0)
+            from_node_set = set()
+            to_node_set = set()
+            node_to_weight_map: Mapping[str, float] = defaultdict(lambda: 0.0)
             df_dir_path = f"./data/csv/{datetime.now(timezone.utc).strftime('%Y_%m_%d')}/token_symbols/{token_symbol}/sender_addresses"
             df_columns = [
                 "transaction_hash",
@@ -672,7 +672,7 @@ async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
             for sender_address in token_dict.get("sender_addresses", []):
                 df_file_path = f"{df_dir_path}/{sender_address}.csv"
                 if os.path.exists(df_file_path):
-                    df = pd.read_csv(df_file_path, usecols=df_columns)
+                    df = pd.read_csv(df_file_path, keep_default_na=False)
                 else:
                     advanced_filter_htmls = (
                         await etherscan_scraper.get_advanced_filter_htmls(
@@ -707,7 +707,7 @@ async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
                             to_address_name = tds[9].text.strip()
                             quantity = EtherscanScraper.parse_float(tds[10].text)
                             notional = EtherscanScraper.parse_float(
-                                tds[11].text.strip()[1:]
+                                tds[11].find("span")["data-bs-title"][1:]
                             )
                             to_address_icon = tds[9].find("img")
                             if to_address_icon is None:
@@ -738,54 +738,47 @@ async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
                     df.to_csv(df_file_path, index=False)
 
                 for _, row in df.iterrows():
-                    from_identifier_set.add(row["from_address"])
-                    to_identifier = row["to_address_name"]
-                    if row["to_address_icon_title"] is not None:
-                        to_identifier = (
-                            f"{to_identifier} ({row['to_address_icon_title']})"
-                        )
-                    to_identifier_set.add(to_identifier)
-                    identifier_to_quantity_map[(sender_address, to_identifier)] += row[
-                        "quantity"
-                    ]
+                    from_node = row["from_address"]
+                    from_node_set.add(from_node)
+                    to_node = row["to_address_name"]
+                    if row["to_address_icon_title"]:
+                        to_node = f"{to_node} ({row['to_address_icon_title']})"
+                    to_node_set.add(to_node)
+                    node_to_weight_map[(from_node, to_node)] += row["notional"]
 
             # token_symbol_cache.set(
             #     keys=keys,
             #     value=json.dumps(
             #         {
-            #             "from_identifier_set": list(from_identifier_set),
-            #             "to_identifier_set": list(to_identifier_set),
-            #             "identifier_to_quantity_map": {
+            #             "from_node_set": list(from_node_set),
+            #             "to_node_set": list(to_node_set),
+            #             "node_to_weight_map": {
             #                 "|".join(k): v
-            #                 for k, v in identifier_to_quantity_map.items()
+            #                 for k, v in node_to_weight_map.items()
             #             },
             #         }
             #     ),
             # )
 
-        token_price = token_dict["price"]
-        nodes = [
-            {"id": identifier, "column": 0} for identifier in from_identifier_set
-        ] + [{"id": identifier, "column": 1} for identifier in to_identifier_set]
-        if token_symbol == "USDC":
-            threshold = 50_000_000
-        elif token_symbol == "USDT":
-            threshold = 50_000_000
-        elif token_symbol == "wstETH":
-            threshold = 1_000_000
-        elif token_symbol == "weETH":
-            threshold = 1_000_000
-        elif token_symbol == "WBTC":
-            threshold = 10_000_000
-        else:
-            threshold = 0
+        nodes = [{"id": identifier, "column": 0} for identifier in from_node_set] + [
+            {"id": identifier, "column": 1} for identifier in to_node_set
+        ]
+        token_symbol_to_threshold_map = {
+            "ETH": 100_000_000,
+            "weETH": 1_000_000,
+            "wstETH": 1_000_000,
+            "USDT": 50_000_000,
+            "WBTC": 10_000_000,
+            "USDC": 50_000_000,
+        }
+        threshold = token_symbol_to_threshold_map.get(token_symbol, 0)
         links = [
-            [from_identifier, to_identifier, quantity * token_price]
+            [from_node, to_node, weight]
             for (
-                from_identifier,
-                to_identifier,
-            ), quantity in identifier_to_quantity_map.items()
-            if quantity * token_price > threshold
+                from_node,
+                to_node,
+            ), weight in node_to_weight_map.items()
+            if weight > threshold
         ]
         series.append(
             {
