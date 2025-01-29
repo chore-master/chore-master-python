@@ -760,8 +760,8 @@ async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
             #     ),
             # )
 
-        nodes = [{"id": identifier, "column": 0} for identifier in from_node_set] + [
-            {"id": identifier, "column": 1} for identifier in to_node_set
+        nodes = [{"id": node, "column": 0} for node in from_node_set] + [
+            {"id": node, "column": 1} for node in to_node_set
         ]
         token_symbol_to_threshold_map = {
             "ETH": 100_000_000,
