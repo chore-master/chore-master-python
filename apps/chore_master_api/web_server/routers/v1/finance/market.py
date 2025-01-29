@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 from collections import defaultdict
+from datetime import datetime, timezone
 from typing import Mapping
 
 import httpx
@@ -654,13 +655,17 @@ async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
             from_identifier_set = set()
             to_identifier_set = set()
             identifier_to_quantity_map: Mapping[str, float] = defaultdict(lambda: 0.0)
-            df_dir_path = f"./data/token_symbols/{token_symbol}/sender_addresses"
+            df_dir_path = f"./data/csv/{datetime.now(timezone.utc).strftime('%Y_%m_%d')}/token_symbols/{token_symbol}/sender_addresses"
             df_columns = [
+                "transaction_hash",
+                "method",
+                "transaction_time",
                 "from_address",
                 "to_address",
                 "to_address_name",
                 "to_address_icon_title",
                 "quantity",
+                "notional",
                 "token_symbol",
             ]
             FileSystemUtils.ensure_directory(df_dir_path)
@@ -687,19 +692,39 @@ async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
                                 == "There are no matching entriesPlease try again later"
                             ):
                                 break
+                            transaction_hash = tds[0].text.strip()
+                            transaction_type = tds[1].text.strip()
+                            method = tds[2].text.strip()
+                            transaction_time_str = (
+                                datetime.strptime(
+                                    tds[4].text.strip(), "%Y-%m-%d %H:%M:%S"
+                                ).isoformat()
+                                + "Z"
+                            )
+                            to_address = EtherscanScraper.parse_address(
+                                tds[9].find("a")["href"]
+                            )
+                            to_address_name = tds[9].text.strip()
+                            quantity = EtherscanScraper.parse_float(tds[10].text)
+                            notional = EtherscanScraper.parse_float(
+                                tds[11].text.strip()[1:]
+                            )
                             to_address_icon = tds[9].find("img")
                             if to_address_icon is None:
                                 to_address_icon_title = None
                             else:
                                 to_address_icon_title = to_address_icon["data-bs-title"]
                             row_dict = {
+                                "transaction_hash": transaction_hash,
+                                "type": transaction_type,
+                                "method": method,
+                                "transaction_time": transaction_time_str,
                                 "from_address": sender_address,
-                                "to_address": EtherscanScraper.parse_address(
-                                    tds[9].find("a")["href"]
-                                ),
-                                "to_address_name": tds[9].text.strip(),
+                                "to_address": to_address,
+                                "to_address_name": to_address_name,
                                 "to_address_icon_title": to_address_icon_title,
-                                "quantity": EtherscanScraper.parse_float(tds[10].text),
+                                "quantity": quantity,
+                                "notional": notional,
                                 "token_symbol": token_symbol,
                             }
                             row_dicts.append(row_dict)
