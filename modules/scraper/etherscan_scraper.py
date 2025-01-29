@@ -47,12 +47,13 @@ class EtherscanScraper:
         self.is_debugging = is_debugging
         self._file_system_cache = FileSystemCache(base_dir=".cache/etherscan_scraper")
 
-    async def get_advanced_filter(
+    async def get_advanced_filter_htmls(
         self, from_address: str, token_address: str, page_count: Optional[int] = None
-    ) -> list[AdvancedFilterDict]:
+    ) -> list[str]:
         # https://etherscan.io/advanced-filter?fadd=0xed80e4cca763de95000d915dd4b89d7092640128&tkn=0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee&ps=100&p=1
         current_page = 1
-        advanced_filter_dicts = []
+        # advanced_filter_dicts = []
+        htmls = []
         ctx = [
             "[get_advanced_filter]",
             f"[from_address={from_address}, token_address={token_address}]",
@@ -90,34 +91,36 @@ class EtherscanScraper:
                 response.raise_for_status()
                 response_html = response.text
                 self._file_system_cache.set(keys=keys, value=response_html)
-                await asyncio.sleep(0.8)  # cool down
-            soup = BeautifulSoup(response_html, "html.parser")
+                await asyncio.sleep(0.7)  # cool down
+            htmls.append(response_html)
             if page_count is None:
+                soup = BeautifulSoup(response_html, "html.parser")
                 page_element = soup.select_one(
                     "#ContentPlaceHolder1_pageRecords > nav > ul > li:nth-child(3) > span"
                 )
                 if page_element is None:
                     break
                 page_count = int(page_element.text.split(" ")[3])
-            rows = soup.find_all("tr")[1:]
-            for row in rows:
-                cols = row.find_all("td")
-                to_address_icon = cols[9].find("img")
-                if to_address_icon is None:
-                    to_address_icon_title = None
-                else:
-                    to_address_icon_title = to_address_icon["data-bs-title"]
-                advanced_filter_dict = self.AdvancedFilterDict(
-                    to_address=self.parse_address(cols[9].find("a")["href"]),
-                    to_address_name=cols[9].text.strip(),
-                    to_address_icon_title=to_address_icon_title,
-                    quantity=self.parse_float(cols[10].text),
-                )
-                advanced_filter_dicts.append(advanced_filter_dict)
+            # rows = soup.find_all("tr")[1:]
+            # for row in rows:
+            #     cols = row.find_all("td")
+            #     to_address_icon = cols[9].find("img")
+            #     if to_address_icon is None:
+            #         to_address_icon_title = None
+            #     else:
+            #         to_address_icon_title = to_address_icon["data-bs-title"]
+            #     advanced_filter_dict = self.AdvancedFilterDict(
+            #         to_address=self.parse_address(cols[9].find("a")["href"]),
+            #         to_address_name=cols[9].text.strip(),
+            #         to_address_icon_title=to_address_icon_title,
+            #         quantity=self.parse_float(cols[10].text),
+            #     )
+            #     advanced_filter_dicts.append(advanced_filter_dict)
             if current_page == page_count:
                 break
             current_page += 1
-        return advanced_filter_dicts
+        # return advanced_filter_dicts
+        return htmls
 
     def _log(self, *args):
         if self.is_debugging:

@@ -1,6 +1,6 @@
 {
     "ETH": {
-        "address": "0xf0bb20865277abd641a307ece5ee04e79073416c",
+        "address": "eth",
         "price": 3183.0,
         "sender_addresses": [
             "0xf0bb20865277abd641a307ece5ee04e79073416c",

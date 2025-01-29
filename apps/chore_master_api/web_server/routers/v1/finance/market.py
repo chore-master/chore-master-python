@@ -5,12 +5,15 @@ from collections import defaultdict
 from typing import Mapping
 
 import httpx
+import pandas as pd
+from bs4 import BeautifulSoup
 from fastapi import APIRouter, Depends
 
 from apps.chore_master_api.web_server.dependencies.concurrency import get_mutex
 from modules.scraper.cloud_flare_solver import CloudflareSolver
 from modules.scraper.etherscan_scraper import EtherscanScraper
 from modules.utils.cache_utils import FileSystemCache
+from modules.utils.file_system_utils import FileSystemUtils
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter(prefix="/market")
@@ -625,58 +628,115 @@ async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
     token_symbol_to_token_map = json.load(
         open(os.path.join(os.path.dirname(__file__), "token_symbol_to_token_map.json"))
     )
-    token_symbol_cache = FileSystemCache(base_dir=".cache/token_symbols")
+    # token_symbol_cache = FileSystemCache(base_dir=".cache/token_symbols")
     for token_symbol, token_dict in token_symbol_to_token_map.items():
-        keys = [f"{token_symbol}.json"]
-        token_symbol_cache_text = token_symbol_cache.get(keys=keys)
-        if token_symbol_cache_text is not None:
-            token_symbol_cache_dict = json.loads(token_symbol_cache_text)
-            from_identifier_set = set(token_symbol_cache_dict["from_identifier_set"])
-            to_identifier_set = set(token_symbol_cache_dict["to_identifier_set"])
-            identifier_to_quantity_map = {
-                tuple(k.split("|")): v
-                for k, v in token_symbol_cache_dict[
-                    "identifier_to_quantity_map"
-                ].items()
-            }
-        else:
+        # keys = [f"{token_symbol}.json"]
+        # token_symbol_cache_text = token_symbol_cache.get(keys=keys)
+        # if token_symbol_cache_text is not None:
+        #     token_symbol_cache_dict = json.loads(token_symbol_cache_text)
+        #     from_identifier_set = set(token_symbol_cache_dict["from_identifier_set"])
+        #     to_identifier_set = set(token_symbol_cache_dict["to_identifier_set"])
+        #     identifier_to_quantity_map = {
+        #         tuple(k.split("|")): v
+        #         for k, v in token_symbol_cache_dict[
+        #             "identifier_to_quantity_map"
+        #         ].items()
+        #     }
+        # else:
+
+        async with httpx.AsyncClient(timeout=None) as client:
+            etherscan_scraper = EtherscanScraper(
+                client=client,
+                cf_clearance=cf_clearance,
+                user_agent=user_agent,
+                is_debugging=True,
+            )
             from_identifier_set = set()
             to_identifier_set = set()
             identifier_to_quantity_map: Mapping[str, float] = defaultdict(lambda: 0.0)
-            async with httpx.AsyncClient(timeout=None) as client:
-                etherscan_scraper = EtherscanScraper(
-                    client=client,
-                    cf_clearance=cf_clearance,
-                    user_agent=user_agent,
-                    is_debugging=True,
-                )
-                for sender_address in token_dict.get("sender_addresses", []):
-                    advanced_filter_dicts = await etherscan_scraper.get_advanced_filter(
-                        from_address=sender_address,
-                        token_address=token_dict["address"],
+            df_dir_path = f"./data/token_symbols/{token_symbol}/sender_addresses"
+            df_columns = [
+                "from_address",
+                "to_address",
+                "to_address_name",
+                "to_address_icon_title",
+                "quantity",
+                "token_symbol",
+            ]
+            FileSystemUtils.ensure_directory(df_dir_path)
+            for sender_address in token_dict.get("sender_addresses", []):
+                df_file_path = f"{df_dir_path}/{sender_address}.csv"
+                if os.path.exists(df_file_path):
+                    df = pd.read_csv(df_file_path, usecols=df_columns)
+                else:
+                    advanced_filter_htmls = (
+                        await etherscan_scraper.get_advanced_filter_htmls(
+                            from_address=sender_address,
+                            token_address=token_dict["address"],
+                        )
                     )
-                    for advanced_filter_dict in advanced_filter_dicts:
-                        from_identifier_set.add(sender_address)
-                        to_identifier = advanced_filter_dict["to_address_name"]
-                        if advanced_filter_dict["to_address_icon_title"] is not None:
-                            to_identifier = f"{to_identifier} ({advanced_filter_dict['to_address_icon_title']})"
-                        to_identifier_set.add(to_identifier)
-                        identifier_to_quantity_map[
-                            (sender_address, to_identifier)
-                        ] += advanced_filter_dict["quantity"]
-            token_symbol_cache.set(
-                keys=keys,
-                value=json.dumps(
-                    {
-                        "from_identifier_set": list(from_identifier_set),
-                        "to_identifier_set": list(to_identifier_set),
-                        "identifier_to_quantity_map": {
-                            "|".join(k): v
-                            for k, v in identifier_to_quantity_map.items()
-                        },
-                    }
-                ),
-            )
+                    row_dicts = []
+                    for html in advanced_filter_htmls:
+                        soup = BeautifulSoup(html, "html.parser")
+                        trs = soup.find_all("tr")[1:]
+                        for tr in trs:
+                            tds = tr.find_all("td")
+                            if (
+                                len(tds) == 1
+                                and tds[0].text.strip()
+                                == "There are no matching entriesPlease try again later"
+                            ):
+                                break
+                            to_address_icon = tds[9].find("img")
+                            if to_address_icon is None:
+                                to_address_icon_title = None
+                            else:
+                                to_address_icon_title = to_address_icon["data-bs-title"]
+                            row_dict = {
+                                "from_address": sender_address,
+                                "to_address": EtherscanScraper.parse_address(
+                                    tds[9].find("a")["href"]
+                                ),
+                                "to_address_name": tds[9].text.strip(),
+                                "to_address_icon_title": to_address_icon_title,
+                                "quantity": EtherscanScraper.parse_float(tds[10].text),
+                                "token_symbol": token_symbol,
+                            }
+                            row_dicts.append(row_dict)
+                    if len(row_dicts) > 0:
+                        df = pd.DataFrame.from_records(
+                            row_dicts,
+                            columns=df_columns,
+                        )
+                    else:
+                        df = pd.DataFrame(columns=df_columns)
+                    df.to_csv(df_file_path, index=False)
+
+                for _, row in df.iterrows():
+                    from_identifier_set.add(row["from_address"])
+                    to_identifier = row["to_address_name"]
+                    if row["to_address_icon_title"] is not None:
+                        to_identifier = (
+                            f"{to_identifier} ({row['to_address_icon_title']})"
+                        )
+                    to_identifier_set.add(to_identifier)
+                    identifier_to_quantity_map[(sender_address, to_identifier)] += row[
+                        "quantity"
+                    ]
+
+            # token_symbol_cache.set(
+            #     keys=keys,
+            #     value=json.dumps(
+            #         {
+            #             "from_identifier_set": list(from_identifier_set),
+            #             "to_identifier_set": list(to_identifier_set),
+            #             "identifier_to_quantity_map": {
+            #                 "|".join(k): v
+            #                 for k, v in identifier_to_quantity_map.items()
+            #             },
+            #         }
+            #     ),
+            # )
 
         token_price = token_dict["price"]
         nodes = [
