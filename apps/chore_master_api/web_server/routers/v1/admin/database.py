@@ -2,9 +2,11 @@ import json
 import os
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
 import pandas as pd
 from fastapi import APIRouter, Depends, UploadFile
+from pydantic import BaseModel
 from sqlalchemy import and_
 from sqlalchemy.orm import registry
 
@@ -18,6 +20,19 @@ from modules.web_server.exceptions import BadRequestError
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter()
+
+
+class ReadDatabaseSchemaResponse(BaseModel):
+    class _Table(BaseModel):
+        class _Column(BaseModel):
+            name: str
+            type: str
+
+        name: str
+        columns: list[_Column]
+
+    name: Optional[str] = None
+    tables: list[_Table]
 
 
 def cast_row_dict_to_entity_dict(row_dict: dict, column_name_to_type_map: dict) -> dict:
@@ -73,6 +88,35 @@ def cast_row_dict_to_entity_dict(row_dict: dict, column_name_to_type_map: dict) 
         else:
             raise BadRequestError(f"Unsupported column type: {column_type}")
     return entity_dict
+
+
+@router.get("/database/schema")
+async def patch_database_schema(
+    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+):
+    schema_name = end_user_db_registry.metadata.schema
+    table_dicts = []
+    for full_table_name, table in end_user_db_registry.metadata.tables.items():
+        table_name = full_table_name.split(".")[-1]
+        column_dicts = []
+        for column in table.columns:
+            column_dict = {
+                "name": column.name,
+                "type": column.type.__class__.__name__,
+            }
+            column_dicts.append(column_dict)
+        table_dict = {
+            "name": table_name,
+            "columns": column_dicts,
+        }
+        table_dicts.append(table_dict)
+    response_dict = {
+        "name": schema_name,
+        "tables": table_dicts,
+    }
+    return ResponseSchema[ReadDatabaseSchemaResponse](
+        status=StatusEnum.SUCCESS, data=response_dict
+    )
 
 
 @router.patch("/database/tables/data/import_files")
