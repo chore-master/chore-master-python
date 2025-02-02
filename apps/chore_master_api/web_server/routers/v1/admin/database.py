@@ -1,11 +1,14 @@
 import json
 import os
+import shutil
+import tempfile
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
 import pandas as pd
 from fastapi import APIRouter, Depends, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import and_
 from sqlalchemy.orm import registry
@@ -33,6 +36,10 @@ class ReadDatabaseSchemaResponse(BaseModel):
 
     name: Optional[str] = None
     tables: list[_Table]
+
+
+class PostDatabaseTablesDataExportFilesRequest(BaseModel):
+    table_name_to_selected_column_names: dict[str, list[str]]
 
 
 def cast_row_dict_to_entity_dict(row_dict: dict, column_name_to_type_map: dict) -> dict:
@@ -90,6 +97,36 @@ def cast_row_dict_to_entity_dict(row_dict: dict, column_name_to_type_map: dict) 
     return entity_dict
 
 
+def cast_entity_dict_to_row_dict(
+    entity_dict: dict, column_name_to_type_map: dict
+) -> dict:
+    row_dict = {}
+    for column_name, raw_value in entity_dict.items():
+        column_type = column_name_to_type_map[column_name]
+        if isinstance(column_type, types.Boolean):
+            row_dict[column_name] = "true" if raw_value is True else "false"
+        elif isinstance(column_type, types.Integer):
+            row_dict[column_name] = str(raw_value)
+        elif isinstance(column_type, types.Float):
+            row_dict[column_name] = str(raw_value)
+        elif isinstance(column_type, types.DateTime):
+            row_dict[column_name] = f"{raw_value.isoformat()}Z"
+        elif isinstance(column_type, types.String):
+            row_dict[column_name] = raw_value
+        elif isinstance(column_type, types.Text):
+            row_dict[column_name] = raw_value
+        elif isinstance(column_type, types.JSON):
+            row_dict[column_name] = json.dumps(raw_value)
+        elif isinstance(column_type, types.DECIMAL):
+            str_value = f"{raw_value:f}"  # to remove scientific notation
+            if "." in str_value:
+                str_value = str_value.rstrip("0").rstrip(".")
+            row_dict[column_name] = str_value
+        else:
+            raise BadRequestError(f"Unsupported column type: {column_type}")
+    return row_dict
+
+
 @router.get("/database/schema")
 async def patch_database_schema(
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
@@ -117,6 +154,57 @@ async def patch_database_schema(
     return ResponseSchema[ReadDatabaseSchemaResponse](
         status=StatusEnum.SUCCESS, data=response_dict
     )
+
+
+@router.post("/database/tables/data/export_files")
+async def post_database_tables_data_export_files(
+    post_database_tables_data_export_files_request: PostDatabaseTablesDataExportFilesRequest,
+    end_user_db: RelationalDatabase = Depends(get_end_user_db),
+    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+):
+    schema_name = end_user_db_registry.metadata.schema
+    async_session = end_user_db.get_async_session()
+    async with async_session() as session:
+        local_directory_path = tempfile.mkdtemp()
+        file_name = "download.zip"
+        local_file_path = os.path.join(local_directory_path, file_name)
+        with tempfile.TemporaryDirectory() as temp_directory_path:
+            for (
+                table_name,
+                selected_column_names,
+            ) in (
+                post_database_tables_data_export_files_request.table_name_to_selected_column_names.items()
+            ):
+                if len(selected_column_names) == 0:
+                    continue
+                table = end_user_db_registry.metadata.tables[
+                    f"{schema_name}.{table_name}"
+                ]
+                columns = [table.c[col_name] for col_name in selected_column_names]
+                column_name_to_type_map = {
+                    column.name: column.type for column in columns
+                }
+                statement = table.select().with_only_columns(*columns)
+                result = await session.execute(statement)
+                entity_dicts = result.mappings().all()
+                if len(entity_dicts) == 0:
+                    df = pd.DataFrame(columns=selected_column_names)
+                else:
+                    row_dicts = [
+                        cast_entity_dict_to_row_dict(
+                            entity_dict, column_name_to_type_map
+                        )
+                        for entity_dict in entity_dicts
+                    ]
+                    df = pd.DataFrame(
+                        row_dicts, dtype=str, columns=selected_column_names
+                    )
+                table_file_path = os.path.join(temp_directory_path, f"{table_name}.csv")
+                df.to_csv(table_file_path, index=False)
+            shutil.make_archive(
+                local_file_path.replace(".zip", ""), "zip", temp_directory_path
+            )
+        return FileResponse(local_file_path)
 
 
 @router.patch("/database/tables/data/import_files")
