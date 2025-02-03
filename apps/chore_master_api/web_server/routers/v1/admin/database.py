@@ -177,9 +177,10 @@ async def post_database_tables_data_export_files(
             ):
                 if len(selected_column_names) == 0:
                     continue
-                table = end_user_db_registry.metadata.tables[
-                    f"{schema_name}.{table_name}"
-                ]
+                full_table_name = (
+                    table_name if schema_name is None else f"{schema_name}.{table_name}"
+                )
+                table = end_user_db_registry.metadata.tables[full_table_name]
                 columns = [table.c[col_name] for col_name in selected_column_names]
                 column_name_to_type_map = {
                     column.name: column.type for column in columns
@@ -220,7 +221,10 @@ async def patch_database_tables_data_import_files(
             file = upload_file.file
             file_name = upload_file.filename.split("/")[-1]
             table_name, _ = os.path.splitext(file_name)
-            table = end_user_db_registry.metadata.tables[f"{schema_name}.{table_name}"]
+            full_table_name = (
+                table_name if schema_name is None else f"{schema_name}.{table_name}"
+            )
+            table = end_user_db_registry.metadata.tables[full_table_name]
             pk_columns = [col.name for col in table.primary_key.columns]
             column_name_to_type_map = {
                 column.name: column.type for column in table.columns
