@@ -20,4 +20,4 @@ DateTime = DateTime
 String = String
 Text = Text
 JSON = JSON
-Decimal = DECIMAL(precision=56, scale=40)
+Decimal = DECIMAL(precision=50, scale=18)
