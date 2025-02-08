@@ -225,7 +225,7 @@ async def patch_database_tables_data_import_files(
                 table_name if schema_name is None else f"{schema_name}.{table_name}"
             )
             table = end_user_db_registry.metadata.tables[full_table_name]
-            pk_columns = [col.name for col in table.primary_key.columns]
+            # pk_columns = [col.name for col in table.primary_key.columns]
             column_name_to_type_map = {
                 column.name: column.type for column in table.columns
             }
@@ -234,32 +234,46 @@ async def patch_database_tables_data_import_files(
             update_statements = []
             delete_statements = []
             for i, row in enumerate(df.itertuples(index=False)):
-                if getattr(row, "reference", "") == "":
-                    raise BadRequestError(
-                        f"Value is required at table `{table_name}`, column `reference`, row `{i}`"
-                    )
+                # if getattr(row, "reference", "") == "":
+                #     raise BadRequestError(
+                #         f"Value is required at table `{table_name}`, column `reference`, row `{i}`"
+                #     )
                 op = getattr(row, "OP", "")
+                op_reference = getattr(row, "OP_REFERENCE", "")
                 row_dict = row._asdict()
                 row_dict.pop("OP")
+                row_dict.pop("OP_REFERENCE")
                 entity_dict = cast_row_dict_to_entity_dict(
                     row_dict, column_name_to_type_map
                 )
                 if op == "INSERT":
                     insert_statements.append(table.insert().values(entity_dict))
                 elif op == "UPDATE":
-                    conditions = []
-                    for pk_column in pk_columns:
-                        pk_value = entity_dict.pop(pk_column)
-                        conditions.append(table.c[pk_column] == pk_value)
+                    if op_reference == "":
+                        raise BadRequestError(
+                            f"Value is required at table `{table_name}`, column `OP_REFERENCE`, row `{i}`"
+                        )
+                    # conditions = []
+                    # for pk_column in pk_columns:
+                    #     pk_value = entity_dict.pop(pk_column)
+                    #     conditions.append(table.c[pk_column] == pk_value)
+                    # condition = and_(*conditions)
+                    condition = table.c["reference"] == op_reference
                     update_statements.append(
-                        table.update().where(and_(*conditions)).values(entity_dict)
+                        table.update().where(condition).values(entity_dict)
                     )
                 elif op == "DELETE":
-                    conditions = []
-                    for pk_column in pk_columns:
-                        pk_value = entity_dict.pop(pk_column)
-                        conditions.append(table.c[pk_column] == pk_value)
-                    delete_statements.append(table.delete().where(and_(*conditions)))
+                    if op_reference == "":
+                        raise BadRequestError(
+                            f"Value is required at table `{table_name}`, column `OP_REFERENCE`, row `{i}`"
+                        )
+                    # conditions = []
+                    # for pk_column in pk_columns:
+                    #     pk_value = entity_dict.pop(pk_column)
+                    #     conditions.append(table.c[pk_column] == pk_value)
+                    # condition = and_(*conditions)
+                    condition = table.c["reference"] == op_reference
+                    delete_statements.append(table.delete().where(condition))
             """
             Debug with following expression:
             `str(statement.compile(compile_kwargs={"literal_binds": True}))`
