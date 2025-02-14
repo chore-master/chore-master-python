@@ -39,7 +39,6 @@ async def get_tx_logs(tx_hash: str):
             client=client, cf_clearance="", user_agent=""
         )
         html = await etherscan_scraper.get_tx_advanced_html(tx_hash)
-        print(html)
 
     soup = BeautifulSoup(html, "html.parser")
 
@@ -115,6 +114,19 @@ async def get_tx_logs(tx_hash: str):
     #             "address": contract_address,
     #             "label": address_label,
     #         }
+
+    for transfer in transfers:
+        from_address = transfer["from_address"]
+        from_label = address_map[from_address]["label"]
+        to_address = transfer["to_address"]
+        to_label = address_map[to_address]["label"]
+        token_address = transfer["token_address"]
+        token_label = address_map[token_address]["label"]
+        amount = transfer["amount"]
+        value = transfer["value"]
+        print(
+            f'"{from_label}" -> "{to_label}": {amount} {token_label}{f" ({value})" if value is not None else ""}'
+        )
 
     return ResponseSchema[dict](
         status=StatusEnum.SUCCESS,
