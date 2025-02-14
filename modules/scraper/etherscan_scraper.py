@@ -122,6 +122,12 @@ class EtherscanScraper:
         # return advanced_filter_dicts
         return htmls
 
+    async def get_tx_advanced_html(self, tx_hash: str) -> str:
+        response = await self.client.get(f"https://etherscan.io/tx/{tx_hash}/advanced")
+        response.raise_for_status()
+        response_html = response.text
+        return response_html
+
     def _log(self, *args):
         if self.is_debugging:
             print(f"[{self.__class__.__name__}]", *args)
