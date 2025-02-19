@@ -8,7 +8,7 @@ from typing import Mapping
 import httpx
 import pandas as pd
 from bs4 import BeautifulSoup
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from apps.chore_master_api.web_server.dependencies.concurrency import get_mutex
 from modules.scraper.cloud_flare_solver import CloudflareSolver
@@ -597,6 +597,106 @@ async def get_ecosystem():
         data={
             "nodes": nodes,
             "links": links,
+        },
+    )
+
+
+@router.get("/interest-rate-inspect")
+async def get_interest_rate_inspect(cap_amount: int = Query(default=800000)):
+    return ResponseSchema[dict](
+        status=StatusEnum.SUCCESS,
+        data={
+            "policies": [
+                {
+                    "platform_name": "聯邦銀行",
+                    "references": [
+                        "https://www.ubot.com.tw/rates/twd/deposit_rate",
+                        "https://newnewbank.com.tw/deposits10.htm",
+                    ],
+                    "end_time": "2025-07-20T00:00:00Z",
+                    "entries": [
+                        {
+                            "min_amount": 0,
+                            "max_amount": 150000,
+                            "rate": 0.1,
+                        },
+                        {
+                            "min_amount": 150001,
+                            "max_amount": cap_amount,
+                            "rate": 0.0063500,
+                        },
+                    ],
+                },
+                {
+                    "platform_name": "王道銀行",
+                    "references": [
+                        "https://www.o-bank.com/web/event/cm_integration_page/index.html#event",
+                        "https://www.o-bank.com/retail/cm/ratemain/cm-deprate",
+                    ],
+                    "end_time": "2025-08-18T00:00:00Z",
+                    "entries": [
+                        {
+                            "min_amount": 0,
+                            "max_amount": 200000,
+                            "rate": 0.021,
+                        },
+                        {
+                            "min_amount": 200001,
+                            "max_amount": 500000,
+                            "rate": 0.015,
+                        },
+                        {
+                            "min_amount": 500001,
+                            "max_amount": cap_amount,
+                            "rate": 0.008750,
+                        },
+                    ],
+                },
+                {
+                    "platform_name": "永豐銀行",
+                    "references": [
+                        "https://bank.sinopac.com/MMA8/bank/html/rate/bank_Interest.html",
+                    ],
+                    "end_time": "2025-06-30T00:00:00Z",
+                    "entries": [
+                        {
+                            "min_amount": 0,
+                            "max_amount": 300000,
+                            "rate": 0.015,
+                        },
+                        {
+                            "min_amount": 300001,
+                            "max_amount": cap_amount,
+                            "rate": 0.00705,
+                        },
+                    ],
+                },
+                {
+                    "platform_name": "將來銀行",
+                    "references": [
+                        "https://www.nextbank.com.tw/announcement/4b262cbb0600000005db69481a78b4a4/news57",
+                        "https://nebweb.nextbank.com.tw/corp/rates",
+                    ],
+                    "end_time": "2025-03-31T00:00:00Z",
+                    "entries": [
+                        {
+                            "min_amount": 0,
+                            "max_amount": 50000,
+                            "rate": 0.01,
+                        },
+                        {
+                            "min_amount": 50001,
+                            "max_amount": cap_amount,
+                            "rate": 0.015,
+                        },
+                        # {
+                        #     "min_amount": 300001,
+                        #     "max_amount": cap_amount,
+                        #     "rate": 0.00875,
+                        # },
+                    ],
+                },
+            ],
         },
     )
 
