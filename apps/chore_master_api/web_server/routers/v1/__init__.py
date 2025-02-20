@@ -10,6 +10,9 @@ from apps.chore_master_api.web_server.routers.v1.financial_management import (
     router as financial_management_router,
 )
 from apps.chore_master_api.web_server.routers.v1.infra import router as infra_router
+from apps.chore_master_api.web_server.routers.v1.integration import (
+    router as integration_router,
+)
 from apps.chore_master_api.web_server.routers.v1.risk import router as risk_router
 from apps.chore_master_api.web_server.routers.v1.some_module import (
     router as some_module_router,
@@ -21,6 +24,7 @@ router.include_router(admin_router)
 router.include_router(infra_router)
 router.include_router(auth_router)
 router.include_router(account_center_router)
+router.include_router(integration_router)
 router.include_router(financial_management_router)
 router.include_router(risk_router)
 router.include_router(finance_router)

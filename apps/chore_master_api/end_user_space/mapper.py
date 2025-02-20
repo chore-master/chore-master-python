@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Table
 from sqlalchemy.orm import configure_mappers, registry, relationship
 
+from apps.chore_master_api.end_user_space.models import integration
 from apps.chore_master_api.end_user_space.models.financial_management import (
     Account,
     Asset,
@@ -35,6 +36,20 @@ class Mapper:
         if getattr(SomeEntity, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
                 SomeEntity, some_module_some_entity_table
+            )
+
+        integration_resource_table = Table(
+            "integration_resource",
+            self._metadata,
+            *get_base_columns(),
+            Column("end_user_reference", types.String, nullable=False),
+            Column("name", types.String, nullable=False),
+            Column("discriminator", types.String, nullable=False),
+            Column("value", types.JSON, nullable=False),
+        )
+        if getattr(integration.Resource, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                integration.Resource, integration_resource_table
             )
 
         financial_management_account_table = Table(
