@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path
+from pydantic import ConfigDict
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Account
@@ -34,6 +35,8 @@ class ReadAccountResponse(BaseQueryEntityResponse):
 
 
 class UpdateAccountRequest(BaseUpdateEntityRequest):
+    model_config = ConfigDict(use_enum_values=True)
+
     name: Optional[str] = None
     opened_time: Optional[datetime] = None
     closed_time: Optional[datetime] = None

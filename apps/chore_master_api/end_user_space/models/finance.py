@@ -3,10 +3,14 @@ from decimal import Decimal
 from enum import Enum
 from typing import Optional
 
+from pydantic import ConfigDict
+
 from apps.chore_master_api.end_user_space.models.base import Entity
 
 
 class Account(Entity):
+    model_config = ConfigDict(use_enum_values=True)
+
     class EcosystemTypeEnum(Enum):
         TRAD_FI = "TRAD_FI"
 
@@ -27,6 +31,8 @@ class BalanceSheet(Entity):
 
 
 class BalanceEntry(Entity):
+    model_config = ConfigDict(use_enum_values=True)
+
     class TypeEnum(Enum):
         ASSET = "ASSET"
         LIABILITY = "LIABILITY"
