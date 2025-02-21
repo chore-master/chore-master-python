@@ -1,5 +1,8 @@
 from fastapi import APIRouter
 
+from apps.chore_master_api.web_server.routers.v1.finance.account import (
+    router as account_router,
+)
 from apps.chore_master_api.web_server.routers.v1.finance.market import (
     router as market_router,
 )
@@ -7,3 +10,4 @@ from apps.chore_master_api.web_server.routers.v1.finance.market import (
 router = APIRouter(prefix="/finance", tags=["Finance"])
 
 router.include_router(market_router)
+router.include_router(account_router)

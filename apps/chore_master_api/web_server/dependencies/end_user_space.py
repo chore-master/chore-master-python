@@ -2,6 +2,9 @@ from fastapi import Depends
 from sqlalchemy.orm import registry
 
 from apps.chore_master_api.end_user_space.mapper import Mapper
+from apps.chore_master_api.end_user_space.unit_of_works.finance import (
+    FinanceSQLAlchemyUnitOfWork,
+)
 from apps.chore_master_api.end_user_space.unit_of_works.financial_management import (
     FinancialManagementSQLAlchemyUnitOfWork,
 )
@@ -62,6 +65,13 @@ async def get_integration_uow(
     _end_user_db_registry: registry = Depends(get_end_user_db_registry),
 ) -> IntegrationSQLAlchemyUnitOfWork:
     return IntegrationSQLAlchemyUnitOfWork(relational_database=end_user_db)
+
+
+async def get_finance_uow(
+    end_user_db: RelationalDatabase = Depends(get_end_user_db),
+    _end_user_db_registry: registry = Depends(get_end_user_db_registry),
+) -> FinanceSQLAlchemyUnitOfWork:
+    return FinanceSQLAlchemyUnitOfWork(relational_database=end_user_db)
 
 
 async def get_financial_management_uow(
