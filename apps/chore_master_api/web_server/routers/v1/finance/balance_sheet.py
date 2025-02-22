@@ -55,7 +55,14 @@ class ReadBalanceSheetDetailResponse(BaseQueryEntityResponse):
 
 
 class UpdateBalanceSheetRequest(BaseUpdateEntityRequest):
+    class UpdateBalanceEntryRequest(BaseUpdateEntityRequest):
+        account_reference: str
+        asset_reference: str
+        entry_type: BalanceEntry.TypeEnum
+        amount: Decimal
+
     balanced_time: Optional[datetime] = None
+    balance_entries: list[UpdateBalanceEntryRequest]
 
 
 @router.get("/balance_sheets")
@@ -83,13 +90,15 @@ async def post_balance_sheets(
     }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
     async with uow:
+        balance_entries = []
         for be in create_entity_request.balance_entries:
             balance_entry_dict = {
                 "balance_sheet_reference": balance_sheet_reference,
             }
             balance_entry_dict.update(be.model_dump(exclude_unset=True))
             balance_entry = BalanceEntry(**balance_entry_dict)
-            await uow.balance_entry_repository.insert_one(balance_entry)
+            balance_entries.append(balance_entry)
+        await uow.balance_entry_repository.insert_many(balance_entries)
 
         entity = BalanceSheet(**entity_dict)
         await uow.balance_sheet_repository.insert_one(entity)
@@ -131,9 +140,29 @@ async def put_balance_sheets_balance_sheet_reference(
     update_entity_request: UpdateBalanceSheetRequest,
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
+    update_entity_dict = update_entity_request.model_dump(
+        exclude_unset=True,
+        exclude={
+            "balance_entries",
+        },
+    )
     async with uow:
+        await uow.balance_entry_repository.delete_many(
+            filter={
+                "balance_sheet_reference": balance_sheet_reference,
+            }
+        )
+        balance_entries = []
+        for be in update_entity_request.balance_entries:
+            balance_entry_dict = {
+                "balance_sheet_reference": balance_sheet_reference,
+            }
+            balance_entry_dict.update(be.model_dump(exclude_unset=True))
+            balance_entry = BalanceEntry(**balance_entry_dict)
+            balance_entries.append(balance_entry)
+        await uow.balance_entry_repository.insert_many(balance_entries)
         await uow.balance_sheet_repository.update_many(
-            values=update_entity_request.model_dump(exclude_unset=True),
+            values=update_entity_dict,
             filter={"reference": balance_sheet_reference},
         )
         await uow.commit()
@@ -146,6 +175,11 @@ async def delete_balance_sheets_balance_sheet_reference(
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
+        await uow.balance_entry_repository.delete_many(
+            filter={
+                "balance_sheet_reference": balance_sheet_reference,
+            }
+        )
         await uow.balance_sheet_repository.delete_many(
             filter={"reference": balance_sheet_reference}, limit=1
         )
