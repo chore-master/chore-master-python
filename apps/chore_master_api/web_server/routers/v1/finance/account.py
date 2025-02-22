@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, Query
 from pydantic import ConfigDict
+from sqlalchemy import and_, or_
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Account
@@ -45,10 +46,21 @@ class UpdateAccountRequest(BaseUpdateEntityRequest):
 
 @router.get("/accounts")
 async def get_accounts(
+    active_as_of_time: Annotated[Optional[datetime], Query()] = None,
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
         statement = select(Account).order_by(Account.name.asc())
+        if active_as_of_time is not None:
+            statement = statement.filter(
+                and_(
+                    Account.opened_time <= active_as_of_time,
+                    or_(
+                        active_as_of_time < Account.closed_time,
+                        Account.closed_time == None,
+                    ),
+                ),
+            )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
         return ResponseSchema[list[ReadAccountResponse]](
