@@ -4,6 +4,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 
 from apps.chore_master_api.end_user_space.models.finance import (
     BalanceEntry,
@@ -17,7 +18,10 @@ from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
 )
-from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
+from apps.chore_master_api.web_server.schemas.response import (
+    BaseQueryEntityResponse,
+    SerializableDecimal,
+)
 from modules.utils.string_utils import StringUtils
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
@@ -41,8 +45,10 @@ class ReadBalanceSheetSummaryResponse(BaseQueryEntityResponse):
 
 class ReadBalanceSheetDetailResponse(BaseQueryEntityResponse):
     class ReadBalanceEntryResponse(BaseQueryEntityResponse):
+        account_reference: str
+        asset_reference: str
         entry_type: BalanceEntry.TypeEnum
-        amount: Decimal
+        amount: SerializableDecimal
 
     balanced_time: datetime
     balance_entries: list[ReadBalanceEntryResponse]
@@ -89,6 +95,34 @@ async def post_balance_sheets(
         await uow.balance_sheet_repository.insert_one(entity)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.get("/balance_sheets/{balance_sheet_reference}")
+async def get_balance_sheets_balance_sheet_reference(
+    balance_sheet_reference: Annotated[str, Path()],
+    uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+):
+    async with uow:
+        statement = (
+            select(BalanceSheet)
+            .filter_by(
+                reference=balance_sheet_reference,
+            )
+            .options(
+                joinedload(BalanceSheet.balance_entries),
+            )
+        )
+        result = await uow.session.execute(statement)
+        entity = result.scalars().unique().one()
+        return ResponseSchema[ReadBalanceSheetDetailResponse](
+            status=StatusEnum.SUCCESS,
+            data={
+                **entity.model_dump(),
+                "balance_entries": [
+                    be.model_dump(mode="json") for be in entity.balance_entries
+                ],
+            },
+        )
 
 
 @router.put("/balance_sheets/{balance_sheet_reference}")
