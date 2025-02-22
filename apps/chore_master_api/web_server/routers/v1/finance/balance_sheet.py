@@ -18,13 +18,21 @@ from apps.chore_master_api.web_server.schemas.request import (
     BaseUpdateEntityRequest,
 )
 from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
+from modules.utils.string_utils import StringUtils
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter()
 
 
 class CreateBalanceSheetRequest(BaseCreateEntityRequest):
+    class CreateBalanceEntryRequest(BaseCreateEntityRequest):
+        account_reference: str
+        asset_reference: str
+        entry_type: BalanceEntry.TypeEnum
+        amount: Decimal
+
     balanced_time: datetime
+    balance_entries: list[CreateBalanceEntryRequest]
 
 
 class ReadBalanceSheetSummaryResponse(BaseQueryEntityResponse):
@@ -63,17 +71,28 @@ async def post_balance_sheets(
     create_entity_request: CreateBalanceSheetRequest,
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
-    entity_dict = {}
+    balance_sheet_reference = StringUtils.new_short_id(8)
+    entity_dict = {
+        "reference": balance_sheet_reference,
+    }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
     async with uow:
+        for be in create_entity_request.balance_entries:
+            balance_entry_dict = {
+                "balance_sheet_reference": balance_sheet_reference,
+            }
+            balance_entry_dict.update(be.model_dump(exclude_unset=True))
+            balance_entry = BalanceEntry(**balance_entry_dict)
+            await uow.balance_entry_repository.insert_one(balance_entry)
+
         entity = BalanceSheet(**entity_dict)
         await uow.balance_sheet_repository.insert_one(entity)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.patch("/balance_sheets/{balance_sheet_reference}")
-async def patch_balance_sheets_balance_sheet_reference(
+@router.put("/balance_sheets/{balance_sheet_reference}")
+async def put_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
     update_entity_request: UpdateBalanceSheetRequest,
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),

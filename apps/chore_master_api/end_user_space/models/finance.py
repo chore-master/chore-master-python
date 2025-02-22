@@ -40,6 +40,5 @@ class BalanceEntry(Entity):
     balance_sheet_reference: str
     account_reference: str
     asset_reference: str
-
     entry_type: TypeEnum
     amount: Decimal
