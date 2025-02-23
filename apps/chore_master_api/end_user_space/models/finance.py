@@ -8,22 +8,23 @@ from pydantic import ConfigDict
 from apps.chore_master_api.end_user_space.models.base import Entity
 
 
+class Asset(Entity):
+    name: str
+    symbol: str
+    is_settleable: bool
+
+
 class Account(Entity):
     model_config = ConfigDict(use_enum_values=True)
 
     class EcosystemTypeEnum(Enum):
         TRAD_FI = "TRAD_FI"
 
+    settlement_asset_reference: str
     name: str
     opened_time: datetime
     closed_time: Optional[datetime]
     ecosystem_type: EcosystemTypeEnum
-
-
-class Asset(Entity):
-    name: str
-    symbol: str
-    is_settleable: bool
 
 
 class BalanceSheet(Entity):
@@ -33,12 +34,6 @@ class BalanceSheet(Entity):
 class BalanceEntry(Entity):
     model_config = ConfigDict(use_enum_values=True)
 
-    class TypeEnum(Enum):
-        ASSET = "ASSET"
-        LIABILITY = "LIABILITY"
-
     balance_sheet_reference: str
     account_reference: str
-    asset_reference: str
-    entry_type: TypeEnum
     amount: Decimal

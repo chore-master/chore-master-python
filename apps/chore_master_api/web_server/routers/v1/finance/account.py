@@ -26,6 +26,7 @@ class CreateAccountRequest(BaseCreateEntityRequest):
     opened_time: datetime
     closed_time: Optional[datetime]
     ecosystem_type: Account.EcosystemTypeEnum
+    settlement_asset_reference: Optional[str]
 
 
 class ReadAccountResponse(BaseQueryEntityResponse):
@@ -33,6 +34,7 @@ class ReadAccountResponse(BaseQueryEntityResponse):
     opened_time: datetime
     closed_time: Optional[datetime]
     ecosystem_type: Account.EcosystemTypeEnum
+    settlement_asset_reference: str
 
 
 class UpdateAccountRequest(BaseUpdateEntityRequest):

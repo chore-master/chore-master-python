@@ -53,20 +53,6 @@ class Mapper:
                 integration.Resource, integration_resource_table
             )
 
-        finance_account_table = Table(
-            "finance_account",
-            self._metadata,
-            *get_base_columns(),
-            Column("name", types.String, nullable=False),
-            Column("opened_time", types.DateTime, nullable=False),
-            Column("closed_time", types.DateTime, nullable=True),
-            Column("ecosystem_type", types.String, nullable=False),
-        )
-        if getattr(finance.Account, "_sa_class_manager", None) is None:
-            self._mapper_registry.map_imperatively(
-                finance.Account, finance_account_table
-            )
-
         finance_asset_table = Table(
             "finance_asset",
             self._metadata,
@@ -77,6 +63,21 @@ class Mapper:
         )
         if getattr(finance.Asset, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(finance.Asset, finance_asset_table)
+
+        finance_account_table = Table(
+            "finance_account",
+            self._metadata,
+            *get_base_columns(),
+            Column("name", types.String, nullable=False),
+            Column("opened_time", types.DateTime, nullable=False),
+            Column("closed_time", types.DateTime, nullable=True),
+            Column("ecosystem_type", types.String, nullable=False),
+            Column("settlement_asset_reference", types.String, nullable=False),
+        )
+        if getattr(finance.Account, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                finance.Account, finance_account_table
+            )
 
         finance_balance_sheet_table = Table(
             "finance_balance_sheet",
@@ -95,8 +96,6 @@ class Mapper:
             *get_base_columns(),
             Column("balance_sheet_reference", types.String, nullable=False),
             Column("account_reference", types.String, nullable=False),
-            Column("asset_reference", types.String, nullable=False),
-            Column("entry_type", types.String, nullable=False),
             Column("amount", types.Decimal, nullable=False),
         )
         if getattr(finance.BalanceEntry, "_sa_class_manager", None) is None:

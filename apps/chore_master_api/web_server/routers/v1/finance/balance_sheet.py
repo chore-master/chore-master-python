@@ -31,8 +31,6 @@ router = APIRouter()
 class CreateBalanceSheetRequest(BaseCreateEntityRequest):
     class CreateBalanceEntryRequest(BaseCreateEntityRequest):
         account_reference: str
-        asset_reference: str
-        entry_type: BalanceEntry.TypeEnum
         amount: Decimal
 
     balanced_time: datetime
@@ -46,8 +44,6 @@ class ReadBalanceSheetSummaryResponse(BaseQueryEntityResponse):
 class ReadBalanceSheetDetailResponse(BaseQueryEntityResponse):
     class ReadBalanceEntryResponse(BaseQueryEntityResponse):
         account_reference: str
-        asset_reference: str
-        entry_type: BalanceEntry.TypeEnum
         amount: SerializableDecimal
 
     balanced_time: datetime
@@ -57,8 +53,6 @@ class ReadBalanceSheetDetailResponse(BaseQueryEntityResponse):
 class UpdateBalanceSheetRequest(BaseUpdateEntityRequest):
     class UpdateBalanceEntryRequest(BaseUpdateEntityRequest):
         account_reference: str
-        asset_reference: str
-        entry_type: BalanceEntry.TypeEnum
         amount: Decimal
 
     balanced_time: Optional[datetime] = None
