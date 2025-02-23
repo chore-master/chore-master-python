@@ -102,28 +102,31 @@ def cast_entity_dict_to_row_dict(
 ) -> dict:
     row_dict = {}
     for column_name, raw_value in entity_dict.items():
-        column_type = column_name_to_type_map[column_name]
-        if isinstance(column_type, types.Boolean):
-            row_dict[column_name] = "true" if raw_value is True else "false"
-        elif isinstance(column_type, types.Integer):
-            row_dict[column_name] = str(raw_value)
-        elif isinstance(column_type, types.Float):
-            row_dict[column_name] = str(raw_value)
-        elif isinstance(column_type, types.DateTime):
-            row_dict[column_name] = f"{raw_value.isoformat()}Z"
-        elif isinstance(column_type, types.String):
-            row_dict[column_name] = raw_value
-        elif isinstance(column_type, types.Text):
-            row_dict[column_name] = raw_value
-        elif isinstance(column_type, types.JSON):
-            row_dict[column_name] = json.dumps(raw_value)
-        elif isinstance(column_type, types.DECIMAL):
-            str_value = f"{raw_value:f}"  # to remove scientific notation
-            if "." in str_value:
-                str_value = str_value.rstrip("0").rstrip(".")
-            row_dict[column_name] = str_value
+        if raw_value is None:
+            row_dict[column_name] = None
         else:
-            raise BadRequestError(f"Unsupported column type: {column_type}")
+            column_type = column_name_to_type_map[column_name]
+            if isinstance(column_type, types.Boolean):
+                row_dict[column_name] = "true" if raw_value is True else "false"
+            elif isinstance(column_type, types.Integer):
+                row_dict[column_name] = str(raw_value)
+            elif isinstance(column_type, types.Float):
+                row_dict[column_name] = str(raw_value)
+            elif isinstance(column_type, types.DateTime):
+                row_dict[column_name] = f"{raw_value.isoformat()}Z"
+            elif isinstance(column_type, types.String):
+                row_dict[column_name] = raw_value
+            elif isinstance(column_type, types.Text):
+                row_dict[column_name] = raw_value
+            elif isinstance(column_type, types.JSON):
+                row_dict[column_name] = json.dumps(raw_value)
+            elif isinstance(column_type, types.DECIMAL):
+                str_value = f"{raw_value:f}"  # to remove scientific notation
+                if "." in str_value:
+                    str_value = str_value.rstrip("0").rstrip(".")
+                row_dict[column_name] = str_value
+            else:
+                raise BadRequestError(f"Unsupported column type: {column_type}")
     return row_dict
 
 
