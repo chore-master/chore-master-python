@@ -6,7 +6,10 @@ from fastapi import APIRouter, Depends, Path
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
+from apps.chore_master_api.end_user_space.models.base import SerializableDecimal
 from apps.chore_master_api.end_user_space.models.finance import (
+    Account,
+    Asset,
     BalanceEntry,
     BalanceSheet,
 )
@@ -18,10 +21,7 @@ from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
 )
-from apps.chore_master_api.web_server.schemas.response import (
-    BaseQueryEntityResponse,
-    SerializableDecimal,
-)
+from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
 from modules.utils.string_utils import StringUtils
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
@@ -98,6 +98,53 @@ async def post_balance_sheets(
         await uow.balance_sheet_repository.insert_one(entity)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.get("/balance_sheets/series")
+async def get_balance_sheets_series(
+    uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+):
+    async with uow:
+        statement = select(BalanceSheet).options(
+            joinedload(BalanceSheet.balance_entries),
+        )
+        result = await uow.session.execute(statement)
+        balance_sheets = result.scalars().unique().all()
+
+        balance_entries = [
+            balance_entry
+            for balance_sheet in balance_sheets
+            for balance_entry in balance_sheet.balance_entries
+        ]
+
+        account_reference_set = {
+            balance_entry.account_reference for balance_entry in balance_entries
+        }
+        statement = select(Account).filter(Account.reference.in_(account_reference_set))
+        result = await uow.session.execute(statement)
+        accounts = result.scalars().unique().all()
+
+        asset_reference_set = {
+            account.settlement_asset_reference for account in accounts
+        }
+        statement = select(Asset).filter(Asset.reference.in_(asset_reference_set))
+        result = await uow.session.execute(statement)
+        assets = result.scalars().unique().all()
+
+        return ResponseSchema[dict](
+            status=StatusEnum.SUCCESS,
+            data={
+                "assets": [asset.model_dump() for asset in assets],
+                "accounts": [account.model_dump() for account in accounts],
+                "balance_sheets": [
+                    balance_sheet.model_dump() for balance_sheet in balance_sheets
+                ],
+                "balance_entries": [
+                    balance_entry.model_dump(mode="json")
+                    for balance_entry in balance_entries
+                ],
+            },
+        )
 
 
 @router.get("/balance_sheets/{balance_sheet_reference}")

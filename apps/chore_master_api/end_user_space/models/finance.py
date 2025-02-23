@@ -1,11 +1,10 @@
 from datetime import datetime
-from decimal import Decimal
 from enum import Enum
 from typing import Optional
 
 from pydantic import ConfigDict
 
-from apps.chore_master_api.end_user_space.models.base import Entity
+from apps.chore_master_api.end_user_space.models.base import Entity, SerializableDecimal
 
 
 class Asset(Entity):
@@ -36,4 +35,4 @@ class BalanceEntry(Entity):
 
     balance_sheet_reference: str
     account_reference: str
-    amount: Decimal
+    amount: SerializableDecimal
