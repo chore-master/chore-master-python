@@ -82,8 +82,11 @@ def cast_row_dict_to_entity_dict(row_dict: dict, column_name_to_type_map: dict) 
         elif isinstance(column_type, types.Float):
             entity_dict[column_name] = float(raw_value)
         elif isinstance(column_type, types.DateTime):
-            iso_string = raw_value.replace("Z", "")
-            entity_dict[column_name] = datetime.fromisoformat(iso_string)
+            try:
+                iso_string = raw_value.replace("Z", "")
+                entity_dict[column_name] = datetime.fromisoformat(iso_string)
+            except ValueError as e:
+                entity_dict[column_name] = None
         elif isinstance(column_type, types.String):
             entity_dict[column_name] = str(raw_value)
         elif isinstance(column_type, types.Text):
@@ -245,7 +248,7 @@ async def patch_database_tables_data_import_files(
                 op_reference = getattr(row, "OP_REFERENCE", "")
                 row_dict = row._asdict()
                 row_dict.pop("OP")
-                row_dict.pop("OP_REFERENCE")
+                row_dict.pop("OP_REFERENCE", None)
                 entity_dict = cast_row_dict_to_entity_dict(
                     row_dict, column_name_to_type_map
                 )
