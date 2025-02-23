@@ -59,6 +59,7 @@ class Mapper:
             *get_base_columns(),
             Column("name", types.String, nullable=False),
             Column("symbol", types.String, nullable=False),
+            Column("decimals", types.Integer, nullable=False),
             Column("is_settleable", types.Boolean, nullable=False),
         )
         if getattr(finance.Asset, "_sa_class_manager", None) is None:
@@ -96,7 +97,7 @@ class Mapper:
             *get_base_columns(),
             Column("balance_sheet_reference", types.String, nullable=False),
             Column("account_reference", types.String, nullable=False),
-            Column("amount", types.Decimal, nullable=False),
+            Column("amount", types.Integer, nullable=False),
         )
         if getattr(finance.BalanceEntry, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(

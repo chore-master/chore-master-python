@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, Path
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
-from apps.chore_master_api.end_user_space.models.base import SerializableDecimal
 from apps.chore_master_api.end_user_space.models.finance import (
     Account,
     Asset,
@@ -31,7 +30,7 @@ router = APIRouter()
 class CreateBalanceSheetRequest(BaseCreateEntityRequest):
     class CreateBalanceEntryRequest(BaseCreateEntityRequest):
         account_reference: str
-        amount: Decimal
+        amount: int
 
     balanced_time: datetime
     balance_entries: list[CreateBalanceEntryRequest]
@@ -44,7 +43,7 @@ class ReadBalanceSheetSummaryResponse(BaseQueryEntityResponse):
 class ReadBalanceSheetDetailResponse(BaseQueryEntityResponse):
     class ReadBalanceEntryResponse(BaseQueryEntityResponse):
         account_reference: str
-        amount: SerializableDecimal
+        amount: int
 
     balanced_time: datetime
     balance_entries: list[ReadBalanceEntryResponse]
@@ -53,7 +52,7 @@ class ReadBalanceSheetDetailResponse(BaseQueryEntityResponse):
 class UpdateBalanceSheetRequest(BaseUpdateEntityRequest):
     class UpdateBalanceEntryRequest(BaseUpdateEntityRequest):
         account_reference: str
-        amount: Decimal
+        amount: int
 
     balanced_time: Optional[datetime] = None
     balance_entries: list[UpdateBalanceEntryRequest]

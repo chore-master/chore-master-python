@@ -20,18 +20,21 @@ router = APIRouter()
 class CreateAssetRequest(BaseCreateEntityRequest):
     name: str
     symbol: str
+    decimals: int
     is_settleable: bool
 
 
 class ReadAssetResponse(BaseQueryEntityResponse):
     name: str
     symbol: str
+    decimals: int
     is_settleable: bool
 
 
 class UpdateAssetRequest(BaseUpdateEntityRequest):
     name: Optional[str] = None
     symbol: Optional[str] = None
+    decimals: Optional[int] = None
     is_settleable: Optional[bool] = None
 
 

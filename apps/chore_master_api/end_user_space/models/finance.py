@@ -4,12 +4,13 @@ from typing import Optional
 
 from pydantic import ConfigDict
 
-from apps.chore_master_api.end_user_space.models.base import Entity, SerializableDecimal
+from apps.chore_master_api.end_user_space.models.base import Entity
 
 
 class Asset(Entity):
     name: str
     symbol: str
+    decimals: int
     is_settleable: bool
 
 
@@ -31,8 +32,6 @@ class BalanceSheet(Entity):
 
 
 class BalanceEntry(Entity):
-    model_config = ConfigDict(use_enum_values=True)
-
     balance_sheet_reference: str
     account_reference: str
-    amount: SerializableDecimal
+    amount: int
