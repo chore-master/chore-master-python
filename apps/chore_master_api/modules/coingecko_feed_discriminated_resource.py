@@ -71,6 +71,7 @@ class CoingeckoFeedDiscriminatedResource(FeedDiscriminatedResource):
                         matched_stat = stats[matched_idx]
                         price_dicts.append(
                             {
+                                "instrument_symbol": instrument_symbol,
                                 "target_interval": target_interval.value,
                                 "target_datetime": target_datetime,
                                 "matched_datetime": datetime.fromtimestamp(
@@ -82,6 +83,7 @@ class CoingeckoFeedDiscriminatedResource(FeedDiscriminatedResource):
                     else:
                         price_dicts.append(
                             {
+                                "instrument_symbol": instrument_symbol,
                                 "target_interval": target_interval.value,
                                 "target_datetime": target_datetime,
                                 "matched_datetime": None,
