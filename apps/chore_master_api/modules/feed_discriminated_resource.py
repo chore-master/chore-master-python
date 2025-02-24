@@ -102,7 +102,7 @@ class YahooFinanceFeedDiscriminatedResource(FeedDiscriminatedResource):
                             timestamps[matched_idx]
                         )
                         matched_price = close_prices[matched_idx]
-                        print(str(target_datetime - matched_datetime))
+                        # print(str(target_datetime - matched_datetime))
                         price_dicts.append(
                             {
                                 "instrument_symbol": instrument_symbol,
@@ -165,7 +165,7 @@ class CoingeckoFeedDiscriminatedResource(FeedDiscriminatedResource):
                         matched_datetime = datetime.fromtimestamp(
                             matched_stat[0] / 1000
                         )
-                        print(str(target_datetime - matched_datetime))
+                        # print(str(target_datetime - matched_datetime))
                         price_dicts.append(
                             {
                                 "instrument_symbol": instrument_symbol,
