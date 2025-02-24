@@ -23,6 +23,17 @@ class FeedDiscriminatedResource(BaseDiscriminatedResource):
         raise NotImplementedError
 
 
+class OandaFeedDiscriminatedResource(FeedDiscriminatedResource):
+    async def fetch_prices(
+        self,
+        instrument_symbol: str,
+        target_interval: IntervalEnum,
+        target_datetimes: list[datetime],
+    ) -> list[dict]:
+        # https://fxds-public-exchange-rates-api.oanda.com/cc-api/currencies?base=USD&quote=TWD&data_type=general_currency_pair&start_date=2024-11-30&end_date=2024-12-01
+        raise NotImplementedError
+
+
 class YahooFinanceFeedDiscriminatedResource(FeedDiscriminatedResource):
     async def fetch_prices(
         self,
