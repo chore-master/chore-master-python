@@ -2,6 +2,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel
+from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.integration import (
     Resource,
@@ -48,14 +49,14 @@ class UpdateResourceRequest(BaseUpdateEntityRequest):
 
 
 class ResourceFilter(BaseModel):
-    discriminator: Optional[ResourceDiscriminator] = None
+    discriminators: list[ResourceDiscriminator]
 
 
 async def get_resource_filter(
-    discriminator: Annotated[Optional[ResourceDiscriminator], Query()] = None,
+    discriminators: Annotated[Optional[list[ResourceDiscriminator]], Query()] = None,
 ) -> ResourceFilter:
     return ResourceFilter(
-        discriminator=discriminator,
+        discriminators=discriminators or [],
     )
 
 
@@ -69,12 +70,19 @@ async def get_end_users_me_resources(
     current_end_user: dict = Depends(get_current_end_user),
 ):
     async with uow:
-        entities = await uow.resource_repository.find_many(
-            filter={
-                "end_user_reference": current_end_user["reference"],
-                **filter.model_dump(exclude_unset=True, exclude_none=True),
-            }
-        )
+        if len(filter.discriminators) > 0:
+            statement = select(Resource).filter(
+                Resource.end_user_reference == current_end_user["reference"],
+                Resource.discriminator.in_(filter.discriminators),
+            )
+            result = await uow.session.execute(statement)
+            entities = result.scalars().unique().all()
+        else:
+            entities = await uow.resource_repository.find_many(
+                filter={
+                    "end_user_reference": current_end_user["reference"],
+                }
+            )
         return ResponseSchema[list[ReadResourceResponse]](
             status=StatusEnum.SUCCESS,
             data=[entity.model_dump() for entity in entities],

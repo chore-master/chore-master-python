@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from apps.chore_master_api.end_user_space.unit_of_works.integration import (
     IntegrationSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.modules.coingecko_feed_discriminated_resource import (
+from apps.chore_master_api.modules.feed_discriminated_resource import (
     FeedDiscriminatedResource,
     IntervalEnum,
 )

@@ -23,6 +23,32 @@ class FeedDiscriminatedResource(BaseDiscriminatedResource):
         raise NotImplementedError
 
 
+class YahooFinanceFeedDiscriminatedResource(FeedDiscriminatedResource):
+    async def fetch_prices(
+        self,
+        instrument_symbol: str,
+        target_interval: IntervalEnum,
+        target_datetimes: list[datetime],
+    ) -> list[dict]:
+        raise NotImplementedError
+        async with httpx.AsyncClient(timeout=120) as client:
+            response = await client.get(
+                "https://query1.finance.yahoo.com/v8/finance/chart/USDTWD=X",
+                params={
+                    # "period1": "1080086400",
+                    "period1": "1704067200",  # 2024-01-01
+                    "period2": "1740387600",
+                    "interval": "1d",
+                },
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+                },
+            )
+            response.raise_for_status()
+            response_dict = response.json()
+            print(response_dict)
+
+
 class CoingeckoFeedDiscriminatedResource(FeedDiscriminatedResource):
     async def fetch_prices(
         self,
@@ -46,6 +72,8 @@ class CoingeckoFeedDiscriminatedResource(FeedDiscriminatedResource):
                         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
                     },
                 )
+                # with open("response.html", "w") as f:
+                #     f.write(response.text)
                 response.raise_for_status()
                 response_dict = response.json()
                 stats = response_dict["stats"]
