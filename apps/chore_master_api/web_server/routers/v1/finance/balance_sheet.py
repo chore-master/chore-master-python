@@ -2,12 +2,12 @@ from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path
+from sqlalchemy import func
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
 from apps.chore_master_api.end_user_space.models.finance import (
     Account,
-    Asset,
     BalanceEntry,
     BalanceSheet,
 )
@@ -15,13 +15,21 @@ from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
 from apps.chore_master_api.web_server.dependencies.end_user_space import get_finance_uow
+from apps.chore_master_api.web_server.dependencies.pagination import (
+    get_offset_pagination,
+)
+from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
 )
 from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
 from modules.utils.string_utils import StringUtils
-from modules.web_server.schemas.response import ResponseSchema, StatusEnum
+from modules.web_server.schemas.response import (
+    MetadataSchema,
+    ResponseSchema,
+    StatusEnum,
+)
 
 router = APIRouter()
 
@@ -100,11 +108,23 @@ async def post_balance_sheets(
 
 @router.get("/balance_sheets/series")
 async def get_balance_sheets_series(
+    offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        statement = select(BalanceSheet).options(
-            joinedload(BalanceSheet.balance_entries),
+        count_statement = select(func.count()).select_from(BalanceSheet)
+        count = await uow.session.scalar(count_statement)
+        metadata = MetadataSchema(
+            offset_pagination=MetadataSchema.OffsetPagination(count=count)
+        )
+        statement = (
+            select(BalanceSheet)
+            .order_by(BalanceSheet.balanced_time.desc())
+            .offset(offset_pagination.offset)
+            .limit(offset_pagination.limit)
+            .options(
+                joinedload(BalanceSheet.balance_entries),
+            )
         )
         result = await uow.session.execute(statement)
         balance_sheets = result.scalars().unique().all()
@@ -122,17 +142,17 @@ async def get_balance_sheets_series(
         result = await uow.session.execute(statement)
         accounts = result.scalars().unique().all()
 
-        asset_reference_set = {
-            account.settlement_asset_reference for account in accounts
-        }
-        statement = select(Asset).filter(Asset.reference.in_(asset_reference_set))
-        result = await uow.session.execute(statement)
-        assets = result.scalars().unique().all()
+        # asset_reference_set = {
+        #     account.settlement_asset_reference for account in accounts
+        # }
+        # statement = select(Asset).filter(Asset.reference.in_(asset_reference_set))
+        # result = await uow.session.execute(statement)
+        # assets = result.scalars().unique().all()
 
         return ResponseSchema[dict](
             status=StatusEnum.SUCCESS,
             data={
-                "assets": [asset.model_dump() for asset in assets],
+                # "assets": [asset.model_dump() for asset in assets],
                 "accounts": [account.model_dump() for account in accounts],
                 "balance_sheets": [
                     balance_sheet.model_dump() for balance_sheet in balance_sheets
@@ -142,6 +162,7 @@ async def get_balance_sheets_series(
                     for balance_entry in balance_entries
                 ],
             },
+            metadata=metadata,
         )
 
 
