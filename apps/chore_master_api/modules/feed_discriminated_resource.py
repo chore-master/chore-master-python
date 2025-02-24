@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Callable, Optional, Union
 
 import httpx
 
@@ -11,6 +12,32 @@ from modules.utils.symbol_utils import SymbolUtils
 
 class IntervalEnum(Enum):
     PER_1_DAY = "1d"
+
+
+def binary_search_lte_from_ascendingly_ordered_items(
+    items: list, target: Any, key: Optional[Callable[[Any], Union[int, float]]] = None
+) -> Optional[int]:
+    if key is None:
+        get_key = lambda x: x
+    else:
+        get_key = key
+
+    left, right = 0, len(items) - 1
+    matched_idx = -1
+    while left <= right:
+        mid = (left + right) // 2
+        current_item = items[mid]
+        current_key = get_key(current_item)
+        if current_key <= target:
+            matched_idx = mid
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    if matched_idx != -1:
+        return matched_idx
+    else:
+        return None
 
 
 class FeedDiscriminatedResource(BaseDiscriminatedResource):
@@ -49,10 +76,9 @@ class YahooFinanceFeedDiscriminatedResource(FeedDiscriminatedResource):
             price_dicts = []
             async with httpx.AsyncClient(timeout=120) as client:
                 response = await client.get(
-                    f"https://query1.finance.yahoo.com/v8/finance/chart/{base_asset}{quote_asset}=X",
+                    f"https://query1.finance.yahoo.com/v8/finance/chart/{base_asset.upper()}{quote_asset.upper()}=X",
                     params={
-                        # "period1": "1080086400",
-                        "period1": f"{int(datetime.fromisoformat('2024-01-01').timestamp())}",  # 1704067200
+                        "period1": f"{int((min(target_datetimes) - timedelta(days=1)).timestamp())}",
                         "period2": f"{int(max(target_datetimes).timestamp())}",
                         "interval": "1d",
                     },
@@ -68,33 +94,21 @@ class YahooFinanceFeedDiscriminatedResource(FeedDiscriminatedResource):
                 ][0]["adjclose"]
 
                 for target_datetime in target_datetimes:
-                    target_timestamp = target_datetime.timestamp() * 1000
-
-                    # Binary search implementation
-                    left, right = 0, len(timestamps) - 1
-                    matched_idx = -1
-
-                    while left <= right:
-                        mid = (left + right) // 2
-                        current_timestamp = timestamps[mid]
-
-                        if current_timestamp <= target_timestamp:
-                            matched_idx = mid
-                            left = mid + 1
-                        else:
-                            right = mid - 1
-
-                    if matched_idx != -1:
-                        matched_timestamp = timestamps[matched_idx]
+                    matched_idx = binary_search_lte_from_ascendingly_ordered_items(
+                        items=timestamps, target=target_datetime.timestamp()
+                    )
+                    if matched_idx is not None:
+                        matched_datetime = datetime.fromtimestamp(
+                            timestamps[matched_idx]
+                        )
                         matched_price = close_prices[matched_idx]
+                        print(str(target_datetime - matched_datetime))
                         price_dicts.append(
                             {
                                 "instrument_symbol": instrument_symbol,
                                 "target_interval": target_interval.value,
                                 "target_datetime": target_datetime,
-                                "matched_datetime": datetime.fromtimestamp(
-                                    matched_timestamp
-                                ),
+                                "matched_datetime": matched_datetime,
                                 "matched_price": matched_price,
                             }
                         )
@@ -136,39 +150,28 @@ class CoingeckoFeedDiscriminatedResource(FeedDiscriminatedResource):
                         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
                     },
                 )
-                # with open("response.html", "w") as f:
-                #     f.write(response.text)
                 response.raise_for_status()
                 response_dict = response.json()
                 stats = response_dict["stats"]
 
                 for target_datetime in target_datetimes:
-                    target_timestamp = target_datetime.timestamp() * 1000
-
-                    # Binary search implementation
-                    left, right = 0, len(stats) - 1
-                    matched_idx = -1
-
-                    while left <= right:
-                        mid = (left + right) // 2
-                        current_timestamp = stats[mid][0]
-
-                        if current_timestamp <= target_timestamp:
-                            matched_idx = mid
-                            left = mid + 1
-                        else:
-                            right = mid - 1
-
-                    if matched_idx != -1:
+                    matched_idx = binary_search_lte_from_ascendingly_ordered_items(
+                        items=stats,
+                        target=target_datetime.timestamp() * 1000,
+                        key=lambda item: item[0],
+                    )
+                    if matched_idx is not None:
                         matched_stat = stats[matched_idx]
+                        matched_datetime = datetime.fromtimestamp(
+                            matched_stat[0] / 1000
+                        )
+                        print(str(target_datetime - matched_datetime))
                         price_dicts.append(
                             {
                                 "instrument_symbol": instrument_symbol,
                                 "target_interval": target_interval.value,
                                 "target_datetime": target_datetime,
-                                "matched_datetime": datetime.fromtimestamp(
-                                    matched_stat[0] / 1000
-                                ),
+                                "matched_datetime": matched_datetime,
                                 "matched_price": matched_stat[1],
                             }
                         )
