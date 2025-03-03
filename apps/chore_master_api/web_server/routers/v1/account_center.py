@@ -386,83 +386,83 @@ async def get_integrations_google_spreadsheets_spreadsheet_name_spreadsheet_url(
 #     )
 
 
-@router.get("/integrations/sino_trade")
-async def get_integrations_sino_trade(
-    current_end_user: dict = Depends(get_current_end_user),
-):
-    return ResponseSchema[GetIntegrationSinoTradeResponse](
-        status=StatusEnum.SUCCESS,
-        data=GetIntegrationSinoTradeResponse(current_end_user.get("sino_trade")),
-    )
+# @router.get("/integrations/sino_trade")
+# async def get_integrations_sino_trade(
+#     current_end_user: dict = Depends(get_current_end_user),
+# ):
+#     return ResponseSchema[GetIntegrationSinoTradeResponse](
+#         status=StatusEnum.SUCCESS,
+#         data=GetIntegrationSinoTradeResponse(current_end_user.get("sino_trade")),
+#     )
 
 
-@router.patch("/integrations/sino_trade")
-async def patch_integrations_sino_trade(
-    update_sino_trade: UpdateIntegrationSinoTradeRequest,
-    current_end_user: dict = Depends(get_current_end_user),
-    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
-):
-    end_user_collection = chore_master_api_db.get_collection("end_user")
-    await end_user_collection.update_one(
-        filter={"reference": current_end_user["reference"]},
-        update={
-            "$set": {
-                "sino_trade": {
-                    "account_map": {
-                        account.name: {
-                            "name": account.name,
-                            "api_key": account.api_key,
-                            "secret_key": account.secret_key,
-                        }
-                        for account in update_sino_trade.accounts
-                    }
-                }
-            }
-        },
-    )
-    return ResponseSchema[None](
-        status=StatusEnum.SUCCESS,
-        data=None,
-    )
+# @router.patch("/integrations/sino_trade")
+# async def patch_integrations_sino_trade(
+#     update_sino_trade: UpdateIntegrationSinoTradeRequest,
+#     current_end_user: dict = Depends(get_current_end_user),
+#     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+# ):
+#     end_user_collection = chore_master_api_db.get_collection("end_user")
+#     await end_user_collection.update_one(
+#         filter={"reference": current_end_user["reference"]},
+#         update={
+#             "$set": {
+#                 "sino_trade": {
+#                     "account_map": {
+#                         account.name: {
+#                             "name": account.name,
+#                             "api_key": account.api_key,
+#                             "secret_key": account.secret_key,
+#                         }
+#                         for account in update_sino_trade.accounts
+#                     }
+#                 }
+#             }
+#         },
+#     )
+#     return ResponseSchema[None](
+#         status=StatusEnum.SUCCESS,
+#         data=None,
+#     )
 
 
-@router.get("/integrations/okx_trade")
-async def get_integrations_okx_trade(
-    current_end_user: dict = Depends(get_current_end_user),
-):
-    return ResponseSchema[GetIntegrationOkxTradeResponse](
-        status=StatusEnum.SUCCESS,
-        data=GetIntegrationOkxTradeResponse(current_end_user.get("okx_trade")),
-    )
+# @router.get("/integrations/okx_trade")
+# async def get_integrations_okx_trade(
+#     current_end_user: dict = Depends(get_current_end_user),
+# ):
+#     return ResponseSchema[GetIntegrationOkxTradeResponse](
+#         status=StatusEnum.SUCCESS,
+#         data=GetIntegrationOkxTradeResponse(current_end_user.get("okx_trade")),
+#     )
 
 
-@router.patch("/integrations/okx_trade")
-async def patch_integrations_okx_trade(
-    update_okx_trade: UpdateIntegrationOkxTradeRequest,
-    current_end_user: dict = Depends(get_current_end_user),
-    chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
-):
-    end_user_collection = chore_master_api_db.get_collection("end_user")
-    await end_user_collection.update_one(
-        filter={"reference": current_end_user["reference"]},
-        update={
-            "$set": {
-                "okx_trade": {
-                    "account_map": {
-                        account.name: {
-                            "env": account.env,
-                            "name": account.name,
-                            "password": account.password,
-                            "passphrase": account.passphrase,
-                            "api_key": account.api_key,
-                        }
-                        for account in update_okx_trade.accounts
-                    }
-                }
-            }
-        },
-    )
-    return ResponseSchema[None](
-        status=StatusEnum.SUCCESS,
-        data=None,
-    )
+# @router.patch("/integrations/okx_trade")
+# async def patch_integrations_okx_trade(
+#     update_okx_trade: UpdateIntegrationOkxTradeRequest,
+#     current_end_user: dict = Depends(get_current_end_user),
+#     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+# ):
+#     end_user_collection = chore_master_api_db.get_collection("end_user")
+#     await end_user_collection.update_one(
+#         filter={"reference": current_end_user["reference"]},
+#         update={
+#             "$set": {
+#                 "okx_trade": {
+#                     "account_map": {
+#                         account.name: {
+#                             "env": account.env,
+#                             "name": account.name,
+#                             "password": account.password,
+#                             "passphrase": account.passphrase,
+#                             "api_key": account.api_key,
+#                         }
+#                         for account in update_okx_trade.accounts
+#                     }
+#                 }
+#             }
+#         },
+#     )
+#     return ResponseSchema[None](
+#         status=StatusEnum.SUCCESS,
+#         data=None,
+#     )
