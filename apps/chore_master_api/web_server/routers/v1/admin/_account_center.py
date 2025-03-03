@@ -27,6 +27,55 @@ from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter()
 
+
+class GetIntegrationGoogleResponse(RootModel):
+    root: Optional[dict] = None
+
+
+class UpdateIntegrationGoogleRequest(BaseModel):
+    drive_root_folder_id: str
+
+
+class GetIntegrationGoogleDriveFoldersResponse(BaseModel):
+    class _Metadata(BaseModel):
+        next_page_token: Optional[str] = None
+
+    class _Folder(BaseModel):
+        id: str
+        name: str
+
+    metadata: _Metadata
+    list: list[_Folder]
+
+
+class GetIntegrationSinoTradeResponse(RootModel):
+    root: Optional[dict] = None
+
+
+class UpdateIntegrationSinoTradeRequest(BaseModel):
+    class _UpdateAccountRequest(BaseModel):
+        name: str
+        api_key: str
+        secret_key: str
+
+    accounts: list[_UpdateAccountRequest]
+
+
+class GetIntegrationOkxTradeResponse(RootModel):
+    root: Optional[dict] = None
+
+
+class UpdateIntegrationOkxTradeRequest(BaseModel):
+    class _UpdateAccountRequest(BaseModel):
+        env: str
+        name: str
+        password: str
+        passphrase: str
+        api_key: str
+
+    accounts: list[_UpdateAccountRequest]
+
+
 # @router.get("/integrations/google")
 # async def get_integrations_google(
 #     current_end_user: dict = Depends(get_current_end_user),
