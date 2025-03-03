@@ -95,17 +95,6 @@ class UpdateIntegrationOkxTradeRequest(BaseModel):
     accounts: list[_UpdateAccountRequest]
 
 
-@router.get("/end_users/me")
-async def get_end_users_me(current_end_user: dict = Depends(get_current_end_user)):
-    return ResponseSchema[dict](
-        status=StatusEnum.SUCCESS,
-        data={
-            "email": current_end_user["email"],
-            # "is_mounted": current_end_user.get("is_mounted", False),
-        },
-    )
-
-
 @router.get("/integrations/core")
 async def get_integrations_core(
     current_end_user: dict = Depends(get_current_end_user),
