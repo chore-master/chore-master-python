@@ -57,7 +57,7 @@ class ReadDatabaseSchemaResponse(BaseModel):
     tables: list[_Table]
 
 
-class PostDatabaseTablesDataExportFilesRequest(BaseModel):
+class PostUserDatabaseTablesDataExportFilesRequest(BaseModel):
     table_name_to_selected_column_names: dict[str, list[str]]
 
 
@@ -303,8 +303,8 @@ async def delete_user_database_migrations_revision(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/database/schema")
-async def get_database_schema(
+@router.get("/user_database/schema")
+async def get_user_database_schema(
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
 ):
     schema_name = end_user_db_registry.metadata.schema
@@ -332,9 +332,9 @@ async def get_database_schema(
     )
 
 
-@router.post("/database/tables/data/export_files")
-async def post_database_tables_data_export_files(
-    post_database_tables_data_export_files_request: PostDatabaseTablesDataExportFilesRequest,
+@router.post("/user_database/tables/data/export_files")
+async def post_user_database_tables_data_export_files(
+    post_user_database_tables_data_export_files_request: PostUserDatabaseTablesDataExportFilesRequest,
     end_user_db: RelationalDatabase = Depends(get_end_user_db),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
 ):
@@ -349,7 +349,7 @@ async def post_database_tables_data_export_files(
                 table_name,
                 selected_column_names,
             ) in (
-                post_database_tables_data_export_files_request.table_name_to_selected_column_names.items()
+                post_user_database_tables_data_export_files_request.table_name_to_selected_column_names.items()
             ):
                 if len(selected_column_names) == 0:
                     continue
@@ -384,8 +384,8 @@ async def post_database_tables_data_export_files(
         return FileResponse(local_file_path)
 
 
-@router.patch("/database/tables/data/import_files")
-async def patch_database_tables_data_import_files(
+@router.patch("/user_database/tables/data/import_files")
+async def patch_user_database_tables_data_import_files(
     upload_files: list[UploadFile],
     end_user_db: RelationalDatabase = Depends(get_end_user_db),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),

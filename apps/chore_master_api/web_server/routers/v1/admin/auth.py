@@ -21,7 +21,7 @@ from modules.database.async_mongo_client import AsyncMongoDB
 from modules.utils.string_utils import StringUtils
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter()
 
 required_google_scopes = [
     # https://developers.google.com/identity/protocols/oauth2/scopes?hl=zh-tw
