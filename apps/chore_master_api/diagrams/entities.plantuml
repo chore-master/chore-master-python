@@ -40,6 +40,7 @@ package integration {
 package finance {
   entity "Asset" {
     * reference: str <<PK>>
+    * $add("organization_reference: str <<FK>>")
     * name: str
     * symbol: str
     * decimals: int
@@ -88,6 +89,10 @@ package finance {
     $add("description: str")
     $add("closed_time: datetime")
   }
+
+  entity "Bill" {
+    * $add("reference: str <<PK>>")
+  }
 }
 
 'Zero or One  |o--
@@ -97,6 +102,7 @@ package finance {
 
 Organization ||--o{ EndUser
 Organization ||--o{ Resource
+Organization ||--o{ Asset
 
 EndUser      ||--o{ Resource
 EndUser      ||--o{ Account
@@ -106,6 +112,9 @@ EndUser      ||--o{ Portfolio
 Account      }o--|| Asset
 BalanceSheet ||--o{ BalanceEntry
 BalanceEntry }o--|| Account
+
+Portfolio    }o--|| Asset
 Portfolio    }o--|{ Instrument
+Portfolio    ||--o{ Bill
 
 @enduml
