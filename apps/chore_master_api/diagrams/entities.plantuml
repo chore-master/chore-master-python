@@ -1,0 +1,56 @@
+@startuml
+
+skinparam linetype ortho
+
+package integration {
+  entity "Resource" {
+    * reference: str <<PK>>
+    * end_user_reference: str <<FK>>
+    * discriminator: str = 'yahoo_finance_feed'
+    * value: str
+    --
+    name: str
+  }
+}
+
+package finance {
+  entity "Asset" {
+    * reference: str <<PK>>
+    * name: str
+    * symbol: str
+    * decimals: int
+    * is_settleable: bool
+  }
+
+  entity "Account" {
+    * reference: str <<PK>>
+    * settlement_asset_reference: str <<FK>>
+    * name: str
+    * opened_time: datetime
+    * ecosystem_type: str = 'TRAD_FI'
+    --
+    closed_time: datetime
+  }
+
+  entity "BalanceSheet" {
+    * reference: str <<PK>>
+    * balanced_time: datetime
+  }
+
+  entity "BalanceEntry" {
+    * reference: str <<PK>>
+    * balance_sheet_reference: str <<FK>>
+    * account_reference: str <<FK>>
+    * amount: int
+  }
+}
+
+'Zero or One  |o--
+'Exactly One  ||--
+'Zero or Many }o--
+'One or Many  }|--
+
+Account      }o--|| Asset
+BalanceSheet ||--o{ BalanceEntry
+
+@enduml
