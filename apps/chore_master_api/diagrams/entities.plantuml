@@ -4,21 +4,36 @@
 !return "<color:#00ff00>" + $a + "</color>"
 !endfunction
 
-!function $remoe($a)
+!function $remove($a)
 !return "<color:#ff0000>" + $a + "</color>"
 !endfunction
 
 skinparam backgroundColor transparent
 skinparam linetype ortho
 
+package admin {
+  entity "Organization" {
+    * $add("reference: str <<PK>>")
+    * $add("name: str")
+  }
+
+  entity "EndUser" {
+    * $add("reference: str <<PK>>")
+    * $add("organization_reference: str <<FK>>")
+    * $add("name: str")
+  }
+}
+
 package integration {
   entity "Resource" {
     * reference: str <<PK>>
-    * end_user_reference: str <<FK>>
-    * discriminator: str = 'yahoo_finance_feed'
+    * $add("organization_reference: str <<FK>>")
+    * $remove("end_user_reference: str <<FK>>")
+    * discriminator: str = 'yahoo_finance_feed' $add("| 'node_manager'")
     * value: str
     --
     name: str
+    $add("end_user_reference: str <<FK>>")
   }
 }
 
@@ -30,13 +45,13 @@ package finance {
     * decimals: int
     * is_settleable: bool
     --
-    $add("type: str")
+    $add("type: str = 外匯 | 股票 | 期貨 | 期權 | 固定收益")
   }
 
   entity "Account" {
     * reference: str <<PK>>
-    * settlement_asset_reference: str <<FK>>
     * $add("end_user_reference: str <<FK>>")
+    * settlement_asset_reference: str <<FK>>
     * name: str
     * opened_time: datetime
     * ecosystem_type: str = 'TRAD_FI'
@@ -57,9 +72,21 @@ package finance {
     * amount: int
   }
 
+  entity "Instrument" {
+    * $add("reference: str <<PK>>")
+    * $add("symbol: str")
+    * $add("decimals: int")
+  }
+
   entity "Portfolio" {
     * $add("reference: str <<PK>>")
     * $add("end_user_reference: str <<FK>>")
+    * $add("name: str")
+    * $add("opened_time: datetime")
+    * $add("settlement_asset_reference: str <<FK>>")
+    --
+    $add("description: str")
+    $add("closed_time: datetime")
   }
 }
 
@@ -68,8 +95,17 @@ package finance {
 'Zero or Many }o--
 'One or Many  }|--
 
+Organization ||--o{ EndUser
+Organization ||--o{ Resource
+
+EndUser      ||--o{ Resource
+EndUser      ||--o{ Account
+EndUser      ||--o{ BalanceSheet
+EndUser      ||--o{ Portfolio
+
 Account      }o--|| Asset
 BalanceSheet ||--o{ BalanceEntry
 BalanceEntry }o--|| Account
+Portfolio    }o--|{ Instrument
 
 @enduml
