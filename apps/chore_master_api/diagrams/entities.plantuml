@@ -90,7 +90,22 @@ package finance {
     $add("closed_time: datetime")
   }
 
-  entity "Bill" {
+  entity "Allocation" {
+    * $add("reference: str <<PK>>")
+    * $add("portfolio_reference: str <<FK>>")
+    * $add("allocated_time: datetime")
+  }
+
+  entity "AllocationEntry" {
+    * $add("reference: str <<PK>>")
+    * $add("allocation_reference: str <<FK>>")
+    * $add("amount: int")
+    --
+    $add("asset_reference: str <<FK>>")
+    $add("instrument_reference: str <<FK>>")
+  }
+
+  entity "Settlement" {
     * $add("reference: str <<PK>>")
   }
 }
@@ -110,11 +125,16 @@ EndUser      ||--o{ BalanceSheet
 EndUser      ||--o{ Portfolio
 
 Account      }o--|| Asset
-BalanceSheet ||--o{ BalanceEntry
+BalanceSheet ||--o{ BalanceEntry: balance_entries
 BalanceEntry }o--|| Account
 
 Portfolio    }o--|| Asset
-Portfolio    }o--|{ Instrument
-Portfolio    ||--o{ Bill
+Portfolio    }o--|{ Instrument: instruments
+Portfolio    ||--o{ Allocation: allocations
+Portfolio    ||--o{ Settlement: settlements
+
+Allocation ||--o{ AllocationEntry: allocation_entries
+AllocationEntry }o--o| Asset
+AllocationEntry }o--o| Instrument
 
 @enduml
