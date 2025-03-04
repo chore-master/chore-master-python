@@ -100,6 +100,7 @@ package finance {
     * $add("reference: str <<PK>>")
     * $add("allocation_reference: str <<FK>>")
     * $add("amount: int")
+    * $add("allocation_type: str = 'asset' | 'instrument'")
     --
     $add("asset_reference: str <<FK>>")
     $add("instrument_reference: str <<FK>>")
@@ -107,6 +108,13 @@ package finance {
 
   entity "Settlement" {
     * $add("reference: str <<PK>>")
+    * $add("portfolio_reference: str <<FK>>")
+    * $add("settled_time: datetime")
+    * $add("account_reference: str <<FK>>")
+    * $add("amount_change: int")
+    --
+    $add("asset_reference: str <<FK>>")
+    $add("instrument_reference: str <<FK>>")
   }
 }
 
