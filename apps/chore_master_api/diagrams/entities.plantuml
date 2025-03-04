@@ -1,5 +1,14 @@
 @startuml
 
+!function $add($a)
+!return "<color:#00ff00>" + $a + "</color>"
+!endfunction
+
+!function $remoe($a)
+!return "<color:#ff0000>" + $a + "</color>"
+!endfunction
+
+skinparam backgroundColor transparent
 skinparam linetype ortho
 
 package integration {
@@ -20,11 +29,14 @@ package finance {
     * symbol: str
     * decimals: int
     * is_settleable: bool
+    --
+    $add("type: str")
   }
 
   entity "Account" {
     * reference: str <<PK>>
     * settlement_asset_reference: str <<FK>>
+    * $add("end_user_reference: str <<FK>>")
     * name: str
     * opened_time: datetime
     * ecosystem_type: str = 'TRAD_FI'
@@ -34,6 +46,7 @@ package finance {
 
   entity "BalanceSheet" {
     * reference: str <<PK>>
+    * $add("end_user_reference: str <<FK>>")
     * balanced_time: datetime
   }
 
@@ -42,6 +55,11 @@ package finance {
     * balance_sheet_reference: str <<FK>>
     * account_reference: str <<FK>>
     * amount: int
+  }
+
+  entity "Portfolio" {
+    * $add("reference: str <<PK>>")
+    * $add("end_user_reference: str <<FK>>")
   }
 }
 
@@ -52,5 +70,6 @@ package finance {
 
 Account      }o--|| Asset
 BalanceSheet ||--o{ BalanceEntry
+BalanceEntry }o--|| Account
 
 @enduml
