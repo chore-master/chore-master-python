@@ -28,7 +28,8 @@ sudo docker buildx build \
     --build-arg COMMIT_REVISION="$TAG" \
     --tag "gocreating/chore_master_api_web_server:$TAG" \
     ./
-docker push "gocreating/chore_master_api_web_server:$TAG"
+docker push "gocreating/chore_master_api_web_server:$TAG" \
+git push --tag
 ```
 
 ## Deployment
