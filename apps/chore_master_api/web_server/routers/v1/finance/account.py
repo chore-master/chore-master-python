@@ -54,6 +54,7 @@ async def get_accounts(
     async with uow:
         statement = select(Account).order_by(Account.name.asc())
         if active_as_of_time is not None:
+            active_as_of_time = active_as_of_time.replace(tzinfo=None)
             statement = statement.filter(
                 and_(
                     Account.opened_time <= active_as_of_time,
