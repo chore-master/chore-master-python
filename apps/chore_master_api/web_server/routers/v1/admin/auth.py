@@ -37,8 +37,8 @@ class LoginRequest(BaseModel):
     password: str
 
 
-@router.post("/login")
-async def post_login(
+@router.post("/auth/login")
+async def post_auth_login(
     login_request: LoginRequest,
     response: Response,
     user_agent: Optional[str] = Header(default=None),
@@ -111,8 +111,8 @@ async def post_login(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/google/authorize")
-async def get_google_authorize(
+@router.get("/auth/google/authorize")
+async def get_auth_google_authorize(
     success_redirect_uri: Annotated[str, Query()],
     error_redirect_uri: Annotated[str, Query()],
     chore_master_api_web_server_config: ChoreMasterAPIWebServerConfigSchema = Depends(
@@ -138,8 +138,8 @@ async def get_google_authorize(
     return RedirectResponse(url)
 
 
-@router.get("/google/callback")
-async def get_google_callback(
+@router.get("/auth/google/callback")
+async def get_auth_google_callback(
     state: Annotated[str, Query()],
     code: Annotated[Optional[str], Query()] = None,
     user_agent: Optional[str] = Header(default=None),
@@ -300,8 +300,8 @@ async def get_google_callback(
     return response
 
 
-@router.post("/logout")
-async def post_logout(
+@router.post("/auth/logout")
+async def post_auth_logout(
     response: Response,
     chore_master_api_web_server_config: ChoreMasterAPIWebServerConfigSchema = Depends(
         get_chore_master_api_web_server_config
