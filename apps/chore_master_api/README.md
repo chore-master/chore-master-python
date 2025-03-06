@@ -17,7 +17,7 @@ sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.infra.
 ## Release
 
 ```sh
-export TAG="2025-03-06-v1"
+export TAG="2025-03-06-v2"
 git tag $TAG --force
 sudo docker buildx build \
     --platform linux/amd64 \
