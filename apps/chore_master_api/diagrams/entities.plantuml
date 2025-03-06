@@ -39,21 +39,28 @@ package integration {
 
 package finance {
   entity "Asset" {
-    * reference: str <<PK>>
-    * $add("organization_reference: str <<FK>>")
-    * name: str
-    * symbol: str
+    * $remove("reference: str <<PK>>")
+    * $remove("name: str")
+    * $remove("symbol: str")
     * $remove("decimals: int")
-    * $add("amount_decimals: int")
-    * is_settleable: bool
-    --
-    $add("type: str = 外匯 | 股票 | 期貨 | 期權 | 固定收益")
+    * $remove("is_settleable: bool")
+  }
+
+  entity "Instrument" {
+    * $add("reference: str <<PK>>")
+    * $add("name: str")
+    * $add("symbol: str")
+    * $add("quantity_decimals: int")
+    * $add("price_decimals: int")
+    * $add("is_settleable: bool")
+    * $add("type: str = 'cash' | 'equity' | 'future' | 'option' | 'fixed_income'")
   }
 
   entity "Account" {
     * reference: str <<PK>>
     * $add("end_user_reference: str <<FK>>")
-    * settlement_asset_reference: str <<FK>>
+    * $remove("settlement_asset_reference: str <<FK>>")
+    * $add("settlement_instrument_reference: str <<FK>>")
     * name: str
     * opened_time: datetime
     * ecosystem_type: str = 'TRAD_FI'
@@ -74,40 +81,26 @@ package finance {
     * amount: int
   }
 
-  entity "Instrument" {
-    * $add("reference: str <<PK>>")
-    * $add("symbol: str")
-    * $add("quantity_decimals: int")
-  }
-
   entity "Portfolio" {
     * $add("reference: str <<PK>>")
     * $add("end_user_reference: str <<FK>>")
     * $add("name: str")
     * $add("started_time: datetime")
-    * $add("settlement_asset_reference: str <<FK>>")
+    * $add("settlement_instrument_reference: str <<FK>>")
     --
     $add("description: str")
-    $add("stopped_time: datetime")
+    $add("ended_time: datetime")
   }
 
-  entity "Principal" {
+  entity "Holding" { 
     * $add("reference: str <<PK>>")
     * $add("portfolio_reference: str <<FK>>")
     * $add("allocated_time: datetime")
   }
 
-  entity "AssetAllocation" {
+  entity "HoldingEntry" {
     * $add("reference: str <<PK>>")
-    * $add("allocation_reference: str <<FK>>")
-    * $add("asset_reference: str <<FK>>")
-    * $add("amount: int")
-    * $add("average_cost_price: decimal")
-  }
-
-  entity "InstrumentPosition" {
-    * $add("reference: str <<PK>>")
-    * $add("allocation_reference: str <<FK>>")
+    * $add("holding_reference: str <<FK>>")
     * $add("instrument_reference: str <<FK>>")
     * $add("quantity: int")
     * $add("average_cost_price: int")
@@ -118,10 +111,8 @@ package finance {
     * $add("portfolio_reference: str <<FK>>")
     * $add("settled_time: datetime")
     * $add("account_reference: str <<FK>>")
-    * $add("amount_change: int")
-    --
-    $add("asset_reference: str <<FK>>")
-    $add("instrument_reference: str <<FK>>")
+    * $add("quantity_change: int")
+    * $add("instrument_reference: str <<FK>>")
   }
 }
 
@@ -132,25 +123,21 @@ package finance {
 
 Organization ||--o{ EndUser
 Organization ||--o{ Resource
-Organization ||--o{ Asset
 
 EndUser      ||--o{ Resource
 EndUser      ||--o{ Account
 EndUser      ||--o{ BalanceSheet
 EndUser      ||--o{ Portfolio
 
-Account      }o--|| Asset
 BalanceSheet ||--o{ BalanceEntry: balance_entries
 BalanceEntry }o--|| Account
 
-Portfolio    }o--|| Asset
+Portfolio    }o--|| Instrument: settlement_instrument
 Portfolio    }o--|{ Instrument: instruments
-Portfolio    ||--o{ Allocation: allocations
+Portfolio    }o--o{ Holding: holdings
 Portfolio    ||--o{ Settlement: settlements
 
-Allocation ||--o{ AssetAllocation: asset_allocations
-Allocation ||--o{ InstrumentPosition: instrument_allocations
-AssetAllocation }o--|| Asset
-InstrumentPosition }o--|| Instrument
+Holding ||--o{ HoldingEntry: holding_entries
+HoldingEntry }o--|| Instrument
 
 @enduml
