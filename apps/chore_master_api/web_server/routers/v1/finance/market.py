@@ -1,20 +1,20 @@
-import asyncio
-import json
-import os
-from collections import defaultdict
-from datetime import datetime, timezone
-from typing import Mapping
+# import asyncio
+# import json
+# import os
+# from collections import defaultdict
+# from datetime import datetime, timezone
+# from typing import Mapping
 
-import httpx
-import pandas as pd
-from bs4 import BeautifulSoup
-from fastapi import APIRouter, Depends, Query
+# import httpx
+# import pandas as pd
+# from bs4 import BeautifulSoup
+from fastapi import APIRouter, Query
 
-from apps.chore_master_api.web_server.dependencies.concurrency import get_mutex
-from modules.scraper.cloud_flare_solver import CloudflareSolver
-from modules.scraper.etherscan_scraper import EtherscanScraper
-from modules.utils.cache_utils import FileSystemCache
-from modules.utils.file_system_utils import FileSystemUtils
+# from apps.chore_master_api.web_server.dependencies.concurrency import get_mutex
+# from modules.scraper.cloud_flare_solver import CloudflareSolver
+# from modules.scraper.etherscan_scraper import EtherscanScraper
+# from modules.utils.cache_utils import FileSystemCache
+# from modules.utils.file_system_utils import FileSystemUtils
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter(prefix="/market")
@@ -701,195 +701,195 @@ async def get_interest_rate_inspect(cap_amount: int = Query(default=800000)):
     )
 
 
-@router.get("/a_token_transactions")
-async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
-    cloudflare_cache = FileSystemCache(base_dir=".cache/cloudflare")
-    cloudflare_context_text = cloudflare_cache.get(keys=["context.json"])
-    if cloudflare_context_text is None:
-        async with CloudflareSolver() as cf_solver:
-            user_agent = cf_solver.user_agent
-            cf_clearance = await cf_solver.get_clearance_token(
-                url="https://etherscan.io/tokenholdings?a=0xc049f307dc4db93747c943c33eb99d5ac2164b45"
-            )
-            cloudflare_cache.set(
-                keys=["context.json"],
-                value=json.dumps(
-                    {
-                        "user_agent": user_agent,
-                        "cf_clearance": cf_clearance,
-                    }
-                ),
-            )
-    else:
-        cloudflare_context = json.loads(cloudflare_context_text)
-        user_agent = cloudflare_context["user_agent"]
-        cf_clearance = cloudflare_context["cf_clearance"]
+# @router.get("/a_token_transactions")
+# async def get_a_token_transactions(mutex: asyncio.Lock = Depends(get_mutex)):
+#     cloudflare_cache = FileSystemCache(base_dir=".cache/cloudflare")
+#     cloudflare_context_text = cloudflare_cache.get(keys=["context.json"])
+#     if cloudflare_context_text is None:
+#         async with CloudflareSolver() as cf_solver:
+#             user_agent = cf_solver.user_agent
+#             cf_clearance = await cf_solver.get_clearance_token(
+#                 url="https://etherscan.io/tokenholdings?a=0xc049f307dc4db93747c943c33eb99d5ac2164b45"
+#             )
+#             cloudflare_cache.set(
+#                 keys=["context.json"],
+#                 value=json.dumps(
+#                     {
+#                         "user_agent": user_agent,
+#                         "cf_clearance": cf_clearance,
+#                     }
+#                 ),
+#             )
+#     else:
+#         cloudflare_context = json.loads(cloudflare_context_text)
+#         user_agent = cloudflare_context["user_agent"]
+#         cf_clearance = cloudflare_context["cf_clearance"]
 
-    series = []
-    token_symbol_to_token_map = json.load(
-        open(os.path.join(os.path.dirname(__file__), "token_symbol_to_token_map.json"))
-    )
-    # token_symbol_cache = FileSystemCache(base_dir=".cache/token_symbols")
-    for token_symbol, token_dict in token_symbol_to_token_map.items():
-        # keys = [f"{token_symbol}.json"]
-        # token_symbol_cache_text = token_symbol_cache.get(keys=keys)
-        # if token_symbol_cache_text is not None:
-        #     token_symbol_cache_dict = json.loads(token_symbol_cache_text)
-        #     from_node_set = set(token_symbol_cache_dict["from_node_set"])
-        #     to_node_set = set(token_symbol_cache_dict["to_node_set"])
-        #     node_to_weight_map = {
-        #         tuple(k.split("|")): v
-        #         for k, v in token_symbol_cache_dict[
-        #             "node_to_weight_map"
-        #         ].items()
-        #     }
-        # else:
+#     series = []
+#     token_symbol_to_token_map = json.load(
+#         open(os.path.join(os.path.dirname(__file__), "token_symbol_to_token_map.json"))
+#     )
+#     # token_symbol_cache = FileSystemCache(base_dir=".cache/token_symbols")
+#     for token_symbol, token_dict in token_symbol_to_token_map.items():
+#         # keys = [f"{token_symbol}.json"]
+#         # token_symbol_cache_text = token_symbol_cache.get(keys=keys)
+#         # if token_symbol_cache_text is not None:
+#         #     token_symbol_cache_dict = json.loads(token_symbol_cache_text)
+#         #     from_node_set = set(token_symbol_cache_dict["from_node_set"])
+#         #     to_node_set = set(token_symbol_cache_dict["to_node_set"])
+#         #     node_to_weight_map = {
+#         #         tuple(k.split("|")): v
+#         #         for k, v in token_symbol_cache_dict[
+#         #             "node_to_weight_map"
+#         #         ].items()
+#         #     }
+#         # else:
 
-        async with httpx.AsyncClient(timeout=None) as client:
-            etherscan_scraper = EtherscanScraper(
-                client=client,
-                cf_clearance=cf_clearance,
-                user_agent=user_agent,
-                is_debugging=True,
-            )
-            from_node_set = set()
-            to_node_set = set()
-            node_to_weight_map: Mapping[str, float] = defaultdict(lambda: 0.0)
-            df_dir_path = f"./data/csv/{datetime.now(timezone.utc).strftime('%Y_%m_%d')}/token_symbols/{token_symbol}/sender_addresses"
-            df_columns = [
-                "transaction_hash",
-                "method",
-                "transaction_time",
-                "from_address",
-                "to_address",
-                "to_address_name",
-                "to_address_icon_title",
-                "quantity",
-                "notional",
-                "token_symbol",
-            ]
-            FileSystemUtils.ensure_directory(df_dir_path)
-            for sender_address in token_dict.get("sender_addresses", []):
-                df_file_path = f"{df_dir_path}/{sender_address}.csv"
-                if os.path.exists(df_file_path):
-                    df = pd.read_csv(df_file_path, keep_default_na=False)
-                else:
-                    advanced_filter_htmls = (
-                        await etherscan_scraper.get_advanced_filter_htmls(
-                            from_address=sender_address,
-                            token_address=token_dict["address"],
-                        )
-                    )
-                    row_dicts = []
-                    for html in advanced_filter_htmls:
-                        soup = BeautifulSoup(html, "html.parser")
-                        trs = soup.find_all("tr")[1:]
-                        for tr in trs:
-                            tds = tr.find_all("td")
-                            if (
-                                len(tds) == 1
-                                and tds[0].text.strip()
-                                == "There are no matching entriesPlease try again later"
-                            ):
-                                break
-                            transaction_hash = tds[0].text.strip()
-                            transaction_type = tds[1].text.strip()
-                            method = tds[2].text.strip()
-                            transaction_time_str = (
-                                datetime.strptime(
-                                    tds[4].text.strip(), "%Y-%m-%d %H:%M:%S"
-                                ).isoformat()
-                                + "Z"
-                            )
-                            to_address = EtherscanScraper.parse_address(
-                                tds[9].find("a")["href"]
-                            )
-                            to_address_name = tds[9].text.strip()
-                            quantity = EtherscanScraper.parse_float(tds[10].text)
-                            notional = EtherscanScraper.parse_float(
-                                tds[11].find("span")["data-bs-title"][1:]
-                            )
-                            to_address_icon = tds[9].find("img")
-                            if to_address_icon is None:
-                                to_address_icon_title = None
-                            else:
-                                to_address_icon_title = to_address_icon["data-bs-title"]
-                            row_dict = {
-                                "transaction_hash": transaction_hash,
-                                "type": transaction_type,
-                                "method": method,
-                                "transaction_time": transaction_time_str,
-                                "from_address": sender_address,
-                                "to_address": to_address,
-                                "to_address_name": to_address_name,
-                                "to_address_icon_title": to_address_icon_title,
-                                "quantity": quantity,
-                                "notional": notional,
-                                "token_symbol": token_symbol,
-                            }
-                            row_dicts.append(row_dict)
-                    if len(row_dicts) > 0:
-                        df = pd.DataFrame.from_records(
-                            row_dicts,
-                            columns=df_columns,
-                        )
-                    else:
-                        df = pd.DataFrame(columns=df_columns)
-                    df.to_csv(df_file_path, index=False)
+#         async with httpx.AsyncClient(timeout=None) as client:
+#             etherscan_scraper = EtherscanScraper(
+#                 client=client,
+#                 cf_clearance=cf_clearance,
+#                 user_agent=user_agent,
+#                 is_debugging=True,
+#             )
+#             from_node_set = set()
+#             to_node_set = set()
+#             node_to_weight_map: Mapping[str, float] = defaultdict(lambda: 0.0)
+#             df_dir_path = f"./data/csv/{datetime.now(timezone.utc).strftime('%Y_%m_%d')}/token_symbols/{token_symbol}/sender_addresses"
+#             df_columns = [
+#                 "transaction_hash",
+#                 "method",
+#                 "transaction_time",
+#                 "from_address",
+#                 "to_address",
+#                 "to_address_name",
+#                 "to_address_icon_title",
+#                 "quantity",
+#                 "notional",
+#                 "token_symbol",
+#             ]
+#             FileSystemUtils.ensure_directory(df_dir_path)
+#             for sender_address in token_dict.get("sender_addresses", []):
+#                 df_file_path = f"{df_dir_path}/{sender_address}.csv"
+#                 if os.path.exists(df_file_path):
+#                     df = pd.read_csv(df_file_path, keep_default_na=False)
+#                 else:
+#                     advanced_filter_htmls = (
+#                         await etherscan_scraper.get_advanced_filter_htmls(
+#                             from_address=sender_address,
+#                             token_address=token_dict["address"],
+#                         )
+#                     )
+#                     row_dicts = []
+#                     for html in advanced_filter_htmls:
+#                         soup = BeautifulSoup(html, "html.parser")
+#                         trs = soup.find_all("tr")[1:]
+#                         for tr in trs:
+#                             tds = tr.find_all("td")
+#                             if (
+#                                 len(tds) == 1
+#                                 and tds[0].text.strip()
+#                                 == "There are no matching entriesPlease try again later"
+#                             ):
+#                                 break
+#                             transaction_hash = tds[0].text.strip()
+#                             transaction_type = tds[1].text.strip()
+#                             method = tds[2].text.strip()
+#                             transaction_time_str = (
+#                                 datetime.strptime(
+#                                     tds[4].text.strip(), "%Y-%m-%d %H:%M:%S"
+#                                 ).isoformat()
+#                                 + "Z"
+#                             )
+#                             to_address = EtherscanScraper.parse_address(
+#                                 tds[9].find("a")["href"]
+#                             )
+#                             to_address_name = tds[9].text.strip()
+#                             quantity = EtherscanScraper.parse_float(tds[10].text)
+#                             notional = EtherscanScraper.parse_float(
+#                                 tds[11].find("span")["data-bs-title"][1:]
+#                             )
+#                             to_address_icon = tds[9].find("img")
+#                             if to_address_icon is None:
+#                                 to_address_icon_title = None
+#                             else:
+#                                 to_address_icon_title = to_address_icon["data-bs-title"]
+#                             row_dict = {
+#                                 "transaction_hash": transaction_hash,
+#                                 "type": transaction_type,
+#                                 "method": method,
+#                                 "transaction_time": transaction_time_str,
+#                                 "from_address": sender_address,
+#                                 "to_address": to_address,
+#                                 "to_address_name": to_address_name,
+#                                 "to_address_icon_title": to_address_icon_title,
+#                                 "quantity": quantity,
+#                                 "notional": notional,
+#                                 "token_symbol": token_symbol,
+#                             }
+#                             row_dicts.append(row_dict)
+#                     if len(row_dicts) > 0:
+#                         df = pd.DataFrame.from_records(
+#                             row_dicts,
+#                             columns=df_columns,
+#                         )
+#                     else:
+#                         df = pd.DataFrame(columns=df_columns)
+#                     df.to_csv(df_file_path, index=False)
 
-                for _, row in df.iterrows():
-                    from_node = row["from_address"]
-                    from_node_set.add(from_node)
-                    to_node = row["to_address_name"]
-                    if row["to_address_icon_title"]:
-                        to_node = f"{to_node} ({row['to_address_icon_title']})"
-                    to_node_set.add(to_node)
-                    node_to_weight_map[(from_node, to_node)] += row["notional"]
+#                 for _, row in df.iterrows():
+#                     from_node = row["from_address"]
+#                     from_node_set.add(from_node)
+#                     to_node = row["to_address_name"]
+#                     if row["to_address_icon_title"]:
+#                         to_node = f"{to_node} ({row['to_address_icon_title']})"
+#                     to_node_set.add(to_node)
+#                     node_to_weight_map[(from_node, to_node)] += row["notional"]
 
-            # token_symbol_cache.set(
-            #     keys=keys,
-            #     value=json.dumps(
-            #         {
-            #             "from_node_set": list(from_node_set),
-            #             "to_node_set": list(to_node_set),
-            #             "node_to_weight_map": {
-            #                 "|".join(k): v
-            #                 for k, v in node_to_weight_map.items()
-            #             },
-            #         }
-            #     ),
-            # )
+#             # token_symbol_cache.set(
+#             #     keys=keys,
+#             #     value=json.dumps(
+#             #         {
+#             #             "from_node_set": list(from_node_set),
+#             #             "to_node_set": list(to_node_set),
+#             #             "node_to_weight_map": {
+#             #                 "|".join(k): v
+#             #                 for k, v in node_to_weight_map.items()
+#             #             },
+#             #         }
+#             #     ),
+#             # )
 
-        nodes = [{"id": node, "column": 0} for node in from_node_set] + [
-            {"id": node, "column": 1} for node in to_node_set
-        ]
-        token_symbol_to_threshold_map = {
-            "ETH": 100_000_000,
-            "weETH": 1_000_000,
-            "wstETH": 1_000_000,
-            "USDT": 50_000_000,
-            "WBTC": 10_000_000,
-            "USDC": 50_000_000,
-        }
-        threshold = token_symbol_to_threshold_map.get(token_symbol, 0)
-        links = [
-            [from_node, to_node, weight]
-            for (
-                from_node,
-                to_node,
-            ), weight in node_to_weight_map.items()
-            if weight > threshold
-        ]
-        series.append(
-            {
-                "name": token_symbol,
-                "nodes": nodes,
-                "links": links,
-            }
-        )
-    return ResponseSchema[dict](
-        status=StatusEnum.SUCCESS,
-        data={
-            "series": series,
-        },
-    )
+#         nodes = [{"id": node, "column": 0} for node in from_node_set] + [
+#             {"id": node, "column": 1} for node in to_node_set
+#         ]
+#         token_symbol_to_threshold_map = {
+#             "ETH": 100_000_000,
+#             "weETH": 1_000_000,
+#             "wstETH": 1_000_000,
+#             "USDT": 50_000_000,
+#             "WBTC": 10_000_000,
+#             "USDC": 50_000_000,
+#         }
+#         threshold = token_symbol_to_threshold_map.get(token_symbol, 0)
+#         links = [
+#             [from_node, to_node, weight]
+#             for (
+#                 from_node,
+#                 to_node,
+#             ), weight in node_to_weight_map.items()
+#             if weight > threshold
+#         ]
+#         series.append(
+#             {
+#                 "name": token_symbol,
+#                 "nodes": nodes,
+#                 "links": links,
+#             }
+#         )
+#     return ResponseSchema[dict](
+#         status=StatusEnum.SUCCESS,
+#         data={
+#             "series": series,
+#         },
+#     )

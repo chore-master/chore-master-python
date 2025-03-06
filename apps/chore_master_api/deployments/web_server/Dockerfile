@@ -1,22 +1,17 @@
-FROM python:3.10-alpine
+FROM python:3.11-bookworm
 
 ARG SERVICE_NAME
 ARG COMPONENT_NAME
 ARG COMMIT_SHORT_SHA
 ARG COMMIT_REVISION
 
-ENV ENV=${ENV}
 ENV SERVICE_NAME=${SERVICE_NAME}
 ENV COMPONENT_NAME=${COMPONENT_NAME}
 ENV COMMIT_SHORT_SHA=${COMMIT_SHORT_SHA}
 ENV COMMIT_REVISION=${COMMIT_REVISION}
 
-RUN apk --update --upgrade add \
-    gcc musl-dev jpeg-dev zlib-dev libffi-dev cairo-dev pango-dev gdk-pixbuf-dev \
-    git
 RUN pip install poetry==1.8.3 && \
-    poetry config virtualenvs.create false --local && \
-    poetry config experimental.system-git-client true
+    poetry config virtualenvs.create false
 
 WORKDIR /app/chore-master-python
 
