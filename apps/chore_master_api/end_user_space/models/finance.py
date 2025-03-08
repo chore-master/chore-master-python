@@ -43,6 +43,8 @@ class Instrument(Entity):
     class InstrumentTypeEnum(Enum):
         EQUITY = "EQUITY"
         FX = "FX"
+        FUTURE = "FUTURE"
+        DERIVATIVE = "DERIVATIVE"
         EARNING = "EARNING"
 
     name: str
