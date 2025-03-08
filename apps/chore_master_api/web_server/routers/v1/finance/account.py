@@ -53,7 +53,7 @@ async def get_accounts(
 ):
     async with uow:
         statement = select(Account).order_by(
-            Account.closed_time.asc().nulls_first(), Account.name.asc()
+            Account.closed_time.desc().nulls_first(), Account.name.desc()
         )
         if active_as_of_time is not None:
             active_as_of_time = active_as_of_time.replace(tzinfo=None)
