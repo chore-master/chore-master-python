@@ -1,6 +1,6 @@
 from typing import Type
 
-from apps.chore_master_api.end_user_space.models.financial_management import (
+from apps.chore_master_api.end_user_space.models._financial_management import (
     Account,
     Asset,
     Bill,

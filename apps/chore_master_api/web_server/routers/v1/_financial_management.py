@@ -7,13 +7,13 @@ from sqlalchemy import func
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
-from apps.chore_master_api.end_user_space.models.financial_management import (
+from apps.chore_master_api.end_user_space.models._financial_management import (
     Account,
     Asset,
     Bill,
     NetValue,
 )
-from apps.chore_master_api.end_user_space.unit_of_works.financial_management import (
+from apps.chore_master_api.end_user_space.unit_of_works._financial_management import (
     FinancialManagementSQLAlchemyUnitOfWork,
 )
 from apps.chore_master_api.web_server.dependencies.end_user_space import (

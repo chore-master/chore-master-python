@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from apps.chore_master_api.end_user_space.repositories.financial_management import (
+from apps.chore_master_api.end_user_space.repositories._financial_management import (
     AccountRepository,
     AssetRepository,
     BillRepository,
