@@ -1,6 +1,8 @@
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path, Query
+from sqlalchemy import or_
+from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Asset
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
@@ -40,14 +42,23 @@ class UpdateAssetRequest(BaseUpdateEntityRequest):
 
 @router.get("/assets")
 async def get_assets(
+    search: Annotated[Optional[str], Query()] = None,
     is_settleable: Annotated[Optional[bool], Query()] = None,
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        filter = {}
+        statement = select(Asset)
         if is_settleable is not None:
-            filter["is_settleable"] = is_settleable
-        entities = await uow.asset_repository.find_many(filter=filter)
+            statement = statement.filter(Asset.is_settleable == is_settleable)
+        if search is not None:
+            statement = statement.filter(
+                or_(
+                    Asset.name.ilike(f"%{search}%"),
+                    Asset.symbol.ilike(f"%{search}%"),
+                )
+            )
+        result = await uow.session.execute(statement)
+        entities = result.scalars().unique().all()
         return ResponseSchema[list[ReadAssetResponse]](
             status=StatusEnum.SUCCESS, data=[entity.model_dump() for entity in entities]
         )
