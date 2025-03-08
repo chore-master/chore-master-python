@@ -5,6 +5,10 @@ from apps.chore_master_api.end_user_space.repositories.finance import (
     AssetRepository,
     BalanceEntryRepository,
     BalanceSheetRepository,
+    FeeEntryRepository,
+    InstrumentRepository,
+    LedgerEntryRepository,
+    PortfolioRepository,
 )
 from modules.unit_of_works.base_sqlalchemy_unit_of_work import BaseSQLAlchemyUnitOfWork
 
@@ -16,9 +20,17 @@ class FinanceSQLAlchemyUnitOfWork(BaseSQLAlchemyUnitOfWork):
         self.asset_repository = AssetRepository(self.session)
         self.balance_sheet_repository = BalanceSheetRepository(self.session)
         self.balance_entry_repository = BalanceEntryRepository(self.session)
+        self.instrument_repository = InstrumentRepository(self.session)
+        self.portfolio_repository = PortfolioRepository(self.session)
+        self.ledger_entry_repository = LedgerEntryRepository(self.session)
+        self.fee_entry_repository = FeeEntryRepository(self.session)
         return self
 
     async def __aexit__(self, *args):
+        self.fee_entry_repository = None
+        self.ledger_entry_repository = None
+        self.portfolio_repository = None
+        self.instrument_repository = None
         self.balance_entry_repository = None
         self.balance_sheet_repository = None
         self.asset_repository = None

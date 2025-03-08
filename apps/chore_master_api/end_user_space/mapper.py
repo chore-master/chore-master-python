@@ -1,15 +1,12 @@
 from sqlalchemy import Column, Table
 from sqlalchemy.orm import configure_mappers, registry, relationship
 
-from apps.chore_master_api.end_user_space.models import finance, integration
-
-# from apps.chore_master_api.end_user_space.models.financial_management import (
-#     Account,
-#     Asset,
-#     Bill,
-#     NetValue,
-# )
-from apps.chore_master_api.end_user_space.models.some_module import SomeEntity
+from apps.chore_master_api.end_user_space.models import (
+    finance,
+    identity,
+    integration,
+    some_module,
+)
 from apps.chore_master_api.end_user_space.tables.base import get_base_columns
 from modules.database.sqlalchemy import types
 
@@ -34,10 +31,19 @@ class Mapper:
             Column("h", types.Integer, nullable=True),
             Column("i", types.JSON, nullable=True),
         )
-        if getattr(SomeEntity, "_sa_class_manager", None) is None:
+        if getattr(some_module.SomeEntity, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
-                SomeEntity, some_module_some_entity_table
+                some_module.SomeEntity, some_module_some_entity_table
             )
+
+        identity_user_table = Table(
+            "identity_user",
+            self._metadata,
+            *get_base_columns(),
+            Column("name", types.String, nullable=False),
+        )
+        if getattr(identity.User, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(identity.User, identity_user_table)
 
         integration_resource_table = Table(
             "integration_resource",
@@ -113,6 +119,69 @@ class Mapper:
                         backref="balance_entries",
                     )
                 },
+            )
+
+        finance_instrument_table = Table(
+            "finance_instrument",
+            self._metadata,
+            *get_base_columns(),
+            Column("name", types.String, nullable=False),
+            Column("quantity_decimals", types.Integer, nullable=False),
+            Column("price_decimals", types.Integer, nullable=False),
+            Column("instrument_type", types.String, nullable=False),
+            Column("base_asset_reference", types.String, nullable=True),
+            Column("quote_asset_reference", types.String, nullable=True),
+            Column("settlement_asset_reference", types.String, nullable=True),
+            Column("underlying_asset_reference", types.String, nullable=True),
+            Column("staking_asset_reference", types.String, nullable=True),
+            Column("yielding_asset_reference", types.String, nullable=True),
+        )
+        if getattr(finance.Instrument, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                finance.Instrument, finance_instrument_table
+            )
+
+        finance_portfolio_table = Table(
+            "finance_portfolio",
+            self._metadata,
+            *get_base_columns(),
+            Column("name", types.String, nullable=False),
+            Column("description", types.String, nullable=True),
+        )
+        if getattr(finance.Portfolio, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                finance.Portfolio, finance_portfolio_table
+            )
+
+        finance_ledger_entry_table = Table(
+            "finance_ledger_entry",
+            self._metadata,
+            *get_base_columns(),
+            Column("portfolio_reference", types.String, nullable=False),
+            Column("instrument_reference", types.String, nullable=False),
+            Column("entry_type", types.String, nullable=False),
+            Column("source_type", types.String, nullable=False),
+            Column("quantity", types.Integer, nullable=False),
+            Column("price", types.Integer, nullable=False),
+            Column("entry_time", types.DateTime, nullable=False),
+        )
+        if getattr(finance.LedgerEntry, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                finance.LedgerEntry, finance_ledger_entry_table
+            )
+
+        finance_fee_entry_table = Table(
+            "finance_fee_entry",
+            self._metadata,
+            *get_base_columns(),
+            Column("ledger_entry_reference", types.String, nullable=False),
+            Column("fee_type", types.String, nullable=False),
+            Column("amount", types.Integer, nullable=False),
+            Column("asset_reference", types.String, nullable=False),
+        )
+        if getattr(finance.FeeEntry, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                finance.FeeEntry, finance_fee_entry_table
             )
 
         # financial_management_account_table = Table(

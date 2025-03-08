@@ -5,8 +5,8 @@ from apps.chore_master_api.end_user_space.mapper import Mapper
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.end_user_space.unit_of_works.financial_management import (
-    FinancialManagementSQLAlchemyUnitOfWork,
+from apps.chore_master_api.end_user_space.unit_of_works.identity import (
+    IdentitySQLAlchemyUnitOfWork,
 )
 from apps.chore_master_api.end_user_space.unit_of_works.integration import (
     IntegrationSQLAlchemyUnitOfWork,
@@ -74,8 +74,8 @@ async def get_finance_uow(
     return FinanceSQLAlchemyUnitOfWork(relational_database=end_user_db)
 
 
-async def get_financial_management_uow(
+async def get_identity_uow(
     end_user_db: RelationalDatabase = Depends(get_end_user_db),
     _end_user_db_registry: registry = Depends(get_end_user_db_registry),
-) -> FinancialManagementSQLAlchemyUnitOfWork:
-    return FinancialManagementSQLAlchemyUnitOfWork(relational_database=end_user_db)
+) -> IdentitySQLAlchemyUnitOfWork:
+    return IdentitySQLAlchemyUnitOfWork(relational_database=end_user_db)
