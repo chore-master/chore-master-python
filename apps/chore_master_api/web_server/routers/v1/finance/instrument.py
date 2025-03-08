@@ -22,12 +22,12 @@ class CreateInstrumentRequest(BaseCreateEntityRequest):
     quantity_decimals: int
     price_decimals: int
     instrument_type: Instrument.InstrumentTypeEnum
-    base_asset_reference: Optional[str]
-    quote_asset_reference: Optional[str]
-    settlement_asset_reference: Optional[str]
-    underlying_asset_reference: Optional[str]
-    staking_asset_reference: Optional[str]
-    yielding_asset_reference: Optional[str]
+    base_asset_reference: Optional[str] = None
+    quote_asset_reference: Optional[str] = None
+    settlement_asset_reference: Optional[str] = None
+    underlying_asset_reference: Optional[str] = None
+    staking_asset_reference: Optional[str] = None
+    yielding_asset_reference: Optional[str] = None
 
 
 class ReadInstrumentResponse(BaseQueryEntityResponse):
@@ -45,15 +45,6 @@ class ReadInstrumentResponse(BaseQueryEntityResponse):
 
 class UpdateInstrumentRequest(BaseUpdateEntityRequest):
     name: Optional[str] = None
-    quantity_decimals: Optional[int] = None
-    price_decimals: Optional[int] = None
-    instrument_type: Optional[Instrument.InstrumentTypeEnum] = None
-    base_asset_reference: Optional[str] = None
-    quote_asset_reference: Optional[str] = None
-    settlement_asset_reference: Optional[str] = None
-    underlying_asset_reference: Optional[str] = None
-    staking_asset_reference: Optional[str] = None
-    yielding_asset_reference: Optional[str] = None
 
 
 @router.get("/instruments")

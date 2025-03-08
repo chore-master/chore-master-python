@@ -51,12 +51,12 @@ class Instrument(Entity):
     quantity_decimals: int
     price_decimals: int
     instrument_type: InstrumentTypeEnum
-    base_asset_reference: Optional[str]
-    quote_asset_reference: Optional[str]
-    settlement_asset_reference: Optional[str]
-    underlying_asset_reference: Optional[str]
-    staking_asset_reference: Optional[str]
-    yielding_asset_reference: Optional[str]
+    base_asset_reference: Optional[str] = None
+    quote_asset_reference: Optional[str] = None
+    settlement_asset_reference: Optional[str] = None
+    underlying_asset_reference: Optional[str] = None
+    staking_asset_reference: Optional[str] = None
+    yielding_asset_reference: Optional[str] = None
 
 
 class Portfolio(Entity):
