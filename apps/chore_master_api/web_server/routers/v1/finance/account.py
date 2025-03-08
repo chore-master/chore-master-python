@@ -52,7 +52,9 @@ async def get_accounts(
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        statement = select(Account).order_by(Account.name.asc())
+        statement = select(Account).order_by(
+            Account.closed_time.asc().nulls_first(), Account.name.asc()
+        )
         if active_as_of_time is not None:
             active_as_of_time = active_as_of_time.replace(tzinfo=None)
             statement = statement.filter(
