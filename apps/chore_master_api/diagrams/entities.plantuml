@@ -1,25 +1,25 @@
 @startuml chore_master_entities
 
 !function $add($a)
-!return "<color:#00ff00>" + $a + "</color>"
+!return "<color:#87A96B>" + $a + "</color>"
 !endfunction
 
 !function $remove($a)
-!return "<color:#ff0000>" + $a + "</color>"
+!return "<color:#BA0021>" + $a + "</color>"
 !endfunction
 
 skinparam backgroundColor transparent
 skinparam linetype ortho
 
-package admin {
-  entity "Organization" {
+package identity {
+  entity "UserGroup" {
     * $add("reference: str <<PK>>")
     * $add("name: str")
   }
 
-  entity "EndUser" {
+  entity "User" {
     * $add("reference: str <<PK>>")
-    * $add("organization_reference: str <<FK>>")
+    * $add("user_group_reference: str <<FK>>")
     * $add("name: str")
   }
 }
@@ -27,40 +27,21 @@ package admin {
 package integration {
   entity "Resource" {
     * reference: str <<PK>>
-    * $add("organization_reference: str <<FK>>")
+    * $add("user_group_reference: str <<FK>>")
     * $remove("end_user_reference: str <<FK>>")
-    * discriminator: str = 'yahoo_finance_feed' $add("| 'node_manager'")
+    * discriminator: str \n = 'yahoo_finance_feed' $add("| 'node_manager'")
     * value: str
     --
     name: str
-    $add("end_user_reference: str <<FK>>")
+    $add("user_reference: str <<FK>>")
   }
 }
 
 package finance {
-  entity "Asset" {
-    * $remove("reference: str <<PK>>")
-    * $remove("name: str")
-    * $remove("symbol: str")
-    * $remove("decimals: int")
-    * $remove("is_settleable: bool")
-  }
-
-  entity "Instrument" {
-    * $add("reference: str <<PK>>")
-    * $add("name: str")
-    * $add("symbol: str")
-    * $add("quantity_decimals: int")
-    * $add("price_decimals: int")
-    * $add("is_settleable: bool")
-    * $add("type: str = 'cash' | 'equity' | 'future' | 'option' | 'fixed_income'")
-  }
-
   entity "Account" {
     * reference: str <<PK>>
-    * $add("end_user_reference: str <<FK>>")
-    * $remove("settlement_asset_reference: str <<FK>>")
-    * $add("settlement_instrument_reference: str <<FK>>")
+    * $add("user_reference: str <<FK>>")
+    * settlement_asset_reference: str <<FK>>
     * name: str
     * opened_time: datetime
     * ecosystem_type: str = 'TRAD_FI'
@@ -70,7 +51,7 @@ package finance {
 
   entity "BalanceSheet" {
     * reference: str <<PK>>
-    * $add("end_user_reference: str <<FK>>")
+    * $add("user_reference: str <<FK>>")
     * balanced_time: datetime
   }
 
@@ -83,36 +64,74 @@ package finance {
 
   entity "Portfolio" {
     * $add("reference: str <<PK>>")
-    * $add("end_user_reference: str <<FK>>")
+    * $add("user_reference: str <<FK>>")
     * $add("name: str")
-    * $add("started_time: datetime")
-    * $add("settlement_instrument_reference: str <<FK>>")
     --
     $add("description: str")
-    $add("ended_time: datetime")
   }
 
-  entity "Holding" { 
+  entity "Asset" {
+    * reference: str <<PK>>
+    * name: str
+    * symbol: str
+    * decimals: int
+    * is_settleable: bool
+  }
+
+  entity "Instrument" {
+    * $add("reference: str <<PK>>")
+    * $add("name: str")
+    * $add("quantity_decimals: int")
+    * $add("price_decimals: int")
+    * $add("instrument_type: str") \n $add(" = 'EQUITY' | 'FX' | 'EARNING'")
+    --
+    base_asset_reference: str <<FK>>
+    quote_asset_reference: str <<FK>>
+    settlement_asset_reference: str <<FK>>
+    underlying_asset_reference: str <<FK>>
+    staking_asset_reference: str <<FK>>
+    yielding_asset_reference: str <<FK>>
+  }
+
+  entity "LedgerEntry" {
     * $add("reference: str <<PK>>")
     * $add("portfolio_reference: str <<FK>>")
-    * $add("allocated_time: datetime")
+    * $add("instrument_reference: str <<FK>>")
+    * $add("entry_type: str") \n $add(" = 'BUY' | 'SELL'") \n $add(" | 'STAKE' | 'UNSTAKE'") \n $add(" | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND'") \n $add(" | 'FUNDING_FEE' | 'INTEREST_DEDUCT'")
+    * $add("source_type: str") \n $add(" = 'MANUAL' | 'MANAGED'")
+    * $add("quantity: int")
+    * $add("price: int")
+    * $add("entry_time: datetime")
   }
 
-  entity "HoldingEntry" {
+  entity "FeeEntry" {
+    * $add("reference: str <<PK>>")
+    * $add("ledger_entry_reference: str <<FK>>")
+    * $add("fee_type: str") \n $add(" = 'TRADE' | 'TAX' | 'GAS'")
+    * $add("amount: int")
+    * $add("asset_reference: str <<FK>>")
+  }
+
+  entity "IncomeStatementEntry" {
+    * $add("portfolio_reference: str <<FK>>")
+    * $add("entry_type: str") \n $add(" = 'CAPITAL_GAIN' | 'FEE'")
+    * $add("amount: int")
+    * $add("asset_reference: str <<FK>>")
+    * $add("settled_time: datetime")
+  }
+
+  entity "Holding" {
+    * $add("reference: str <<PK>>")
+    * $add("portfolio_reference: str <<FK>>")
+    * $add("held_time: datetime")
+  }
+
+  entity "HoldingEntry" { 
     * $add("reference: str <<PK>>")
     * $add("holding_reference: str <<FK>>")
     * $add("instrument_reference: str <<FK>>")
     * $add("quantity: int")
     * $add("average_cost_price: int")
-  }
-
-  entity "Settlement" {
-    * $add("reference: str <<PK>>")
-    * $add("portfolio_reference: str <<FK>>")
-    * $add("settled_time: datetime")
-    * $add("account_reference: str <<FK>>")
-    * $add("quantity_change: int")
-    * $add("instrument_reference: str <<FK>>")
   }
 }
 
@@ -121,23 +140,29 @@ package finance {
 'Zero or Many }o--
 'One or Many  }|--
 
-Organization ||--o{ EndUser
-Organization ||--o{ Resource
+UserGroup            ||--o{ User
+UserGroup            ||--o{ Resource
 
-EndUser      ||--o{ Resource
-EndUser      ||--o{ Account
-EndUser      ||--o{ BalanceSheet
-EndUser      ||--o{ Portfolio
+User                 ||--o{ Resource
+User                 ||--o{ Account
+User                 ||--o{ BalanceSheet
+User                 ||--o{ Portfolio
 
-BalanceSheet ||--o{ BalanceEntry: balance_entries
-BalanceEntry }o--|| Account
+BalanceSheet         ||--o{ BalanceEntry: balance_entries
+BalanceEntry         }o--|| Account
 
-Portfolio    }o--|| Instrument: settlement_instrument
-Portfolio    }o--|{ Instrument: instruments
-Portfolio    }o--o{ Holding: holdings
-Portfolio    ||--o{ Settlement: settlements
+Portfolio            ||--o{ LedgerEntry: ledger_entries
+Portfolio            ||--o{ IncomeStatementEntry: income_statement_entries
+Portfolio            ||--o{ Holding: holdings
 
-Holding ||--o{ HoldingEntry: holding_entries
-HoldingEntry }o--|| Instrument
+LedgerEntry          ||--o{ FeeEntry: fee_entries
+LedgerEntry          }o--|| Instrument
+Instrument           }o--o{ Asset: xxx_asset
+FeeEntry             }o--|| Asset
+
+IncomeStatementEntry }o--|| Asset
+
+Holding              ||--o{ HoldingEntry: holding_entries
+HoldingEntry         }o--|| Instrument
 
 @enduml
