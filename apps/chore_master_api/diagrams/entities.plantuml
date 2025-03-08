@@ -12,14 +12,8 @@ skinparam backgroundColor transparent
 skinparam linetype ortho
 
 package identity {
-  entity "UserGroup" {
-    * $add("reference: str <<PK>>")
-    * $add("name: str")
-  }
-
   entity "User" {
     * $add("reference: str <<PK>>")
-    * $add("user_group_reference: str <<FK>>")
     * $add("name: str")
   }
 }
@@ -27,13 +21,12 @@ package identity {
 package integration {
   entity "Resource" {
     * reference: str <<PK>>
-    * $add("user_group_reference: str <<FK>>")
     * $remove("end_user_reference: str <<FK>>")
+    * $add("user_reference: str <<FK>>")
     * discriminator: str \n = 'yahoo_finance_feed' $add("| 'node_manager'")
     * value: str
     --
     name: str
-    $add("user_reference: str <<FK>>")
   }
 }
 
@@ -141,9 +134,6 @@ package finance {
 'Zero or Many }o--
 'One or Many  }|--
 
-UserGroup            ||--o{ User
-UserGroup            ||--o{ Resource
-
 User                 ||--o{ Resource
 User                 ||--o{ Account
 User                 ||--o{ BalanceSheet
@@ -151,6 +141,8 @@ User                 ||--o{ Portfolio
 
 BalanceSheet         ||--o{ BalanceEntry: balance_entries
 BalanceEntry         }o--|| Account
+
+Account              }o--|| Asset: settlement_asset
 
 Portfolio            ||--o{ LedgerEntry: ledger_entries
 Portfolio            ||--o{ IncomeStatementEntry: income_statement_entries
