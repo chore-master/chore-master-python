@@ -97,7 +97,7 @@ package finance {
     * $add("reference: str <<PK>>")
     * $add("portfolio_reference: str <<FK>>")
     * $add("instrument_reference: str <<FK>>")
-    * $add("entry_type: str") \n $add(" = 'BUY' | 'SELL'") \n $add(" | 'STAKE' | 'UNSTAKE'") \n $add(" | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND'") \n $add(" | 'FUNDING_FEE' | 'INTEREST_DEDUCT'")
+    * $add("entry_type: str") \n $add(" = 'BUY' | 'SELL'") \n $add(" | 'STAKE' | 'UNSTAKE'") \n $add(" | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND'") \n $add(" | 'FUNDING_FEE' | 'INTEREST'")
     * $add("source_type: str") \n $add(" = 'MANUAL' | 'MANAGED'")
     * $add("quantity: int")
     * $add("price: int")
@@ -113,8 +113,9 @@ package finance {
   }
 
   entity "IncomeStatementEntry" {
+    * $add("reference: str <<PK>>")
     * $add("portfolio_reference: str <<FK>>")
-    * $add("entry_type: str") \n $add(" = 'CAPITAL_GAIN' | 'FEE'")
+    * $add("entry_type: str") \n $add(" = 'CAPITAL_GAIN'") \n $add(" | 'CASH_DIVIDEND'") \n $add(" | 'STAKING_YIELD'") \n $add(" | 'FUNDING_FEE'") \n $add(" | 'TRADE_FEE' | 'TAX_FEE' | 'GAS_FEE'")
     * $add("amount: int")
     * $add("asset_reference: str <<FK>>")
     * $add("settled_time: datetime")
