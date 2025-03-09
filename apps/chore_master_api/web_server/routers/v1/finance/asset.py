@@ -43,6 +43,7 @@ class UpdateAssetRequest(BaseUpdateEntityRequest):
 @router.get("/assets")
 async def get_assets(
     search: Annotated[Optional[str], Query()] = None,
+    references: Annotated[Optional[list[str]], Query()] = None,
     is_settleable: Annotated[Optional[bool], Query()] = None,
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
@@ -57,6 +58,8 @@ async def get_assets(
                     Asset.symbol.ilike(f"%{search}%"),
                 )
             )
+        if references is not None:
+            statement = statement.filter(Asset.reference.in_(references))
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
         return ResponseSchema[list[ReadAssetResponse]](
