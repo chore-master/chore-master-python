@@ -1,18 +1,28 @@
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path
+from sqlalchemy import func
+from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Instrument
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
 from apps.chore_master_api.web_server.dependencies.end_user_space import get_finance_uow
+from apps.chore_master_api.web_server.dependencies.pagination import (
+    get_offset_pagination,
+)
+from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
 )
 from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
-from modules.web_server.schemas.response import ResponseSchema, StatusEnum
+from modules.web_server.schemas.response import (
+    MetadataSchema,
+    ResponseSchema,
+    StatusEnum,
+)
 
 router = APIRouter()
 
@@ -49,13 +59,27 @@ class UpdateInstrumentRequest(BaseUpdateEntityRequest):
 
 @router.get("/instruments")
 async def get_instruments(
+    offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        filter = {}
-        entities = await uow.instrument_repository.find_many(filter=filter)
+        count_statement = select(func.count()).select_from(Instrument)
+        count = await uow.session.scalar(count_statement)
+        metadata = MetadataSchema(
+            offset_pagination=MetadataSchema.OffsetPagination(count=count)
+        )
+        statement = (
+            select(Instrument)
+            .order_by(Instrument.created_time.desc())
+            .offset(offset_pagination.offset)
+            .limit(offset_pagination.limit)
+        )
+        result = await uow.session.execute(statement)
+        instruments = result.scalars().unique().all()
         return ResponseSchema[list[ReadInstrumentResponse]](
-            status=StatusEnum.SUCCESS, data=[entity.model_dump() for entity in entities]
+            status=StatusEnum.SUCCESS,
+            data=[entity.model_dump() for entity in instruments],
+            metadata=metadata,
         )
 
 
