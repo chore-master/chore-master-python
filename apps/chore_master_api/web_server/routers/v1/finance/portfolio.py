@@ -60,10 +60,10 @@ async def get_portfolios(
             .limit(offset_pagination.limit)
         )
         result = await uow.session.execute(statement)
-        portfolios = result.scalars().unique().all()
+        entities = result.scalars().unique().all()
         return ResponseSchema[list[ReadPortfolioResponse]](
             status=StatusEnum.SUCCESS,
-            data=[entity.model_dump() for entity in portfolios],
+            data=[entity.model_dump() for entity in entities],
             metadata=metadata,
         )
 

@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path, Query
 from pydantic import ConfigDict
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Account
@@ -11,12 +11,20 @@ from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
 from apps.chore_master_api.web_server.dependencies.end_user_space import get_finance_uow
+from apps.chore_master_api.web_server.dependencies.pagination import (
+    get_offset_pagination,
+)
+from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
 )
 from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
-from modules.web_server.schemas.response import ResponseSchema, StatusEnum
+from modules.web_server.schemas.response import (
+    MetadataSchema,
+    ResponseSchema,
+    StatusEnum,
+)
 
 router = APIRouter()
 
@@ -49,11 +57,20 @@ class UpdateAccountRequest(BaseUpdateEntityRequest):
 @router.get("/accounts")
 async def get_accounts(
     active_as_of_time: Annotated[Optional[datetime], Query()] = None,
+    offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        statement = select(Account).order_by(
-            Account.closed_time.desc().nulls_first(), Account.name.desc()
+        count_statement = select(func.count()).select_from(Account)
+        count = await uow.session.scalar(count_statement)
+        metadata = MetadataSchema(
+            offset_pagination=MetadataSchema.OffsetPagination(count=count)
+        )
+        statement = (
+            select(Account)
+            .order_by(Account.closed_time.desc().nulls_first(), Account.name.desc())
+            .offset(offset_pagination.offset)
+            .limit(offset_pagination.limit)
         )
         if active_as_of_time is not None:
             active_as_of_time = active_as_of_time.replace(tzinfo=None)
@@ -71,6 +88,7 @@ async def get_accounts(
         return ResponseSchema[list[ReadAccountResponse]](
             status=StatusEnum.SUCCESS,
             data=[entity.model_dump() for entity in entities],
+            metadata=metadata,
         )
 
 
