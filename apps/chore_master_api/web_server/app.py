@@ -15,6 +15,7 @@ from apps.chore_master_api.web_server.dependencies.end_user_space import (
 from apps.chore_master_api.web_server.routers import router as base_router
 from modules.base.config import get_base_config
 from modules.base.schemas.system import BaseConfigSchema
+from modules.database.relational_database import RelationalDatabase
 from modules.web_server.base_fastapi import BaseFastAPI
 
 
@@ -25,7 +26,9 @@ def get_app(base_config: Optional[BaseConfigSchema] = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        chore_master_db = await get_end_user_db(chore_master_api_web_server_config)
+        chore_master_db = RelationalDatabase(
+            chore_master_api_web_server_config.DATABASE_ORIGIN
+        )
         chore_master_db_registry = await get_end_user_db_registry(
             chore_master_api_web_server_config
         )

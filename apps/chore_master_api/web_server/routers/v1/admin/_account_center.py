@@ -7,10 +7,10 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, RootModel
 from sqlalchemy.orm import registry
 
-from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
-from apps.chore_master_api.web_server.dependencies.database import (
+from apps.chore_master_api.web_server.dependencies._database import (
     get_chore_master_api_db,
 )
+from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
 from apps.chore_master_api.web_server.dependencies.end_user_space import (
     get_end_user_db,
     get_end_user_db_migration,

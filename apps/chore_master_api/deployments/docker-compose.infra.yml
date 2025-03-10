@@ -1,20 +1,20 @@
-name: chore_master_infra
-services:
-  chore_master_mongodb_replica_set:
-    container_name: chore_master_mongodb_replica_set
-    command: mongod --port 27088 --replSet rs0
-    healthcheck:
-      test: |
-        mongosh --port 27088 --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27088' }] }).ok }"
-      start_period: 0s
-      interval: 60000ms
-      timeout: 5s
-      retries: 5
-    image: mongo:7
-    ports:
-      - 27088:27088
-    volumes:
-      - chore_master_mongo_volume:/data/db
+# name: chore_master_infra
+# services:
+#   chore_master_mongodb_replica_set:
+#     container_name: chore_master_mongodb_replica_set
+#     command: mongod --port 27088 --replSet rs0
+#     healthcheck:
+#       test: |
+#         mongosh --port 27088 --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27088' }] }).ok }"
+#       start_period: 0s
+#       interval: 60000ms
+#       timeout: 5s
+#       retries: 5
+#     image: mongo:7
+#     ports:
+#       - 27088:27088
+#     volumes:
+#       - chore_master_mongo_volume:/data/db
 
-volumes:
-  chore_master_mongo_volume:
+# volumes:
+#   chore_master_mongo_volume:

@@ -8,7 +8,6 @@ import jwt
 from fastapi import APIRouter, Depends, Header, Query, Response
 from fastapi.responses import RedirectResponse
 from httpx import AsyncClient
-from pydantic import BaseModel
 
 from apps.chore_master_api.config import get_chore_master_api_web_server_config
 from apps.chore_master_api.web_server.dependencies.database import (
@@ -18,7 +17,6 @@ from apps.chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
 )
 from modules.database.async_mongo_client import AsyncMongoDB
-from modules.utils.string_utils import StringUtils
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter()
@@ -30,85 +28,6 @@ required_google_scopes = [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/spreadsheets",
 ]
-
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
-@router.post("/auth/login")
-async def post_auth_login(
-    login_request: LoginRequest,
-    response: Response,
-    user_agent: Optional[str] = Header(default=None),
-    chore_master_api_web_server_config: ChoreMasterAPIWebServerConfigSchema = Depends(
-        get_chore_master_api_web_server_config
-    ),
-    chore_master_api_db: AsyncMongoDB = Depends(get_chore_master_api_db),
-):
-    end_user_collection = chore_master_api_db.get_collection("end_user")
-    end_user_session_collection = chore_master_api_db.get_collection("end_user_session")
-    end_user = await end_user_collection.find_one({"email": login_request.email})
-    utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
-    if end_user is None:
-        end_user_reference = StringUtils.new_short_id(length=8)
-        end_user_dict = {
-            "reference": end_user_reference,
-            "created_time": utc_now,
-            "email": login_request.email,
-            "password": login_request.password,
-        }
-        await end_user_collection.insert_one(end_user_dict)
-    else:
-        end_user_reference = end_user["reference"]
-    active_end_user_session = await end_user_session_collection.find_one(
-        {
-            "end_user_reference": end_user_reference,
-            "is_active": True,
-            "expired_time": {"$gt": utc_now},
-        }
-    )
-    await end_user_session_collection.update_many(
-        {
-            "end_user_reference": end_user_reference,
-            "expired_time": {"$lt": utc_now},
-        },
-        {
-            "$set": {
-                "is_active": False,
-                "deactivated_time": utc_now,
-            }
-        },
-    )
-    if active_end_user_session is None:
-        end_user_session_reference = StringUtils.new_short_id(length=5)
-        end_user_session_ttl = timedelta(days=14)
-        end_user_session_dict = {
-            "reference": end_user_session_reference,
-            "end_user_reference": end_user_reference,
-            "user_agent": user_agent,
-            "is_active": True,
-            "expired_time": utc_now + end_user_session_ttl,
-            "created_time": utc_now,
-            "deactivated_time": None,
-        }
-        end_user_session_collection.insert_one(end_user_session_dict)
-    else:
-        end_user_session_reference = active_end_user_session["reference"]
-        end_user_session_ttl = (
-            active_end_user_session["expired_time"].replace(tzinfo=timezone.utc)
-            - utc_now
-        )
-    response.set_cookie(
-        key=chore_master_api_web_server_config.SESSION_COOKIE_KEY,
-        value=end_user_session_reference,
-        domain=chore_master_api_web_server_config.SESSION_COOKIE_DOMAIN,
-        httponly=True,
-        samesite="lax",
-        max_age=end_user_session_ttl.total_seconds(),
-    )
-    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
 @router.get("/auth/google/authorize")
