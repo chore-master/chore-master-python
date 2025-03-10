@@ -1,0 +1,5 @@
+OP,reference,created_time,updated_time,name,user_reference,symbol,decimals,is_settleable
+INSERT,yRLSZ6Vt,2025-01-01T00:00:00Z,2025-01-01T00:00:00Z,新台幣,user_cp,TWD,0,true
+INSERT,VVrWhwsU,2025-01-01T00:00:00Z,2025-01-01T00:00:00Z,美元,user_cp,USD,2,true
+INSERT,DRmXRPBq,2025-01-01T00:00:00Z,2025-01-01T00:00:00Z,日幣,user_cp,JPY,0,true
+INSERT,wZ2mo9XD,2025-01-01T00:00:00Z,2025-01-01T00:00:00Z,歐元,user_cp,EUR,0,true
