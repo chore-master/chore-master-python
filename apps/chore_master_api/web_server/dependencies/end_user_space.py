@@ -1,6 +1,7 @@
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.orm import registry
 
+from apps.chore_master_api.config import get_chore_master_api_web_server_config
 from apps.chore_master_api.end_user_space.mapper import Mapper
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
@@ -14,29 +15,24 @@ from apps.chore_master_api.end_user_space.unit_of_works.integration import (
 from apps.chore_master_api.end_user_space.unit_of_works.some_module import (
     SomeModuleSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
+from apps.chore_master_api.web_server.schemas.config import (
+    ChoreMasterAPIWebServerConfigSchema,
+)
 from modules.database.relational_database import RelationalDatabase, SchemaMigration
-from modules.web_server.exceptions import BadRequestError
 
 
-async def get_end_user_db(
-    current_end_user: dict = Depends(get_current_end_user),
-) -> RelationalDatabase:
-    core_dict = current_end_user.get("core", {})
-    relational_database_dict = core_dict.get("relational_database", {})
-    origin = relational_database_dict.get("origin")
-    if origin is None:
-        raise BadRequestError("End user database is not set")
-    return RelationalDatabase(origin)
+async def get_end_user_db(request: Request) -> RelationalDatabase:
+    return request.app.state.chore_master_db
 
 
 async def get_end_user_db_registry(
-    current_end_user: dict = Depends(get_current_end_user),
+    chore_master_api_web_server_config: ChoreMasterAPIWebServerConfigSchema = Depends(
+        get_chore_master_api_web_server_config
+    ),
 ) -> registry:
-    core_dict = current_end_user.get("core", {})
-    relational_database_dict = core_dict.get("relational_database", {})
-    schema_name = relational_database_dict.get("schema_name")
-    metadata = RelationalDatabase.create_metadata(schema_name=schema_name)
+    metadata = RelationalDatabase.create_metadata(
+        schema_name=chore_master_api_web_server_config.DATABASE_SCHEMA_NAME
+    )
     end_user_db_registry = RelationalDatabase.create_mapper_registry(metadata=metadata)
     Mapper(end_user_db_registry).map_models_to_tables()
     return end_user_db_registry

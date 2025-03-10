@@ -12,6 +12,6 @@ async def get_users_me(current_user: User = Depends(get_current_end_user)):
     return ResponseSchema[dict](
         status=StatusEnum.SUCCESS,
         data={
-            "username": current_user.username,
+            "name": current_user.name,
         },
     )
