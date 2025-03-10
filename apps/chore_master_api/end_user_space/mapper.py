@@ -41,9 +41,36 @@ class Mapper:
             self._metadata,
             *get_base_columns(),
             Column("name", types.String, nullable=False),
+            Column("username", types.String, nullable=False),
+            Column("password", types.String, nullable=False),
         )
         if getattr(identity.User, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(identity.User, identity_user_table)
+
+        identity_user_session_table = Table(
+            "identity_user_session",
+            self._metadata,
+            *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
+            Column("user_agent", types.String, nullable=False),
+            Column("is_active", types.Boolean, nullable=False),
+            Column("expired_time", types.DateTime, nullable=False),
+            Column("deactivated_time", types.DateTime, nullable=True),
+        )
+        if getattr(identity.UserSession, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                identity.UserSession,
+                identity_user_session_table,
+                properties={
+                    "user": relationship(
+                        "User",
+                        foreign_keys=[
+                            identity_user_session_table.columns.user_reference
+                        ],
+                        primaryjoin="UserSession.user_reference == User.reference",
+                    )
+                },
+            )
 
         integration_resource_table = Table(
             "integration_resource",

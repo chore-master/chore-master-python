@@ -8,8 +8,10 @@ class IdentitySQLAlchemyUnitOfWork(BaseSQLAlchemyUnitOfWork):
     async def __aenter__(self) -> IdentitySQLAlchemyUnitOfWork:
         await super().__aenter__()
         self.user_repository = identity.UserRepository(self.session)
+        self.user_session_repository = identity.UserSessionRepository(self.session)
         return self
 
     async def __aexit__(self, *args):
+        self.user_session_repository = None
         self.user_repository = None
         await super().__aexit__(*args)
