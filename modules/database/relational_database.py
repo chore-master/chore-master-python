@@ -1,6 +1,10 @@
+import json
 import os
-from typing import Optional
+from datetime import datetime
+from decimal import Decimal
+from typing import BinaryIO, Optional
 
+import pandas as pd
 from alembic import command
 from alembic.config import Config
 from alembic.runtime.environment import EnvironmentContext
@@ -224,3 +228,143 @@ class SchemaMigration:
     def downgrade(self, metadata: MetaData, revision: str = "-1"):
         alembic_cfg = self.create_alembic_config(metadata)
         command.downgrade(alembic_cfg, revision)
+
+
+class DataMigration:
+    def __init__(self, database: RelationalDatabase, registry: registry):
+        self._db = database
+        self._registry = registry
+
+    async def import_file_descriptors(self, file_descriptors: list[BinaryIO]):
+        schema_name = self._registry.metadata.schema
+        async_session = self._db.get_async_session()
+        async with async_session() as session:
+            for file in file_descriptors:
+                file_name = file.name.split("/")[-1]
+                table_name, _ = os.path.splitext(file_name)
+                full_table_name = (
+                    table_name if schema_name is None else f"{schema_name}.{table_name}"
+                )
+                table = self._registry.metadata.tables[full_table_name]
+                # pk_columns = [col.name for col in table.primary_key.columns]
+                column_name_to_type_map = {
+                    column.name: column.type for column in table.columns
+                }
+                df = pd.read_csv(file, dtype=str, keep_default_na=False)
+                insert_statements = []
+                update_statements = []
+                delete_statements = []
+                for i, row in enumerate(df.itertuples(index=False)):
+                    # if getattr(row, "reference", "") == "":
+                    #     raise BadRequestError(
+                    #         f"Value is required at table `{table_name}`, column `reference`, row `{i}`"
+                    #     )
+                    op = getattr(row, "OP", "")
+                    op_reference = getattr(row, "OP_REFERENCE", "")
+                    row_dict = row._asdict()
+                    row_dict.pop("OP")
+                    row_dict.pop("OP_REFERENCE", None)
+                    entity_dict = cast_row_dict_to_entity_dict(
+                        row_dict, column_name_to_type_map
+                    )
+                    if op == "INSERT":
+                        insert_statements.append(table.insert().values(entity_dict))
+                    elif op == "UPDATE":
+                        if op_reference == "":
+                            raise ValueError(
+                                f"Value is required at table `{table_name}`, column `OP_REFERENCE`, row `{i}`"
+                            )
+                        # conditions = []
+                        # for pk_column in pk_columns:
+                        #     pk_value = entity_dict.pop(pk_column)
+                        #     conditions.append(table.c[pk_column] == pk_value)
+                        # condition = and_(*conditions)
+                        condition = table.c["reference"] == op_reference
+                        update_statements.append(
+                            table.update().where(condition).values(entity_dict)
+                        )
+                    elif op == "DELETE":
+                        if op_reference == "":
+                            raise ValueError(
+                                f"Value is required at table `{table_name}`, column `OP_REFERENCE`, row `{i}`"
+                            )
+                        # conditions = []
+                        # for pk_column in pk_columns:
+                        #     pk_value = entity_dict.pop(pk_column)
+                        #     conditions.append(table.c[pk_column] == pk_value)
+                        # condition = and_(*conditions)
+                        condition = table.c["reference"] == op_reference
+                        delete_statements.append(table.delete().where(condition))
+                """
+                Debug with following expression:
+                `str(statement.compile(compile_kwargs={"literal_binds": True}))`
+                """
+                try:
+                    for statement in insert_statements:
+                        await session.execute(statement)
+                    for statement in update_statements:
+                        await session.execute(statement)
+                    for statement in delete_statements:
+                        await session.execute(statement)
+                    await session.commit()
+                except Exception as e:
+                    await session.rollback()
+                    raise ValueError(f"Failed to import data: {e}")
+
+
+def cast_row_dict_to_entity_dict(row_dict: dict, column_name_to_type_map: dict) -> dict:
+    entity_dict = {}
+    for column_name, raw_value in row_dict.items():
+        column_type = column_name_to_type_map[column_name]
+        if isinstance(column_type, types.Boolean):
+            if raw_value.lower() in [
+                "true",
+                "1",
+                "t",
+                "y",
+                "yes",
+                "on",
+                "enable",
+                "enabled",
+                "active",
+                "enabled",
+            ]:
+                entity_dict[column_name] = True
+            elif raw_value.lower() in [
+                "false",
+                "0",
+                "f",
+                "n",
+                "no",
+                "off",
+                "disable",
+                "disabled",
+                "inactive",
+                "disabled",
+            ]:
+                entity_dict[column_name] = False
+            else:
+                raise ValueError(
+                    f"Invalid value for boolean column `{column_name}`: {raw_value}"
+                )
+        elif isinstance(column_type, types.Integer):
+            entity_dict[column_name] = int(raw_value)
+        elif isinstance(column_type, types.Float):
+            entity_dict[column_name] = float(raw_value)
+        elif isinstance(column_type, types.DateTime):
+            try:
+                iso_string = raw_value.replace("Z", "")
+                entity_dict[column_name] = datetime.fromisoformat(iso_string)
+            except ValueError as e:
+                entity_dict[column_name] = None
+        elif isinstance(column_type, types.String):
+            entity_dict[column_name] = str(raw_value)
+        elif isinstance(column_type, types.Text):
+            entity_dict[column_name] = str(raw_value)
+        elif isinstance(column_type, types.JSON):
+            entity_dict[column_name] = json.loads(raw_value)
+        elif isinstance(column_type, types.DECIMAL):
+            entity_dict[column_name] = Decimal(raw_value)
+        else:
+            raise TypeError(f"Unsupported column type: {column_type}")
+    return entity_dict

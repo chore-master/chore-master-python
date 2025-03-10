@@ -6,8 +6,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.chore_master_api.config import get_chore_master_api_web_server_config
-from apps.chore_master_api.web_server.dependencies.database import (
-    get_chore_master_api_mongo_client,
+from apps.chore_master_api.service_layers.onboarding import ensure_system_initialized
+from apps.chore_master_api.web_server.dependencies.end_user_space import (
+    get_end_user_db,
+    get_end_user_db_migration,
+    get_end_user_db_registry,
 )
 from apps.chore_master_api.web_server.routers import router as base_router
 from modules.base.config import get_base_config
@@ -22,12 +25,19 @@ def get_app(base_config: Optional[BaseConfigSchema] = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        async for chore_master_api_mongo_client in get_chore_master_api_mongo_client(
+        chore_master_db = await get_end_user_db(chore_master_api_web_server_config)
+        chore_master_db_registry = await get_end_user_db_registry(
             chore_master_api_web_server_config
-        ):
-            app.state.chore_master_api_mongo_client = chore_master_api_mongo_client
-            app.state.mutex = asyncio.Lock()
-            yield
+        )
+        chore_master_db_migration = await get_end_user_db_migration(chore_master_db)
+        await ensure_system_initialized(
+            chore_master_db=chore_master_db,
+            chore_master_db_registry=chore_master_db_registry,
+            chore_master_db_migration=chore_master_db_migration,
+        )
+        app.state.chore_master_db = chore_master_db
+        app.state.mutex = asyncio.Lock()
+        yield
 
     app = BaseFastAPI(
         base_config=base_config,
