@@ -13,12 +13,11 @@
             "cwd": "${workspaceRoot}",
             "justMyCode": false,
             "env": {
+                "PYDEVD_DISABLE_FILE_VALIDATION": "1",
                 "ENV": "local",
                 "SERVICE_NAME": "chore_master_api",
                 "COMPONENT_NAME": "web_server",
-                "MONGODB_URI": "mongodb://localhost:27088",
-                "GOOGLE_OAUTH_CLIENT_ID": "<GOOGLE_OAUTH_CLIENT_ID>",
-                "GOOGLE_OAUTH_SECRET": "<GOOGLE_OAUTH_SECRET>",
+                "DATABASE_URL": "sqlite+aiosqlite:///./local.db",
             }
         },
         {

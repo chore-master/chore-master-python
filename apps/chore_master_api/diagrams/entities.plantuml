@@ -15,6 +15,18 @@ package identity {
   entity "User" {
     * reference: str <<PK>>
     * name: str
+    * username: str
+    * password: str
+  }
+  
+  entity "UserSession" {
+    * reference: str <<PK>>
+    * user_reference: str <<FK>>
+    * user_agent: str
+    * is_active: bool
+    * expired_time: datetime
+    --
+    deactivated_time: datetime
   }
 }
 
@@ -134,6 +146,7 @@ package finance {
 'Zero or Many }o--
 'One or Many  }|--
 
+User                 ||--o{ UserSession
 User                 ||--o{ Resource
 User                 ||--o{ Account
 User                 ||--o{ BalanceSheet
