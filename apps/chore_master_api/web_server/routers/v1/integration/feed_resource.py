@@ -12,13 +12,13 @@ from apps.chore_master_api.modules.feed_discriminated_resource import (
     FeedDiscriminatedResource,
     IntervalEnum,
 )
-from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
+from apps.chore_master_api.web_server.dependencies.auth import get_current_user
 from apps.chore_master_api.web_server.dependencies.end_user_space import (
     get_integration_uow,
 )
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
-router = APIRouter(prefix="/end_users/me")
+router = APIRouter(prefix="/users/me")
 
 
 class FetchPricesRequest(BaseModel):
@@ -35,13 +35,13 @@ async def post_resources_resource_reference_feed_fetch_prices(
     resource_reference: Annotated[str, Path()],
     fetch_prices_request: FetchPricesRequest,
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_end_user: User = Depends(get_current_end_user),
+    current_user: User = Depends(get_current_user),
 ):
     async with uow:
         resource = await uow.resource_repository.find_one(
             filter={
                 "reference": resource_reference,
-                "end_user_reference": current_end_user.reference,
+                "user_reference": current_user.reference,
             }
         )
         feed_resource: FeedDiscriminatedResource = resource.to_discriminated_resource()

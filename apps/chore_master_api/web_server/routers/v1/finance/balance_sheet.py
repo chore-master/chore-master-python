@@ -11,9 +11,11 @@ from apps.chore_master_api.end_user_space.models.finance import (
     BalanceEntry,
     BalanceSheet,
 )
+from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
+from apps.chore_master_api.web_server.dependencies.auth import get_current_user
 from apps.chore_master_api.web_server.dependencies.end_user_space import get_finance_uow
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
@@ -25,6 +27,7 @@ from apps.chore_master_api.web_server.schemas.request import (
 )
 from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
 from modules.utils.string_utils import StringUtils
+from modules.web_server.exceptions import NotFoundError
 from modules.web_server.schemas.response import (
     MetadataSchema,
     ResponseSchema,
@@ -65,12 +68,17 @@ class UpdateBalanceSheetRequest(BaseUpdateEntityRequest):
     balance_entries: list[UpdateBalanceEntryRequest]
 
 
-@router.get("/balance_sheets")
-async def get_balance_sheets(
+@router.get("/users/me/balance_sheets")
+async def get_users_me_balance_sheets(
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        statement = select(BalanceSheet).order_by(BalanceSheet.balanced_time.desc())
+        statement = (
+            select(BalanceSheet)
+            .filter_by(user_reference=current_user.reference)
+            .order_by(BalanceSheet.balanced_time.desc())
+        )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
         return ResponseSchema[list[ReadBalanceSheetSummaryResponse]](
@@ -79,14 +87,16 @@ async def get_balance_sheets(
         )
 
 
-@router.post("/balance_sheets")
-async def post_balance_sheets(
+@router.post("/users/me/balance_sheets")
+async def post_users_me_balance_sheets(
     create_entity_request: CreateBalanceSheetRequest,
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     balance_sheet_reference = StringUtils.new_short_id(8)
     entity_dict = {
         "reference": balance_sheet_reference,
+        "user_reference": current_user.reference,
     }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
     async with uow:
@@ -106,19 +116,25 @@ async def post_balance_sheets(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/balance_sheets/series")
-async def get_balance_sheets_series(
+@router.get("/users/me/balance_sheets/series")
+async def get_users_me_balance_sheets_series(
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+    current_user: User = Depends(get_current_user),
 ):
     async with uow:
-        count_statement = select(func.count()).select_from(BalanceSheet)
+        count_statement = (
+            select(func.count())
+            .select_from(BalanceSheet)
+            .filter_by(user_reference=current_user.reference)
+        )
         count = await uow.session.scalar(count_statement)
         metadata = MetadataSchema(
             offset_pagination=MetadataSchema.OffsetPagination(count=count)
         )
         statement = (
             select(BalanceSheet)
+            .filter_by(user_reference=current_user.reference)
             .order_by(BalanceSheet.balanced_time.desc())
             .offset(offset_pagination.offset)
             .limit(offset_pagination.limit)
@@ -142,13 +158,6 @@ async def get_balance_sheets_series(
         result = await uow.session.execute(statement)
         accounts = result.scalars().unique().all()
 
-        # asset_reference_set = {
-        #     account.settlement_asset_reference for account in accounts
-        # }
-        # statement = select(Asset).filter(Asset.reference.in_(asset_reference_set))
-        # result = await uow.session.execute(statement)
-        # assets = result.scalars().unique().all()
-
         return ResponseSchema[dict](
             status=StatusEnum.SUCCESS,
             data={
@@ -166,9 +175,10 @@ async def get_balance_sheets_series(
         )
 
 
-@router.get("/balance_sheets/{balance_sheet_reference}")
-async def get_balance_sheets_balance_sheet_reference(
+@router.get("/users/me/balance_sheets/{balance_sheet_reference}")
+async def get_users_me_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
@@ -176,6 +186,7 @@ async def get_balance_sheets_balance_sheet_reference(
             select(BalanceSheet)
             .filter_by(
                 reference=balance_sheet_reference,
+                user_reference=current_user.reference,
             )
             .options(
                 joinedload(BalanceSheet.balance_entries),
@@ -194,10 +205,11 @@ async def get_balance_sheets_balance_sheet_reference(
         )
 
 
-@router.put("/balance_sheets/{balance_sheet_reference}")
-async def put_balance_sheets_balance_sheet_reference(
+@router.put("/users/me/balance_sheets/{balance_sheet_reference}")
+async def put_users_me_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
     update_entity_request: UpdateBalanceSheetRequest,
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     update_entity_dict = update_entity_request.model_dump(
@@ -221,17 +233,23 @@ async def put_balance_sheets_balance_sheet_reference(
             balance_entry = BalanceEntry(**balance_entry_dict)
             balance_entries.append(balance_entry)
         await uow.balance_entry_repository.insert_many(balance_entries)
-        await uow.balance_sheet_repository.update_many(
+        update_result = await uow.balance_sheet_repository.update_many(
             values=update_entity_dict,
-            filter={"reference": balance_sheet_reference},
+            filter={
+                "reference": balance_sheet_reference,
+                "user_reference": current_user.reference,
+            },
         )
+        if update_result.rowcount == 0:
+            raise NotFoundError("Balance sheet not found")
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/balance_sheets/{balance_sheet_reference}")
-async def delete_balance_sheets_balance_sheet_reference(
+@router.delete("/users/me/balance_sheets/{balance_sheet_reference}")
+async def delete_users_me_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
@@ -240,8 +258,14 @@ async def delete_balance_sheets_balance_sheet_reference(
                 "balance_sheet_reference": balance_sheet_reference,
             }
         )
-        await uow.balance_sheet_repository.delete_many(
-            filter={"reference": balance_sheet_reference}, limit=1
+        delete_result = await uow.balance_sheet_repository.delete_many(
+            filter={
+                "reference": balance_sheet_reference,
+                "user_reference": current_user.reference,
+            },
+            limit=1,
         )
+        if delete_result.rowcount == 0:
+            raise NotFoundError("Balance sheet not found")
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
