@@ -13,5 +13,13 @@ async def get_users_me(current_user: User = Depends(get_current_end_user)):
         status=StatusEnum.SUCCESS,
         data={
             "name": current_user.name,
+            "user_roles": [
+                {
+                    "role": {
+                        "symbol": user_role.role.symbol,
+                    }
+                }
+                for user_role in current_user.user_roles
+            ],
         },
     )

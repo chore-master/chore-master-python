@@ -39,19 +39,19 @@ async def post_user_sessions_login(
 ):
     utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
     async with identity_uow:
-        end_users = await identity_uow.user_repository.find_many(
+        users = await identity_uow.user_repository.find_many(
             filter={
                 "username": login_request.username,
                 "password": login_request.password,
             },
             limit=1,
         )
-        end_user = next(iter(end_users), None)
-        if end_user is None:
-            end_user_reference = StringUtils.new_short_id(length=8)
+        user = next(iter(users), None)
+        if user is None:
+            user_reference = StringUtils.new_short_id(length=8)
             await identity_uow.user_repository.insert_one(
                 User(
-                    reference=end_user_reference,
+                    reference=user_reference,
                     created_time=utc_now,
                     name=login_request.username,
                     username=login_request.username,
@@ -59,21 +59,21 @@ async def post_user_sessions_login(
                 )
             )
         else:
-            end_user_reference = end_user.reference
+            user_reference = user.reference
 
         statement = select(UserSession).filter(
-            UserSession.user_reference == end_user_reference,
+            UserSession.user_reference == user_reference,
             UserSession.is_active == True,
             UserSession.expired_time > utc_now,
         )
         result = await identity_uow.session.execute(statement)
-        active_end_user_session = result.scalars().unique().first()
+        active_user_session = result.scalars().unique().first()
 
         statement = (
             update(UserSession)
             .filter(
-                UserSession.user_reference == end_user_reference,
-                UserSession.expired_time < utc_now,
+                UserSession.user_reference == user_reference,
+                UserSession.expired_time < utc_now.replace(tzinfo=None),
             )
             .values(
                 is_active=False,
@@ -82,33 +82,32 @@ async def post_user_sessions_login(
         )
         await identity_uow.session.execute(statement)
 
-        if active_end_user_session is None:
-            end_user_session_reference = StringUtils.new_short_id(length=8)
-            end_user_session_ttl = timedelta(days=14)
+        if active_user_session is None:
+            user_session_reference = StringUtils.new_short_id(length=8)
+            user_session_ttl = timedelta(days=14)
             await identity_uow.user_session_repository.insert_one(
                 UserSession(
-                    reference=end_user_session_reference,
-                    user_reference=end_user_reference,
+                    reference=user_session_reference,
+                    user_reference=user_reference,
                     user_agent=user_agent,
                     is_active=True,
-                    expired_time=utc_now + end_user_session_ttl,
+                    expired_time=utc_now + user_session_ttl,
                 )
             )
         else:
-            end_user_session_reference = active_end_user_session.reference
-            end_user_session_ttl = (
-                active_end_user_session.expired_time.replace(tzinfo=timezone.utc)
-                - utc_now
+            user_session_reference = active_user_session.reference
+            user_session_ttl = (
+                active_user_session.expired_time.replace(tzinfo=timezone.utc) - utc_now
             )
         await identity_uow.commit()
 
     response.set_cookie(
         key=chore_master_api_web_server_config.SESSION_COOKIE_KEY,
-        value=end_user_session_reference,
+        value=user_session_reference,
         domain=chore_master_api_web_server_config.SESSION_COOKIE_DOMAIN,
         httponly=True,
         samesite="lax",
-        max_age=end_user_session_ttl.total_seconds(),
+        max_age=user_session_ttl.total_seconds(),
     )
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
