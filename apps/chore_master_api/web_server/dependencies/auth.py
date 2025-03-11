@@ -51,7 +51,14 @@ async def get_current_end_user_session(
         yield current_end_user_session
 
 
+# Deprecating, use `get_current_user` instead
 async def get_current_end_user(
+    current_end_user_session: UserSession = Depends(get_current_end_user_session),
+) -> User:
+    return current_end_user_session.user
+
+
+async def get_current_user(
     current_end_user_session: UserSession = Depends(get_current_end_user_session),
 ) -> User:
     return current_end_user_session.user

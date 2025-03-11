@@ -55,7 +55,7 @@ package integration {
 package finance {
   entity "Account" {
     * reference: str <<PK>>
-    * $add("user_reference: str <<FK>>")
+    * user_reference: str <<FK>>
     * settlement_asset_reference: str <<FK>>
     * name: str
     * opened_time: datetime
@@ -66,7 +66,7 @@ package finance {
 
   entity "BalanceSheet" {
     * reference: str <<PK>>
-    * $add("user_reference: str <<FK>>")
+    * user_reference: str <<FK>>
     * balanced_time: datetime
   }
 
@@ -87,6 +87,7 @@ package finance {
 
   entity "Asset" {
     * reference: str <<PK>>
+    * user_reference: str <<FK>>
     * name: str
     * symbol: str
     * decimals: int
@@ -95,6 +96,7 @@ package finance {
 
   entity "Instrument" {
     * reference: str <<PK>>
+    * user_reference: str <<FK>>
     * name: str
     * quantity_decimals: int
     * price_decimals: int
@@ -161,10 +163,14 @@ User                 ||--o{ UserSession
 User                 ||--o{ Resource
 User                 ||--o{ Account
 User                 ||--o{ BalanceSheet
+User                 ||--o{ Asset
+User                 ||--o{ Instrument
 User                 ||--o{ Portfolio
+
 UserRole             }o--|| Role
 
 BalanceSheet         ||--o{ BalanceEntry: balance_entries
+
 BalanceEntry         }o--|| Account
 
 Account              }o--|| Asset: settlement_asset
@@ -175,12 +181,15 @@ Portfolio            ||--o{ Holding: holdings
 
 LedgerEntry          ||--o{ FeeEntry: fee_entries
 LedgerEntry          }o--|| Instrument
+
 Instrument           }o--o{ Asset: xxx_asset
+
 FeeEntry             }o--|| Asset
 
 IncomeStatementEntry }o--|| Asset
 
 Holding              ||--o{ HoldingEntry: holding_entries
+
 HoldingEntry         }o--|| Instrument
 
 @enduml
