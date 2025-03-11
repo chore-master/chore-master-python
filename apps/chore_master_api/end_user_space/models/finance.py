@@ -8,6 +8,7 @@ from apps.chore_master_api.end_user_space.models.base import Entity
 
 
 class Asset(Entity):
+    user_reference: str
     name: str
     symbol: str
     decimals: int
@@ -20,6 +21,7 @@ class Account(Entity):
     class EcosystemTypeEnum(Enum):
         TRAD_FI = "TRAD_FI"
 
+    user_reference: str
     settlement_asset_reference: str
     name: str
     opened_time: datetime
@@ -28,6 +30,7 @@ class Account(Entity):
 
 
 class BalanceSheet(Entity):
+    user_reference: str
     balanced_time: datetime
 
 
@@ -47,6 +50,7 @@ class Instrument(Entity):
         DERIVATIVE = "DERIVATIVE"
         EARNING = "EARNING"
 
+    user_reference: str
     name: str
     quantity_decimals: int
     price_decimals: int
@@ -60,6 +64,7 @@ class Instrument(Entity):
 
 
 class Portfolio(Entity):
+    user_reference: str
     name: str
     description: Optional[str]
 

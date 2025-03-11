@@ -126,6 +126,7 @@ class Mapper:
             "finance_asset",
             self._metadata,
             *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("symbol", types.String, nullable=False),
             Column("decimals", types.Integer, nullable=False),
@@ -138,6 +139,7 @@ class Mapper:
             "finance_account",
             self._metadata,
             *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("opened_time", types.DateTime, nullable=False),
             Column("closed_time", types.DateTime, nullable=True),
@@ -153,6 +155,7 @@ class Mapper:
             "finance_balance_sheet",
             self._metadata,
             *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("balanced_time", types.DateTime, nullable=False),
         )
         if getattr(finance.BalanceSheet, "_sa_class_manager", None) is None:
@@ -188,6 +191,7 @@ class Mapper:
             "finance_instrument",
             self._metadata,
             *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("quantity_decimals", types.Integer, nullable=False),
             Column("price_decimals", types.Integer, nullable=False),
@@ -208,6 +212,7 @@ class Mapper:
             "finance_portfolio",
             self._metadata,
             *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("description", types.String, nullable=True),
         )
