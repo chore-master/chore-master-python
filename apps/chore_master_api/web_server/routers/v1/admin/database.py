@@ -10,11 +10,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import registry
 
 from apps.chore_master_api.web_server.dependencies.auth import require_admin_role
-from apps.chore_master_api.web_server.dependencies.database import get_data_migration
-from apps.chore_master_api.web_server.dependencies.end_user_space import (
-    get_end_user_db,
-    get_end_user_db_migration,
-    get_end_user_db_registry,
+from apps.chore_master_api.web_server.dependencies.database import (
+    get_chore_master_db,
+    get_chore_master_db_registry,
+    get_data_migration,
+    get_schema_migration,
 )
 from modules.database.relational_database import (
     DataMigration,
@@ -56,10 +56,10 @@ class PostUserDatabaseTablesDataExportFilesRequest(BaseModel):
 
 @router.post("/user_database/reset", dependencies=[Depends(require_admin_role)])
 async def post_user_database_reset(
-    end_user_db: RelationalDatabase = Depends(get_end_user_db),
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+    end_user_db: RelationalDatabase = Depends(get_chore_master_db),
+    chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
 ):
-    await end_user_db.drop_tables(metadata=end_user_db_registry.metadata)
+    await end_user_db.drop_tables(metadata=chore_master_db_registry.metadata)
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
@@ -67,14 +67,14 @@ async def post_user_database_reset(
     "/user_database/migrations/revisions", dependencies=[Depends(require_admin_role)]
 )
 async def get_user_database_migrations_revisions(
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
-    schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
+    chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
+    schema_migration: SchemaMigration = Depends(get_schema_migration),
 ):
     all_revisions = schema_migration.all_revisions(
-        metadata=end_user_db_registry.metadata
+        metadata=chore_master_db_registry.metadata
     )
     applied_revision = schema_migration.applied_revision(
-        metadata=end_user_db_registry.metadata
+        metadata=chore_master_db_registry.metadata
     )
     return ResponseSchema[ReadUserDatabaseConnectionResponse](
         status=StatusEnum.SUCCESS,
@@ -90,11 +90,11 @@ async def get_user_database_migrations_revisions(
     dependencies=[Depends(require_admin_role)],
 )
 async def post_user_database_migrations_generate_revision(
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
-    schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
+    chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
+    schema_migration: SchemaMigration = Depends(get_schema_migration),
 ):
     try:
-        schema_migration.generate_revision(metadata=end_user_db_registry.metadata)
+        schema_migration.generate_revision(metadata=chore_master_db_registry.metadata)
     except alembic.util.exc.CommandError as e:
         raise BadRequestError(str(e))
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
@@ -104,11 +104,11 @@ async def post_user_database_migrations_generate_revision(
     "/user_database/migrations/upgrade", dependencies=[Depends(require_admin_role)]
 )
 async def post_user_database_migrations_upgrade(
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
-    schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
+    chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
+    schema_migration: SchemaMigration = Depends(get_schema_migration),
 ):
     try:
-        schema_migration.upgrade(metadata=end_user_db_registry.metadata)
+        schema_migration.upgrade(metadata=chore_master_db_registry.metadata)
     except alembic.util.exc.CommandError as e:
         raise BadRequestError(str(e))
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
@@ -118,11 +118,11 @@ async def post_user_database_migrations_upgrade(
     "/user_database/migrations/downgrade", dependencies=[Depends(require_admin_role)]
 )
 async def post_user_database_migrations_downgrade(
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
-    schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
+    chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
+    schema_migration: SchemaMigration = Depends(get_schema_migration),
 ):
     try:
-        schema_migration.downgrade(metadata=end_user_db_registry.metadata)
+        schema_migration.downgrade(metadata=chore_master_db_registry.metadata)
     except alembic.util.exc.CommandError as e:
         raise BadRequestError(str(e))
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
@@ -133,11 +133,11 @@ async def post_user_database_migrations_downgrade(
 )
 async def get_user_database_migrations_revision(
     revision: Annotated[str, Path()],
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
-    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
+    chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
+    end_user_db_migration: SchemaMigration = Depends(get_schema_migration),
 ):
     all_revisions = end_user_db_migration.all_revisions(
-        metadata=end_user_db_registry.metadata
+        metadata=chore_master_db_registry.metadata
     )
     script_path = next(
         (rev["path"] for rev in all_revisions if rev["revision"] == revision), None
@@ -156,11 +156,11 @@ async def get_user_database_migrations_revision(
 )
 async def delete_user_database_migrations_revision(
     revision: Annotated[str, Path()],
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
-    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
+    chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
+    end_user_db_migration: SchemaMigration = Depends(get_schema_migration),
 ):
     all_revisions = end_user_db_migration.all_revisions(
-        metadata=end_user_db_registry.metadata
+        metadata=chore_master_db_registry.metadata
     )
     script_path = next(
         (rev["path"] for rev in all_revisions if rev["revision"] == revision), None
@@ -173,11 +173,11 @@ async def delete_user_database_migrations_revision(
 
 @router.get("/user_database/schema", dependencies=[Depends(require_admin_role)])
 async def get_user_database_schema(
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+    chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
 ):
-    schema_name = end_user_db_registry.metadata.schema
+    schema_name = chore_master_db_registry.metadata.schema
     table_dicts = []
-    for full_table_name, table in end_user_db_registry.metadata.tables.items():
+    for full_table_name, table in chore_master_db_registry.metadata.tables.items():
         table_name = full_table_name.split(".")[-1]
         column_dicts = []
         for column in table.columns:

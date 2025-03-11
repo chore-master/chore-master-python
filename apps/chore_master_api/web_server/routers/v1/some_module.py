@@ -9,7 +9,7 @@ from apps.chore_master_api.end_user_space.models.some_module import SomeEntity
 from apps.chore_master_api.end_user_space.unit_of_works.some_module import (
     SomeModuleSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.end_user_space import (
+from apps.chore_master_api.web_server.dependencies.unit_of_work import (
     get_some_module_uow,
 )
 from apps.chore_master_api.web_server.schemas.request import (

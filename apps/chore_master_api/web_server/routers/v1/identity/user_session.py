@@ -10,9 +10,7 @@ from apps.chore_master_api.end_user_space.models.identity import User, UserSessi
 from apps.chore_master_api.end_user_space.unit_of_works.identity import (
     IdentitySQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.end_user_space import (
-    get_identity_uow,
-)
+from apps.chore_master_api.web_server.dependencies.unit_of_work import get_identity_uow
 from apps.chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
 )

@@ -13,13 +13,11 @@ from apps.chore_master_api.end_user_space.models.identity import (
 from apps.chore_master_api.end_user_space.unit_of_works.identity import (
     IdentitySQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.end_user_space import (
-    get_identity_uow,
-)
+from apps.chore_master_api.web_server.dependencies.unit_of_work import get_identity_uow
 from modules.web_server.exceptions import UnauthenticatedError, UnauthorizedError
 
 
-async def get_current_end_user_session(
+async def get_current_user_session(
     end_user_session_reference: Annotated[
         Optional[str], Cookie(alias="cm_end_user_session_reference")
     ] = None,
@@ -51,25 +49,18 @@ async def get_current_end_user_session(
         yield current_end_user_session
 
 
-# Deprecating, use `get_current_user` instead
-async def get_current_end_user(
-    current_end_user_session: UserSession = Depends(get_current_end_user_session),
-) -> User:
-    return current_end_user_session.user
-
-
 async def get_current_user(
-    current_end_user_session: UserSession = Depends(get_current_end_user_session),
+    current_user_session: UserSession = Depends(get_current_user_session),
 ) -> User:
-    return current_end_user_session.user
+    return current_user_session.user
 
 
 def require_all_roles(role_symbols: list[str]):
     async def _require_all_roles(
-        current_end_user: User = Depends(get_current_end_user),
+        current_user: User = Depends(get_current_user),
     ):
         current_user_role_symbol_set = set(
-            user_role.role.symbol for user_role in current_end_user.user_roles
+            user_role.role.symbol for user_role in current_user.user_roles
         )
         required_role_symbol_set = set(role_symbols)
         if not required_role_symbol_set.issubset(current_user_role_symbol_set):

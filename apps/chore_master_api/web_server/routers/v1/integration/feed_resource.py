@@ -13,7 +13,7 @@ from apps.chore_master_api.modules.feed_discriminated_resource import (
     IntervalEnum,
 )
 from apps.chore_master_api.web_server.dependencies.auth import get_current_user
-from apps.chore_master_api.web_server.dependencies.end_user_space import (
+from apps.chore_master_api.web_server.dependencies.unit_of_work import (
     get_integration_uow,
 )
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum

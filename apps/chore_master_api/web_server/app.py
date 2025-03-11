@@ -7,10 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from apps.chore_master_api.config import get_chore_master_api_web_server_config
 from apps.chore_master_api.service_layers.onboarding import ensure_system_initialized
-from apps.chore_master_api.web_server.dependencies.end_user_space import (
-    get_end_user_db,
-    get_end_user_db_migration,
-    get_end_user_db_registry,
+from apps.chore_master_api.web_server.dependencies.database import (
+    get_chore_master_db_registry,
+    get_schema_migration,
 )
 from apps.chore_master_api.web_server.routers import router as base_router
 from modules.base.config import get_base_config
@@ -29,14 +28,14 @@ def get_app(base_config: Optional[BaseConfigSchema] = None) -> FastAPI:
         chore_master_db = RelationalDatabase(
             chore_master_api_web_server_config.DATABASE_ORIGIN
         )
-        chore_master_db_registry = await get_end_user_db_registry(
+        chore_master_db_registry = await get_chore_master_db_registry(
             chore_master_api_web_server_config
         )
-        chore_master_db_migration = await get_end_user_db_migration(chore_master_db)
+        schema_migration = await get_schema_migration(chore_master_db)
         await ensure_system_initialized(
             chore_master_db=chore_master_db,
             chore_master_db_registry=chore_master_db_registry,
-            chore_master_db_migration=chore_master_db_migration,
+            schema_migration=schema_migration,
         )
         app.state.chore_master_db = chore_master_db
         app.state.mutex = asyncio.Lock()

@@ -8,10 +8,10 @@ from apps.chore_master_api.end_user_space.models.finance import Instrument
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.end_user_space import get_finance_uow
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
+from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
 from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
