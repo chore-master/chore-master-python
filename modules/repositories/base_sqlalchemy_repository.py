@@ -57,8 +57,7 @@ class BaseSQLAlchemyRepository(
         if filter is None:
             filter = {}
         statement = update(self.entity_class).filter_by(**filter).values(values)
-        result = await self._session.execute(statement)
-        return result
+        _result = await self._session.execute(statement)
 
     async def _delete_many(
         self, filter: FilterType = None, limit: Optional[int] = None

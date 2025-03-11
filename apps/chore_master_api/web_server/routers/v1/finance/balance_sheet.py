@@ -219,6 +219,14 @@ async def put_users_me_balance_sheets_balance_sheet_reference(
         },
     )
     async with uow:
+        balance_sheet_count = await uow.balance_sheet_repository.count(
+            filter={
+                "reference": balance_sheet_reference,
+                "user_reference": current_user.reference,
+            },
+        )
+        if balance_sheet_count == 0:
+            raise NotFoundError("Balance sheet not found")
         await uow.balance_entry_repository.delete_many(
             filter={
                 "balance_sheet_reference": balance_sheet_reference,
@@ -233,15 +241,13 @@ async def put_users_me_balance_sheets_balance_sheet_reference(
             balance_entry = BalanceEntry(**balance_entry_dict)
             balance_entries.append(balance_entry)
         await uow.balance_entry_repository.insert_many(balance_entries)
-        update_result = await uow.balance_sheet_repository.update_many(
+        await uow.balance_sheet_repository.update_many(
             values=update_entity_dict,
             filter={
                 "reference": balance_sheet_reference,
                 "user_reference": current_user.reference,
             },
         )
-        if update_result.rowcount == 0:
-            raise NotFoundError("Balance sheet not found")
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
@@ -253,19 +259,25 @@ async def delete_users_me_balance_sheets_balance_sheet_reference(
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
+        balance_sheet_count = await uow.balance_sheet_repository.count(
+            filter={
+                "reference": balance_sheet_reference,
+                "user_reference": current_user.reference,
+            },
+        )
+        if balance_sheet_count == 0:
+            raise NotFoundError("Balance sheet not found")
         await uow.balance_entry_repository.delete_many(
             filter={
                 "balance_sheet_reference": balance_sheet_reference,
             }
         )
-        delete_result = await uow.balance_sheet_repository.delete_many(
+        await uow.balance_sheet_repository.delete_many(
             filter={
                 "reference": balance_sheet_reference,
                 "user_reference": current_user.reference,
             },
             limit=1,
         )
-        if delete_result.rowcount == 0:
-            raise NotFoundError("Balance sheet not found")
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)

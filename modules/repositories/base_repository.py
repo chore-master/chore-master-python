@@ -33,7 +33,7 @@ class BaseRepository(Generic[ABSTRACT_ENTITY_TYPE], metaclass=abc.ABCMeta):
     async def update_many(
         self, values: dict, filter: FilterType = None
     ) -> list[ABSTRACT_ENTITY_TYPE]:
-        return await self._update_many(values=values, filter=filter)
+        await self._update_many(values=values, filter=filter)
 
     async def delete_many(self, filter: FilterType = None, limit: Optional[int] = None):
         await self._delete_many(filter=filter, limit=limit)
