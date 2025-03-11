@@ -5,7 +5,11 @@ from fastapi import Cookie, Depends
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
-from apps.chore_master_api.end_user_space.models.identity import User, UserSession
+from apps.chore_master_api.end_user_space.models.identity import (
+    User,
+    UserRole,
+    UserSession,
+)
 from apps.chore_master_api.end_user_space.unit_of_works.identity import (
     IdentitySQLAlchemyUnitOfWork,
 )
@@ -35,7 +39,9 @@ async def get_current_end_user_session(
                 UserSession.deactivated_time == None,
             )
             .options(
-                joinedload(UserSession.user),
+                joinedload(UserSession.user).options(
+                    joinedload(User.user_roles).options(joinedload(UserRole.role))
+                ),
             )
         )
         result = await identity_uow.session.execute(statement)
@@ -49,3 +55,20 @@ async def get_current_end_user(
     current_end_user_session: UserSession = Depends(get_current_end_user_session),
 ) -> User:
     return current_end_user_session.user
+
+
+def require_all_roles(role_symbols: list[str]):
+    async def _require_all_roles(
+        current_end_user: User = Depends(get_current_end_user),
+    ):
+        current_user_role_symbol_set = set(
+            user_role.role.symbol for user_role in current_end_user.user_roles
+        )
+        required_role_symbol_set = set(role_symbols)
+        if not required_role_symbol_set.issubset(current_user_role_symbol_set):
+            raise UnauthorizedError("current request is not authorized")
+
+    return _require_all_roles
+
+
+require_admin_role = require_all_roles(["ADMIN"])

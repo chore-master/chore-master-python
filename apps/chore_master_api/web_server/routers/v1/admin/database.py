@@ -1,25 +1,21 @@
-import json
 import os
 import shutil
 import tempfile
 from typing import Annotated, Optional
 
 import alembic
-import pandas as pd
 from fastapi import APIRouter, Depends, Path, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import and_
 from sqlalchemy.orm import registry
 
-from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
+from apps.chore_master_api.web_server.dependencies.auth import require_admin_role
 from apps.chore_master_api.web_server.dependencies.database import get_data_migration
 from apps.chore_master_api.web_server.dependencies.end_user_space import (
     get_end_user_db,
     get_end_user_db_migration,
     get_end_user_db_registry,
 )
-from modules.database.mongo_client import MongoDB
 from modules.database.relational_database import (
     DataMigration,
     RelationalDatabase,
@@ -58,7 +54,7 @@ class PostUserDatabaseTablesDataExportFilesRequest(BaseModel):
     table_name_to_selected_column_names: dict[str, list[str]]
 
 
-@router.post("/user_database/reset")
+@router.post("/user_database/reset", dependencies=[Depends(require_admin_role)])
 async def post_user_database_reset(
     end_user_db: RelationalDatabase = Depends(get_end_user_db),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
@@ -67,9 +63,10 @@ async def post_user_database_reset(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/user_database/migrations/revisions")
+@router.get(
+    "/user_database/migrations/revisions", dependencies=[Depends(require_admin_role)]
+)
 async def get_user_database_migrations_revisions(
-    _current_end_user: dict = Depends(get_current_end_user),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
     schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
@@ -88,7 +85,10 @@ async def get_user_database_migrations_revisions(
     )
 
 
-@router.post("/user_database/migrations/generate_revision")
+@router.post(
+    "/user_database/migrations/generate_revision",
+    dependencies=[Depends(require_admin_role)],
+)
 async def post_user_database_migrations_generate_revision(
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
     schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
@@ -100,9 +100,10 @@ async def post_user_database_migrations_generate_revision(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.post("/user_database/migrations/upgrade")
+@router.post(
+    "/user_database/migrations/upgrade", dependencies=[Depends(require_admin_role)]
+)
 async def post_user_database_migrations_upgrade(
-    _current_end_user: dict = Depends(get_current_end_user),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
     schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
@@ -113,9 +114,10 @@ async def post_user_database_migrations_upgrade(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.post("/user_database/migrations/downgrade")
+@router.post(
+    "/user_database/migrations/downgrade", dependencies=[Depends(require_admin_role)]
+)
 async def post_user_database_migrations_downgrade(
-    _current_end_user: dict = Depends(get_current_end_user),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
     schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
@@ -126,7 +128,9 @@ async def post_user_database_migrations_downgrade(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/user_database/migrations/{revision}")
+@router.get(
+    "/user_database/migrations/{revision}", dependencies=[Depends(require_admin_role)]
+)
 async def get_user_database_migrations_revision(
     revision: Annotated[str, Path()],
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
@@ -147,7 +151,9 @@ async def get_user_database_migrations_revision(
     )
 
 
-@router.delete("/user_database/migrations/{revision}")
+@router.delete(
+    "/user_database/migrations/{revision}", dependencies=[Depends(require_admin_role)]
+)
 async def delete_user_database_migrations_revision(
     revision: Annotated[str, Path()],
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
@@ -165,7 +171,7 @@ async def delete_user_database_migrations_revision(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/user_database/schema")
+@router.get("/user_database/schema", dependencies=[Depends(require_admin_role)])
 async def get_user_database_schema(
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
 ):
@@ -194,7 +200,10 @@ async def get_user_database_schema(
     )
 
 
-@router.post("/user_database/tables/data/export_files")
+@router.post(
+    "/user_database/tables/data/export_files",
+    dependencies=[Depends(require_admin_role)],
+)
 async def post_user_database_tables_data_export_files(
     post_user_database_tables_data_export_files_request: PostUserDatabaseTablesDataExportFilesRequest,
     data_migration: DataMigration = Depends(get_data_migration),
@@ -216,7 +225,10 @@ async def post_user_database_tables_data_export_files(
         raise BadRequestError(str(e))
 
 
-@router.patch("/user_database/tables/data/import_files")
+@router.patch(
+    "/user_database/tables/data/import_files",
+    dependencies=[Depends(require_admin_role)],
+)
 async def patch_user_database_tables_data_import_files(
     upload_files: list[UploadFile],
     data_migration: DataMigration = Depends(get_data_migration),

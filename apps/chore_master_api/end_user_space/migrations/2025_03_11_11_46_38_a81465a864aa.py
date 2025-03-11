@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1b70193a0dc6
+Revision ID: a81465a864aa
 Revises: 
-Create Date: 2025-03-10 23:32:06.144373
+Create Date: 2025-03-11 11:46:38.375682
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '1b70193a0dc6'
+revision = 'a81465a864aa'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -142,6 +142,18 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_finance_portfolio_reference'), ['reference'], unique=False)
         batch_op.create_index(batch_op.f('ix_finance_portfolio_updated_time'), ['updated_time'], unique=False)
 
+    op.create_table('identity_role',
+    sa.Column('reference', sa.String(), nullable=False),
+    sa.Column('created_time', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('updated_time', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('symbol', sa.String(), nullable=False),
+    sa.PrimaryKeyConstraint('reference', name=op.f('pk_identity_role'))
+    )
+    with op.batch_alter_table('identity_role', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_identity_role_created_time'), ['created_time'], unique=False)
+        batch_op.create_index(batch_op.f('ix_identity_role_reference'), ['reference'], unique=False)
+        batch_op.create_index(batch_op.f('ix_identity_role_updated_time'), ['updated_time'], unique=False)
+
     op.create_table('identity_user',
     sa.Column('reference', sa.String(), nullable=False),
     sa.Column('created_time', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
@@ -155,6 +167,19 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_identity_user_created_time'), ['created_time'], unique=False)
         batch_op.create_index(batch_op.f('ix_identity_user_reference'), ['reference'], unique=False)
         batch_op.create_index(batch_op.f('ix_identity_user_updated_time'), ['updated_time'], unique=False)
+
+    op.create_table('identity_user_role',
+    sa.Column('reference', sa.String(), nullable=False),
+    sa.Column('created_time', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('updated_time', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('user_reference', sa.String(), nullable=False),
+    sa.Column('role_reference', sa.String(), nullable=False),
+    sa.PrimaryKeyConstraint('reference', name=op.f('pk_identity_user_role'))
+    )
+    with op.batch_alter_table('identity_user_role', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_identity_user_role_created_time'), ['created_time'], unique=False)
+        batch_op.create_index(batch_op.f('ix_identity_user_role_reference'), ['reference'], unique=False)
+        batch_op.create_index(batch_op.f('ix_identity_user_role_updated_time'), ['updated_time'], unique=False)
 
     op.create_table('identity_user_session',
     sa.Column('reference', sa.String(), nullable=False),
@@ -230,12 +255,24 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_identity_user_session_created_time'))
 
     op.drop_table('identity_user_session')
+    with op.batch_alter_table('identity_user_role', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_identity_user_role_updated_time'))
+        batch_op.drop_index(batch_op.f('ix_identity_user_role_reference'))
+        batch_op.drop_index(batch_op.f('ix_identity_user_role_created_time'))
+
+    op.drop_table('identity_user_role')
     with op.batch_alter_table('identity_user', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_identity_user_updated_time'))
         batch_op.drop_index(batch_op.f('ix_identity_user_reference'))
         batch_op.drop_index(batch_op.f('ix_identity_user_created_time'))
 
     op.drop_table('identity_user')
+    with op.batch_alter_table('identity_role', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_identity_role_updated_time'))
+        batch_op.drop_index(batch_op.f('ix_identity_role_reference'))
+        batch_op.drop_index(batch_op.f('ix_identity_role_created_time'))
+
+    op.drop_table('identity_role')
     with op.batch_alter_table('finance_portfolio', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_finance_portfolio_updated_time'))
         batch_op.drop_index(batch_op.f('ix_finance_portfolio_reference'))
