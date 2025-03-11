@@ -93,29 +93,29 @@ def cast_entity_dict_to_row_dict(
     return row_dict
 
 
-@router.get("/user_database/connection")
-async def get_user_database_connection(
-    current_end_user: dict = Depends(get_current_end_user),
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
-    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
-):
-    core_dict = current_end_user.get("core")
-    relational_database_dict = core_dict.get("relational_database", {})
-    all_revisions = end_user_db_migration.all_revisions(
-        metadata=end_user_db_registry.metadata
-    )
-    applied_revision = end_user_db_migration.applied_revision(
-        metadata=end_user_db_registry.metadata
-    )
-    return ResponseSchema[ReadUserDatabaseConnectionResponse](
-        status=StatusEnum.SUCCESS,
-        data=ReadUserDatabaseConnectionResponse(
-            relational_database_origin=relational_database_dict.get("origin"),
-            relational_database_schema_name=relational_database_dict.get("schema_name"),
-            all_revisions=all_revisions,
-            applied_revision=applied_revision,
-        ),
-    )
+# @router.get("/user_database/connection")
+# async def get_user_database_connection(
+#     current_end_user: dict = Depends(get_current_end_user),
+#     end_user_db_registry: registry = Depends(get_end_user_db_registry),
+#     end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
+# ):
+#     core_dict = current_end_user.get("core")
+#     relational_database_dict = core_dict.get("relational_database", {})
+#     all_revisions = end_user_db_migration.all_revisions(
+#         metadata=end_user_db_registry.metadata
+#     )
+#     applied_revision = end_user_db_migration.applied_revision(
+#         metadata=end_user_db_registry.metadata
+#     )
+#     return ResponseSchema[ReadUserDatabaseConnectionResponse](
+#         status=StatusEnum.SUCCESS,
+#         data=ReadUserDatabaseConnectionResponse(
+#             relational_database_origin=relational_database_dict.get("origin"),
+#             relational_database_schema_name=relational_database_dict.get("schema_name"),
+#             all_revisions=all_revisions,
+#             applied_revision=applied_revision,
+#         ),
+#     )
 
 
 # @router.patch("/user_database/connection")
@@ -333,8 +333,14 @@ async def patch_user_database_tables_data_import_files(
 ):
     data_migration = DataMigration(end_user_db, end_user_db_registry)
     try:
-        await data_migration.import_file_descriptors(
-            [upload_file.file for upload_file in upload_files]
+        await data_migration.import_files(
+            [
+                (
+                    upload_file.filename.split("/")[-1],
+                    upload_file.file,
+                )
+                for upload_file in upload_files
+            ]
         )
     except (ValueError, TypeError) as e:
         raise BadRequestError(str(e))

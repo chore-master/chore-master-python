@@ -235,12 +235,11 @@ class DataMigration:
         self._db = database
         self._registry = registry
 
-    async def import_file_descriptors(self, file_descriptors: list[BinaryIO]):
+    async def import_files(self, file_tuples: list[tuple[str, BinaryIO]]):
         schema_name = self._registry.metadata.schema
         async_session = self._db.get_async_session()
         async with async_session() as session:
-            for file in file_descriptors:
-                file_name = file.name.split("/")[-1]
+            for file_name, file in file_tuples:
                 table_name, _ = os.path.splitext(file_name)
                 full_table_name = (
                     table_name if schema_name is None else f"{schema_name}.{table_name}"

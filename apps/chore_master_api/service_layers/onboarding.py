@@ -33,6 +33,6 @@ async def ensure_system_initialized(
         "apps/chore_master_api/end_user_space/data/**/*.csv",
         recursive=True,
     )
-    await data_migration.import_file_descriptors(
-        [open(file_path, "rb") for file_path in file_paths]
+    await data_migration.import_files(
+        [(file_path, open(file_path, "rb")) for file_path in file_paths]
     )
