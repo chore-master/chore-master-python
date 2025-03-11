@@ -27,14 +27,14 @@ from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 router = APIRouter()
 
 
-class ReadUserDatabaseConnectionResponse(BaseModel):
+class ReadDatabaseConnectionResponse(BaseModel):
     all_revisions: list[dict]
     applied_revision: Optional[dict] = None
 
 
-class UpdateUserDatabaseConnectionRequest(BaseModel):
-    relational_database_origin: str
-    relational_database_schema_name: Optional[str] = None
+# class UpdateUserDatabaseConnectionRequest(BaseModel):
+#     relational_database_origin: str
+#     relational_database_schema_name: Optional[str] = None
 
 
 class ReadDatabaseSchemaResponse(BaseModel):
@@ -50,12 +50,12 @@ class ReadDatabaseSchemaResponse(BaseModel):
     tables: list[_Table]
 
 
-class PostUserDatabaseTablesDataExportFilesRequest(BaseModel):
+class PostDatabaseTablesDataExportFilesRequest(BaseModel):
     table_name_to_selected_column_names: dict[str, list[str]]
 
 
-@router.post("/user_database/reset", dependencies=[Depends(require_admin_role)])
-async def post_user_database_reset(
+@router.post("/database/reset", dependencies=[Depends(require_admin_role)])
+async def post_database_reset(
     end_user_db: RelationalDatabase = Depends(get_chore_master_db),
     chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
 ):
@@ -64,9 +64,9 @@ async def post_user_database_reset(
 
 
 @router.get(
-    "/user_database/migrations/revisions", dependencies=[Depends(require_admin_role)]
+    "/database/migrations/revisions", dependencies=[Depends(require_admin_role)]
 )
-async def get_user_database_migrations_revisions(
+async def get_database_migrations_revisions(
     chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
     schema_migration: SchemaMigration = Depends(get_schema_migration),
 ):
@@ -76,9 +76,9 @@ async def get_user_database_migrations_revisions(
     applied_revision = schema_migration.applied_revision(
         metadata=chore_master_db_registry.metadata
     )
-    return ResponseSchema[ReadUserDatabaseConnectionResponse](
+    return ResponseSchema[ReadDatabaseConnectionResponse](
         status=StatusEnum.SUCCESS,
-        data=ReadUserDatabaseConnectionResponse(
+        data=ReadDatabaseConnectionResponse(
             all_revisions=all_revisions,
             applied_revision=applied_revision,
         ),
@@ -86,10 +86,10 @@ async def get_user_database_migrations_revisions(
 
 
 @router.post(
-    "/user_database/migrations/generate_revision",
+    "/database/migrations/generate_revision",
     dependencies=[Depends(require_admin_role)],
 )
-async def post_user_database_migrations_generate_revision(
+async def post_database_migrations_generate_revision(
     chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
     schema_migration: SchemaMigration = Depends(get_schema_migration),
 ):
@@ -100,10 +100,8 @@ async def post_user_database_migrations_generate_revision(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.post(
-    "/user_database/migrations/upgrade", dependencies=[Depends(require_admin_role)]
-)
-async def post_user_database_migrations_upgrade(
+@router.post("/database/migrations/upgrade", dependencies=[Depends(require_admin_role)])
+async def post_database_migrations_upgrade(
     chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
     schema_migration: SchemaMigration = Depends(get_schema_migration),
 ):
@@ -115,9 +113,9 @@ async def post_user_database_migrations_upgrade(
 
 
 @router.post(
-    "/user_database/migrations/downgrade", dependencies=[Depends(require_admin_role)]
+    "/database/migrations/downgrade", dependencies=[Depends(require_admin_role)]
 )
-async def post_user_database_migrations_downgrade(
+async def post_database_migrations_downgrade(
     chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
     schema_migration: SchemaMigration = Depends(get_schema_migration),
 ):
@@ -129,9 +127,9 @@ async def post_user_database_migrations_downgrade(
 
 
 @router.get(
-    "/user_database/migrations/{revision}", dependencies=[Depends(require_admin_role)]
+    "/database/migrations/{revision}", dependencies=[Depends(require_admin_role)]
 )
-async def get_user_database_migrations_revision(
+async def get_database_migrations_revision(
     revision: Annotated[str, Path()],
     chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
     end_user_db_migration: SchemaMigration = Depends(get_schema_migration),
@@ -152,9 +150,9 @@ async def get_user_database_migrations_revision(
 
 
 @router.delete(
-    "/user_database/migrations/{revision}", dependencies=[Depends(require_admin_role)]
+    "/database/migrations/{revision}", dependencies=[Depends(require_admin_role)]
 )
-async def delete_user_database_migrations_revision(
+async def delete_database_migrations_revision(
     revision: Annotated[str, Path()],
     chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
     end_user_db_migration: SchemaMigration = Depends(get_schema_migration),
@@ -171,8 +169,8 @@ async def delete_user_database_migrations_revision(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/user_database/schema", dependencies=[Depends(require_admin_role)])
-async def get_user_database_schema(
+@router.get("/database/schema", dependencies=[Depends(require_admin_role)])
+async def get_database_schema(
     chore_master_db_registry: registry = Depends(get_chore_master_db_registry),
 ):
     schema_name = chore_master_db_registry.metadata.schema
@@ -201,11 +199,11 @@ async def get_user_database_schema(
 
 
 @router.post(
-    "/user_database/tables/data/export_files",
+    "/database/tables/data/export_files",
     dependencies=[Depends(require_admin_role)],
 )
-async def post_user_database_tables_data_export_files(
-    post_user_database_tables_data_export_files_request: PostUserDatabaseTablesDataExportFilesRequest,
+async def post_database_tables_data_export_files(
+    post_database_tables_data_export_files_request: PostDatabaseTablesDataExportFilesRequest,
     data_migration: DataMigration = Depends(get_data_migration),
 ):
     try:
@@ -214,7 +212,7 @@ async def post_user_database_tables_data_export_files(
         local_file_path = os.path.join(local_directory_path, file_name)
         with tempfile.TemporaryDirectory() as temp_directory_path:
             await data_migration.export_files(
-                table_name_to_selected_column_names=post_user_database_tables_data_export_files_request.table_name_to_selected_column_names,
+                table_name_to_selected_column_names=post_database_tables_data_export_files_request.table_name_to_selected_column_names,
                 output_directory_path=temp_directory_path,
             )
             shutil.make_archive(
@@ -226,10 +224,10 @@ async def post_user_database_tables_data_export_files(
 
 
 @router.patch(
-    "/user_database/tables/data/import_files",
+    "/database/tables/data/import_files",
     dependencies=[Depends(require_admin_role)],
 )
-async def patch_user_database_tables_data_import_files(
+async def patch_database_tables_data_import_files(
     upload_files: list[UploadFile],
     data_migration: DataMigration = Depends(get_data_migration),
 ):
