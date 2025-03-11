@@ -310,6 +310,48 @@ class DataMigration:
                     await session.rollback()
                     raise ValueError(f"Failed to import data: {e}")
 
+    async def export_files(
+        self,
+        table_name_to_selected_column_names: dict[str, list[str]],
+        output_directory_path: str,
+    ):
+        schema_name = self._registry.metadata.schema
+        async_session = self._db.get_async_session()
+        async with async_session() as session:
+            for (
+                table_name,
+                selected_column_names,
+            ) in table_name_to_selected_column_names.items():
+                if len(selected_column_names) == 0:
+                    continue
+                full_table_name = (
+                    table_name if schema_name is None else f"{schema_name}.{table_name}"
+                )
+                table = self._registry.metadata.tables[full_table_name]
+                columns = [table.c[col_name] for col_name in selected_column_names]
+                column_name_to_type_map = {
+                    column.name: column.type for column in columns
+                }
+                statement = table.select().with_only_columns(*columns)
+                result = await session.execute(statement)
+                entity_dicts = result.mappings().all()
+                if len(entity_dicts) == 0:
+                    df = pd.DataFrame(columns=selected_column_names)
+                else:
+                    row_dicts = [
+                        cast_entity_dict_to_row_dict(
+                            entity_dict, column_name_to_type_map
+                        )
+                        for entity_dict in entity_dicts
+                    ]
+                    df = pd.DataFrame(
+                        row_dicts, dtype=str, columns=selected_column_names
+                    )
+                table_file_path = os.path.join(
+                    output_directory_path, f"{table_name}.csv"
+                )
+                df.to_csv(table_file_path, index=False)
+
 
 def cast_row_dict_to_entity_dict(row_dict: dict, column_name_to_type_map: dict) -> dict:
     entity_dict = {}
@@ -367,3 +409,36 @@ def cast_row_dict_to_entity_dict(row_dict: dict, column_name_to_type_map: dict) 
         else:
             raise TypeError(f"Unsupported column type: {column_type}")
     return entity_dict
+
+
+def cast_entity_dict_to_row_dict(
+    entity_dict: dict, column_name_to_type_map: dict
+) -> dict:
+    row_dict = {}
+    for column_name, raw_value in entity_dict.items():
+        if raw_value is None:
+            row_dict[column_name] = None
+        else:
+            column_type = column_name_to_type_map[column_name]
+            if isinstance(column_type, types.Boolean):
+                row_dict[column_name] = "true" if raw_value is True else "false"
+            elif isinstance(column_type, types.Integer):
+                row_dict[column_name] = str(raw_value)
+            elif isinstance(column_type, types.Float):
+                row_dict[column_name] = str(raw_value)
+            elif isinstance(column_type, types.DateTime):
+                row_dict[column_name] = f"{raw_value.isoformat()}Z"
+            elif isinstance(column_type, types.String):
+                row_dict[column_name] = raw_value
+            elif isinstance(column_type, types.Text):
+                row_dict[column_name] = raw_value
+            elif isinstance(column_type, types.JSON):
+                row_dict[column_name] = json.dumps(raw_value)
+            elif isinstance(column_type, types.DECIMAL):
+                str_value = f"{raw_value:f}"  # to remove scientific notation
+                if "." in str_value:
+                    str_value = str_value.rstrip("0").rstrip(".")
+                row_dict[column_name] = str_value
+            else:
+                raise TypeError(f"Unsupported column type: {column_type}")
+    return row_dict

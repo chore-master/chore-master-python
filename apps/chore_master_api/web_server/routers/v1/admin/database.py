@@ -13,6 +13,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import registry
 
 from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
+from apps.chore_master_api.web_server.dependencies.database import get_data_migration
 from apps.chore_master_api.web_server.dependencies.end_user_space import (
     get_end_user_db,
     get_end_user_db_migration,
@@ -58,39 +59,6 @@ class ReadDatabaseSchemaResponse(BaseModel):
 
 class PostUserDatabaseTablesDataExportFilesRequest(BaseModel):
     table_name_to_selected_column_names: dict[str, list[str]]
-
-
-def cast_entity_dict_to_row_dict(
-    entity_dict: dict, column_name_to_type_map: dict
-) -> dict:
-    row_dict = {}
-    for column_name, raw_value in entity_dict.items():
-        if raw_value is None:
-            row_dict[column_name] = None
-        else:
-            column_type = column_name_to_type_map[column_name]
-            if isinstance(column_type, types.Boolean):
-                row_dict[column_name] = "true" if raw_value is True else "false"
-            elif isinstance(column_type, types.Integer):
-                row_dict[column_name] = str(raw_value)
-            elif isinstance(column_type, types.Float):
-                row_dict[column_name] = str(raw_value)
-            elif isinstance(column_type, types.DateTime):
-                row_dict[column_name] = f"{raw_value.isoformat()}Z"
-            elif isinstance(column_type, types.String):
-                row_dict[column_name] = raw_value
-            elif isinstance(column_type, types.Text):
-                row_dict[column_name] = raw_value
-            elif isinstance(column_type, types.JSON):
-                row_dict[column_name] = json.dumps(raw_value)
-            elif isinstance(column_type, types.DECIMAL):
-                str_value = f"{raw_value:f}"  # to remove scientific notation
-                if "." in str_value:
-                    str_value = str_value.rstrip("0").rstrip(".")
-                row_dict[column_name] = str_value
-            else:
-                raise BadRequestError(f"Unsupported column type: {column_type}")
-    return row_dict
 
 
 # @router.get("/user_database/connection")
@@ -276,62 +244,30 @@ async def get_user_database_schema(
 @router.post("/user_database/tables/data/export_files")
 async def post_user_database_tables_data_export_files(
     post_user_database_tables_data_export_files_request: PostUserDatabaseTablesDataExportFilesRequest,
-    end_user_db: RelationalDatabase = Depends(get_end_user_db),
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+    data_migration: DataMigration = Depends(get_data_migration),
 ):
-    schema_name = end_user_db_registry.metadata.schema
-    async_session = end_user_db.get_async_session()
-    async with async_session() as session:
+    try:
         local_directory_path = tempfile.mkdtemp()
-        file_name = "download.zip"
+        file_name: str = "download.zip"
         local_file_path = os.path.join(local_directory_path, file_name)
         with tempfile.TemporaryDirectory() as temp_directory_path:
-            for (
-                table_name,
-                selected_column_names,
-            ) in (
-                post_user_database_tables_data_export_files_request.table_name_to_selected_column_names.items()
-            ):
-                if len(selected_column_names) == 0:
-                    continue
-                full_table_name = (
-                    table_name if schema_name is None else f"{schema_name}.{table_name}"
-                )
-                table = end_user_db_registry.metadata.tables[full_table_name]
-                columns = [table.c[col_name] for col_name in selected_column_names]
-                column_name_to_type_map = {
-                    column.name: column.type for column in columns
-                }
-                statement = table.select().with_only_columns(*columns)
-                result = await session.execute(statement)
-                entity_dicts = result.mappings().all()
-                if len(entity_dicts) == 0:
-                    df = pd.DataFrame(columns=selected_column_names)
-                else:
-                    row_dicts = [
-                        cast_entity_dict_to_row_dict(
-                            entity_dict, column_name_to_type_map
-                        )
-                        for entity_dict in entity_dicts
-                    ]
-                    df = pd.DataFrame(
-                        row_dicts, dtype=str, columns=selected_column_names
-                    )
-                table_file_path = os.path.join(temp_directory_path, f"{table_name}.csv")
-                df.to_csv(table_file_path, index=False)
+            await data_migration.export_files(
+                table_name_to_selected_column_names=post_user_database_tables_data_export_files_request.table_name_to_selected_column_names,
+                output_directory_path=temp_directory_path,
+            )
             shutil.make_archive(
                 local_file_path.replace(".zip", ""), "zip", temp_directory_path
             )
         return FileResponse(local_file_path)
+    except (ValueError, TypeError) as e:
+        raise BadRequestError(str(e))
 
 
 @router.patch("/user_database/tables/data/import_files")
 async def patch_user_database_tables_data_import_files(
     upload_files: list[UploadFile],
-    end_user_db: RelationalDatabase = Depends(get_end_user_db),
-    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+    data_migration: DataMigration = Depends(get_data_migration),
 ):
-    data_migration = DataMigration(end_user_db, end_user_db_registry)
     try:
         await data_migration.import_files(
             [
@@ -342,6 +278,6 @@ async def patch_user_database_tables_data_import_files(
                 for upload_file in upload_files
             ]
         )
+        return ResponseSchema(status=StatusEnum.SUCCESS, data=None)
     except (ValueError, TypeError) as e:
         raise BadRequestError(str(e))
-    return ResponseSchema(status=StatusEnum.SUCCESS, data=None)
