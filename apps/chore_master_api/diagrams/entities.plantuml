@@ -18,7 +18,18 @@ package identity {
     * username: str
     * password: str
   }
-  
+
+  entity "Role" {
+    * reference: str <<PK>>
+    * symbol: str
+  }
+
+  entity "UserRole" {
+    * reference: str <<PK>>
+    * user_reference: str <<FK>>
+    * role_reference: str <<FK>>
+  }
+
   entity "UserSession" {
     * reference: str <<PK>>
     * user_reference: str <<FK>>
@@ -146,11 +157,13 @@ package finance {
 'Zero or Many }o--
 'One or Many  }|--
 
+User                 ||--o{ UserRole
 User                 ||--o{ UserSession
 User                 ||--o{ Resource
 User                 ||--o{ Account
 User                 ||--o{ BalanceSheet
 User                 ||--o{ Portfolio
+UserRole             }o--|| Role
 
 BalanceSheet         ||--o{ BalanceEntry: balance_entries
 BalanceEntry         }o--|| Account

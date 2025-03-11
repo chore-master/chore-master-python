@@ -47,6 +47,42 @@ class Mapper:
         if getattr(identity.User, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(identity.User, identity_user_table)
 
+        identity_role_table = Table(
+            "identity_role",
+            self._metadata,
+            *get_base_columns(),
+            Column("symbol", types.String, nullable=False),
+        )
+        if getattr(identity.Role, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(identity.Role, identity_role_table)
+
+        identity_user_role_table = Table(
+            "identity_user_role",
+            self._metadata,
+            *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
+            Column("role_reference", types.String, nullable=False),
+        )
+        if getattr(identity.UserRole, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                identity.UserRole,
+                identity_user_role_table,
+                properties={
+                    "user": relationship(
+                        "User",
+                        foreign_keys=[identity_user_role_table.columns.user_reference],
+                        primaryjoin="UserRole.user_reference == User.reference",
+                        backref="user_roles",
+                    ),
+                    "role": relationship(
+                        "Role",
+                        foreign_keys=[identity_user_role_table.columns.role_reference],
+                        primaryjoin="UserRole.role_reference == Role.reference",
+                        backref="user_roles",
+                    ),
+                },
+            )
+
         identity_user_session_table = Table(
             "identity_user_session",
             self._metadata,
