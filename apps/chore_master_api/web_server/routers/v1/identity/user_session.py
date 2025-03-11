@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import select, update
 
 from apps.chore_master_api.config import get_chore_master_api_web_server_config
-from apps.chore_master_api.end_user_space.models.identity import UserSession
+from apps.chore_master_api.end_user_space.models.identity import User, UserSession
 from apps.chore_master_api.end_user_space.unit_of_works.identity import (
     IdentitySQLAlchemyUnitOfWork,
 )
@@ -49,13 +49,15 @@ async def post_user_sessions_login(
         end_user = next(iter(end_users), None)
         if end_user is None:
             end_user_reference = StringUtils.new_short_id(length=8)
-            end_user_dict = {
-                "reference": end_user_reference,
-                "created_time": utc_now,
-                "username": login_request.username,
-                "password": login_request.password,
-            }
-            await identity_uow.user_repository.insert_one(end_user_dict)
+            await identity_uow.user_repository.insert_one(
+                User(
+                    reference=end_user_reference,
+                    created_time=utc_now,
+                    name=login_request.username,
+                    username=login_request.username,
+                    password=login_request.password,
+                )
+            )
         else:
             end_user_reference = end_user.reference
 

@@ -25,7 +25,6 @@ from modules.database.relational_database import (
     RelationalDatabase,
     SchemaMigration,
 )
-from modules.database.sqlalchemy import types
 from modules.web_server.exceptions import BadRequestError, NotFoundError
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
@@ -33,8 +32,6 @@ router = APIRouter()
 
 
 class ReadUserDatabaseConnectionResponse(BaseModel):
-    relational_database_origin: Optional[str] = None
-    relational_database_schema_name: Optional[str] = None
     all_revisions: list[dict]
     applied_revision: Optional[dict] = None
 
@@ -61,54 +58,6 @@ class PostUserDatabaseTablesDataExportFilesRequest(BaseModel):
     table_name_to_selected_column_names: dict[str, list[str]]
 
 
-# @router.get("/user_database/connection")
-# async def get_user_database_connection(
-#     current_end_user: dict = Depends(get_current_end_user),
-#     end_user_db_registry: registry = Depends(get_end_user_db_registry),
-#     end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
-# ):
-#     core_dict = current_end_user.get("core")
-#     relational_database_dict = core_dict.get("relational_database", {})
-#     all_revisions = end_user_db_migration.all_revisions(
-#         metadata=end_user_db_registry.metadata
-#     )
-#     applied_revision = end_user_db_migration.applied_revision(
-#         metadata=end_user_db_registry.metadata
-#     )
-#     return ResponseSchema[ReadUserDatabaseConnectionResponse](
-#         status=StatusEnum.SUCCESS,
-#         data=ReadUserDatabaseConnectionResponse(
-#             relational_database_origin=relational_database_dict.get("origin"),
-#             relational_database_schema_name=relational_database_dict.get("schema_name"),
-#             all_revisions=all_revisions,
-#             applied_revision=applied_revision,
-#         ),
-#     )
-
-
-# @router.patch("/user_database/connection")
-# async def patch_user_database_connection(
-#     update_user_database_connection_request: UpdateUserDatabaseConnectionRequest,
-#     current_end_user: dict = Depends(get_current_end_user),
-#     chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
-# ):
-#     end_user_collection = chore_master_api_db.get_collection("end_user")
-#     await end_user_collection.update_one(
-#         filter={"reference": current_end_user["reference"]},
-#         update={
-#             "$set": {
-#                 "core": {
-#                     "relational_database": {
-#                         "origin": update_user_database_connection_request.relational_database_origin,
-#                         "schema_name": update_user_database_connection_request.relational_database_schema_name,
-#                     },
-#                 },
-#             }
-#         },
-#     )
-#     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
-
-
 @router.post("/user_database/reset")
 async def post_user_database_reset(
     end_user_db: RelationalDatabase = Depends(get_end_user_db),
@@ -118,13 +67,34 @@ async def post_user_database_reset(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
+@router.get("/user_database/migrations/revisions")
+async def get_user_database_migrations_revisions(
+    _current_end_user: dict = Depends(get_current_end_user),
+    end_user_db_registry: registry = Depends(get_end_user_db_registry),
+    schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
+):
+    all_revisions = schema_migration.all_revisions(
+        metadata=end_user_db_registry.metadata
+    )
+    applied_revision = schema_migration.applied_revision(
+        metadata=end_user_db_registry.metadata
+    )
+    return ResponseSchema[ReadUserDatabaseConnectionResponse](
+        status=StatusEnum.SUCCESS,
+        data=ReadUserDatabaseConnectionResponse(
+            all_revisions=all_revisions,
+            applied_revision=applied_revision,
+        ),
+    )
+
+
 @router.post("/user_database/migrations/generate_revision")
 async def post_user_database_migrations_generate_revision(
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
-    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
+    schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
     try:
-        end_user_db_migration.generate_revision(metadata=end_user_db_registry.metadata)
+        schema_migration.generate_revision(metadata=end_user_db_registry.metadata)
     except alembic.util.exc.CommandError as e:
         raise BadRequestError(str(e))
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
@@ -132,44 +102,27 @@ async def post_user_database_migrations_generate_revision(
 
 @router.post("/user_database/migrations/upgrade")
 async def post_user_database_migrations_upgrade(
-    # current_end_user: dict = Depends(get_current_end_user),
-    # chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+    _current_end_user: dict = Depends(get_current_end_user),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
-    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
+    schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
-    # end_user_collection = chore_master_api_db.get_collection("end_user")
-    end_user_db_migration.upgrade(metadata=end_user_db_registry.metadata)
-    # await end_user_collection.update_one(
-    #     filter={"reference": current_end_user["reference"]},
-    #     update={
-    #         "$set": {
-    #             "is_mounted": True,
-    #         }
-    #     },
-    # )
+    try:
+        schema_migration.upgrade(metadata=end_user_db_registry.metadata)
+    except alembic.util.exc.CommandError as e:
+        raise BadRequestError(str(e))
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
 @router.post("/user_database/migrations/downgrade")
 async def post_user_database_migrations_downgrade(
-    # current_end_user: dict = Depends(get_current_end_user),
-    # chore_master_api_db: MongoDB = Depends(get_chore_master_api_db),
+    _current_end_user: dict = Depends(get_current_end_user),
     end_user_db_registry: registry = Depends(get_end_user_db_registry),
-    end_user_db_migration: SchemaMigration = Depends(get_end_user_db_migration),
+    schema_migration: SchemaMigration = Depends(get_end_user_db_migration),
 ):
-    # end_user_collection = chore_master_api_db.get_collection("end_user")
     try:
-        end_user_db_migration.downgrade(metadata=end_user_db_registry.metadata)
+        schema_migration.downgrade(metadata=end_user_db_registry.metadata)
     except alembic.util.exc.CommandError as e:
         raise BadRequestError(str(e))
-    # await end_user_collection.update_one(
-    #     filter={"reference": current_end_user["reference"]},
-    #     update={
-    #         "$set": {
-    #             "is_mounted": False,
-    #         }
-    #     },
-    # )
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 

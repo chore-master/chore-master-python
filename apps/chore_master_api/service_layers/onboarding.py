@@ -34,5 +34,11 @@ async def ensure_system_initialized(
         recursive=True,
     )
     await data_migration.import_files(
-        [(file_path, open(file_path, "rb")) for file_path in file_paths]
+        [
+            (
+                file_path.split("/")[-1],
+                open(file_path, "rb"),
+            )
+            for file_path in file_paths
+        ]
     )
