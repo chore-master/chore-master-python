@@ -112,7 +112,7 @@ class Mapper:
             "integration_resource",
             self._metadata,
             *get_base_columns(),
-            Column("end_user_reference", types.String, nullable=False),
+            Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("discriminator", types.String, nullable=False),
             Column("value", types.JSON, nullable=False),

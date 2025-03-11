@@ -13,7 +13,7 @@ ResourceDiscriminator = Literal[
 
 
 class Resource(Entity):
-    end_user_reference: str
+    user_reference: str
     name: str
     discriminator: ResourceDiscriminator
     value: dict

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel
 from sqlalchemy.future import select
 
+from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.models.integration import (
     Resource,
     ResourceDiscriminator,
@@ -67,12 +68,12 @@ async def get_resource_filter(
 async def get_end_users_me_resources(
     filter: ResourceFilter = Depends(get_resource_filter),
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_end_user: dict = Depends(get_current_end_user),
+    current_end_user: User = Depends(get_current_end_user),
 ):
     async with uow:
         if len(filter.discriminators) > 0:
             statement = select(Resource).filter(
-                Resource.end_user_reference == current_end_user["reference"],
+                Resource.user_reference == current_end_user.reference,
                 Resource.discriminator.in_(filter.discriminators),
             )
             result = await uow.session.execute(statement)
@@ -80,7 +81,7 @@ async def get_end_users_me_resources(
         else:
             entities = await uow.resource_repository.find_many(
                 filter={
-                    "end_user_reference": current_end_user["reference"],
+                    "user_reference": current_end_user.reference,
                 }
             )
         return ResponseSchema[list[ReadResourceResponse]](
@@ -93,11 +94,11 @@ async def get_end_users_me_resources(
 async def post_end_users_me_resources(
     create_entity_request: CreateResourceRequest,
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_end_user: dict = Depends(get_current_end_user),
+    current_end_user: User = Depends(get_current_end_user),
 ):
     try:
         entity_dict = {
-            "end_user_reference": current_end_user["reference"],
+            "user_reference": current_end_user.reference,
             "value": JSONUtils.load_json_like(create_entity_request.value),
         }
     except Exception as e:
@@ -116,13 +117,13 @@ async def post_end_users_me_resources(
 async def get_end_users_me_resources_resource_reference(
     resource_reference: Annotated[str, Path()],
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_end_user: dict = Depends(get_current_end_user),
+    current_end_user: User = Depends(get_current_end_user),
 ):
     async with uow:
         entity = await uow.resource_repository.find_one(
             filter={
                 "reference": resource_reference,
-                "end_user_reference": current_end_user["reference"],
+                "user_reference": current_end_user.reference,
             }
         )
         return ResponseSchema(status=StatusEnum.SUCCESS, data=entity.model_dump())
@@ -133,7 +134,7 @@ async def patch_end_users_me_resources_resource_reference(
     resource_reference: Annotated[str, Path()],
     update_entity_request: UpdateResourceRequest,
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_end_user: dict = Depends(get_current_end_user),
+    current_end_user: User = Depends(get_current_end_user),
 ):
     update_entity_dict = update_entity_request.model_dump(exclude_unset=True)
     if "value" in update_entity_dict:
@@ -152,7 +153,7 @@ async def patch_end_users_me_resources_resource_reference(
             values=update_entity_dict,
             filter={
                 "reference": resource_reference,
-                "end_user_reference": current_end_user["reference"],
+                "user_reference": current_end_user.reference,
             },
         )
         await uow.commit()
@@ -163,13 +164,13 @@ async def patch_end_users_me_resources_resource_reference(
 async def delete_end_users_me_resources_resource_reference(
     resource_reference: Annotated[str, Path()],
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_end_user: dict = Depends(get_current_end_user),
+    current_end_user: User = Depends(get_current_end_user),
 ):
     async with uow:
         await uow.resource_repository.delete_many(
             filter={
                 "reference": resource_reference,
-                "end_user_reference": current_end_user["reference"],
+                "user_reference": current_end_user.reference,
             },
             limit=1,
         )

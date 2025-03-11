@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path
 from pydantic import BaseModel
 
+from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.integration import (
     IntegrationSQLAlchemyUnitOfWork,
 )
@@ -34,13 +35,13 @@ async def post_resources_resource_reference_feed_fetch_prices(
     resource_reference: Annotated[str, Path()],
     fetch_prices_request: FetchPricesRequest,
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_end_user: dict = Depends(get_current_end_user),
+    current_end_user: User = Depends(get_current_end_user),
 ):
     async with uow:
         resource = await uow.resource_repository.find_one(
             filter={
                 "reference": resource_reference,
-                "end_user_reference": current_end_user["reference"],
+                "end_user_reference": current_end_user.reference,
             }
         )
         feed_resource: FeedDiscriminatedResource = resource.to_discriminated_resource()

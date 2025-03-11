@@ -44,8 +44,7 @@ package identity {
 package integration {
   entity "Resource" {
     * reference: str <<PK>>
-    * $remove("end_user_reference: str <<FK>>")
-    * $add("user_reference: str <<FK>>")
+    * user_reference: str <<FK>>
     * discriminator: str \n = 'yahoo_finance_feed' $add("| 'node_manager'")
     * value: str
     --
