@@ -15,6 +15,7 @@ from apps.chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
 )
 from modules.utils.string_utils import StringUtils
+from modules.web_server.exceptions import UnauthenticatedError
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter()
@@ -46,16 +47,17 @@ async def post_user_sessions_login(
         )
         user = next(iter(users), None)
         if user is None:
-            user_reference = StringUtils.new_short_id(length=8)
-            await identity_uow.user_repository.insert_one(
-                User(
-                    reference=user_reference,
-                    created_time=utc_now,
-                    name=login_request.username,
-                    username=login_request.username,
-                    password=login_request.password,
-                )
-            )
+            raise UnauthenticatedError("Invalid username or password")
+            # user_reference = StringUtils.new_short_id(length=8)
+            # await identity_uow.user_repository.insert_one(
+            #     User(
+            #         reference=user_reference,
+            #         created_time=utc_now,
+            #         name=login_request.username,
+            #         username=login_request.username,
+            #         password=login_request.password,
+            #     )
+            # )
         else:
             user_reference = user.reference
 
