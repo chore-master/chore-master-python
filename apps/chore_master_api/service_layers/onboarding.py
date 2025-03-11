@@ -24,7 +24,7 @@ async def ensure_system_initialized(
     if len(all_revisions) == 0:
         await chore_master_db.drop_tables(metadata=chore_master_db_registry.metadata)
         schema_migration.generate_revision(metadata=chore_master_db_registry.metadata)
-        schema_migration.upgrade(metadata=chore_master_db_registry.metadata)
+    schema_migration.upgrade(metadata=chore_master_db_registry.metadata)
 
     data_migration = DataMigration(chore_master_db, chore_master_db_registry)
     await data_migration.import_files(
