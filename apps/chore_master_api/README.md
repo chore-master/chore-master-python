@@ -8,12 +8,6 @@ poetry run python -m patchright install-deps chromium
 poetry run python -m patchright install chromium
 ```
 
-```sh
-# it may take a while to start
-sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.infra.yml -p chore_master_infra up -d
-sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.infra.yml -p chore_master_infra down
-```
-
 ## Release
 
 ```sh
@@ -35,6 +29,6 @@ git push --tag
 ## Deployment
 
 ```sh
-sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.local.yml up -d --build
-sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.local.yml down
+sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.local.yml -p chore_master_api_local up -d --build
+sudo docker compose -f ./apps/chore_master_api/deployments/docker-compose.local.yml -p chore_master_api_local down
 ```
