@@ -14,7 +14,7 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
     UVICORN_AUTO_RELOAD = False
     DATABASE_ORIGIN = get_env("DATABASE_ORIGIN")
     DATABASE_SCHEMA_NAME = get_env("DATABASE_SCHEMA_NAME")
-    FRONTEND_ORIGIN = None
+    FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN")
     IAM_API_ORIGIN = None
     ALLOW_ORIGINS = ["*"]
 
@@ -28,17 +28,19 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
 
     if base_config.ENV == EnvEnum.LOCAL:
         UVICORN_AUTO_RELOAD = True
-        FRONTEND_ORIGIN = "http://localhost:2000"
+        FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "http://localhost:2000")
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
         IAM_API_ORIGIN = "http://localhost:10000"
         SESSION_COOKIE_DOMAIN = "localhost"
     elif base_config.ENV == EnvEnum.DEVELOPING:
-        FRONTEND_ORIGIN = "https://dev--chore-master.lation.app"
+        FRONTEND_ORIGIN = get_env(
+            "FRONTEND_ORIGIN", "https://dev--chore-master.lation.app"
+        )
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
         IAM_API_ORIGIN = "https://dev--chore-master-api.lation.app"
         SESSION_COOKIE_DOMAIN = "dev--chore-master-api.lation.app"
     elif base_config.ENV == EnvEnum.PRODUCTION:
-        FRONTEND_ORIGIN = "https://chore-master.lation.app"
+        FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "https://chore-master.lation.app")
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
         IAM_API_ORIGIN = "https://chore-master-api.lation.app"
         SESSION_COOKIE_DOMAIN = "chore-master-api.lation.app"
@@ -53,9 +55,4 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
         IAM_API_ORIGIN=IAM_API_ORIGIN,
         SESSION_COOKIE_KEY=SESSION_COOKIE_KEY,
         SESSION_COOKIE_DOMAIN=SESSION_COOKIE_DOMAIN,
-        # GOOGLE_OAUTH_ENDPOINT=GOOGLE_OAUTH_ENDPOINT,
-        # GOOGLE_OAUTH_TOKEN_URI=GOOGLE_OAUTH_TOKEN_URI,
-        # GOOGLE_OAUTH_JWKS_URI=GOOGLE_OAUTH_JWKS_URI,
-        # GOOGLE_OAUTH_CLIENT_ID=GOOGLE_OAUTH_CLIENT_ID,
-        # GOOGLE_OAUTH_SECRET=GOOGLE_OAUTH_SECRET,
     )
