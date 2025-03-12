@@ -17,7 +17,7 @@
                 "ENV": "local",
                 "SERVICE_NAME": "chore_master_api",
                 "COMPONENT_NAME": "web_server",
-                "DATABASE_ORIGIN": "sqlite+aiosqlite:///./local.db",
+                "DATABASE_ORIGIN": "sqlite+aiosqlite:///./dbs/local.db",
                 "DATABASE_SCHEMA_NAME": "",
             }
         },
