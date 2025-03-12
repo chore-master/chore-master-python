@@ -6,11 +6,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.chore_master_api.config import get_chore_master_api_web_server_config
+from apps.chore_master_api.end_user_space.mapper import Mapper
 from apps.chore_master_api.service_layers.onboarding import ensure_system_initialized
-from apps.chore_master_api.web_server.dependencies.database import (
-    get_chore_master_db_registry,
-    get_schema_migration,
-)
+from apps.chore_master_api.web_server.dependencies.database import get_schema_migration
 from apps.chore_master_api.web_server.routers import router as base_router
 from modules.base.config import get_base_config
 from modules.base.schemas.system import BaseConfigSchema
@@ -28,9 +26,15 @@ def get_app(base_config: Optional[BaseConfigSchema] = None) -> FastAPI:
         chore_master_db = RelationalDatabase(
             chore_master_api_web_server_config.DATABASE_ORIGIN
         )
-        chore_master_db_registry = await get_chore_master_db_registry(
-            chore_master_api_web_server_config
+
+        metadata = RelationalDatabase.create_metadata(
+            schema_name=chore_master_api_web_server_config.DATABASE_SCHEMA_NAME
         )
+        chore_master_db_registry = RelationalDatabase.create_mapper_registry(
+            metadata=metadata
+        )
+        Mapper(chore_master_db_registry).map_models_to_tables()
+
         schema_migration = await get_schema_migration(chore_master_db)
         await ensure_system_initialized(
             chore_master_db=chore_master_db,
@@ -38,6 +42,7 @@ def get_app(base_config: Optional[BaseConfigSchema] = None) -> FastAPI:
             schema_migration=schema_migration,
         )
         app.state.chore_master_db = chore_master_db
+        app.state.chore_master_db_registry = chore_master_db_registry
         app.state.mutex = asyncio.Lock()
         yield
 
