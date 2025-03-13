@@ -9,7 +9,10 @@ from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.identity import (
     IdentitySQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.auth import require_admin_role
+from apps.chore_master_api.web_server.dependencies.auth import (
+    get_current_user,
+    require_admin_role,
+)
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
@@ -20,6 +23,7 @@ from apps.chore_master_api.web_server.schemas.request import (
     BaseUpdateEntityRequest,
 )
 from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
+from modules.web_server.exceptions import BadRequestError
 from modules.web_server.schemas.response import (
     MetadataSchema,
     ResponseSchema,
@@ -107,8 +111,11 @@ async def patch_users_user_reference(
 @router.delete("/users/{user_reference}", dependencies=[Depends(require_admin_role)])
 async def delete_users_user_reference(
     user_reference: Annotated[str, Path()],
+    current_user: User = Depends(get_current_user),
     uow: IdentitySQLAlchemyUnitOfWork = Depends(get_identity_uow),
 ):
+    if current_user.reference == user_reference:
+        raise BadRequestError("Cannot delete current logged in user")
     async with uow:
         await uow.user_repository.delete_many(
             filter={"reference": user_reference},
