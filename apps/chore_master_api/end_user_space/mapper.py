@@ -108,8 +108,8 @@ class Mapper:
                 },
             )
 
-        integration_resource_table = Table(
-            "integration_resource",
+        integration_operator_table = Table(
+            "integration_operator",
             self._metadata,
             *get_base_columns(),
             Column("user_reference", types.String, nullable=False),
@@ -117,9 +117,9 @@ class Mapper:
             Column("discriminator", types.String, nullable=False),
             Column("value", types.JSON, nullable=False),
         )
-        if getattr(integration.Resource, "_sa_class_manager", None) is None:
+        if getattr(integration.Operator, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
-                integration.Resource, integration_resource_table
+                integration.Operator, integration_operator_table
             )
 
         finance_asset_table = Table(

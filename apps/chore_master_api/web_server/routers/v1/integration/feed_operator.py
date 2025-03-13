@@ -8,8 +8,8 @@ from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.integration import (
     IntegrationSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.modules.feed_discriminated_resource import (
-    FeedDiscriminatedResource,
+from apps.chore_master_api.modules.feed_discriminated_operator import (
+    FeedDiscriminatedOperator,
     IntervalEnum,
 )
 from apps.chore_master_api.web_server.dependencies.auth import get_current_user
@@ -27,28 +27,28 @@ class FetchPricesRequest(BaseModel):
     instrument_symbols: list[str]
 
 
-# Feed Resource
+# Feed Operator
 
 
-@router.post("/resources/{resource_reference}/feed/fetch_prices")
-async def post_resources_resource_reference_feed_fetch_prices(
-    resource_reference: Annotated[str, Path()],
+@router.post("/operators/{operator_reference}/feed/fetch_prices")
+async def post_operators_operator_reference_feed_fetch_prices(
+    operator_reference: Annotated[str, Path()],
     fetch_prices_request: FetchPricesRequest,
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
     current_user: User = Depends(get_current_user),
 ):
     async with uow:
-        resource = await uow.resource_repository.find_one(
+        operator = await uow.operator_repository.find_one(
             filter={
-                "reference": resource_reference,
+                "reference": operator_reference,
                 "user_reference": current_user.reference,
             }
         )
-        feed_resource: FeedDiscriminatedResource = resource.to_discriminated_resource()
+        feed_operator: FeedDiscriminatedOperator = operator.to_discriminated_operator()
         prices = []
         for instrument_symbol in fetch_prices_request.instrument_symbols:
             prices.extend(
-                await feed_resource.fetch_prices(
+                await feed_operator.fetch_prices(
                     instrument_symbol=instrument_symbol,
                     target_interval=fetch_prices_request.target_interval,
                     target_datetimes=fetch_prices_request.target_datetimes,

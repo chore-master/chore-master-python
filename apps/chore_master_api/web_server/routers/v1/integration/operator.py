@@ -7,8 +7,8 @@ from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.models.integration import (
-    Resource,
-    ResourceDiscriminator,
+    Operator,
+    OperatorDiscriminator,
 )
 from apps.chore_master_api.end_user_space.unit_of_works.integration import (
     IntegrationSQLAlchemyUnitOfWork,
@@ -37,76 +37,76 @@ from modules.web_server.schemas.response import (
 router = APIRouter()
 
 
-# Resource
+# Operator
 
 
-class CreateResourceRequest(BaseCreateEntityRequest):
+class CreateOperatorRequest(BaseCreateEntityRequest):
     name: str
-    discriminator: ResourceDiscriminator
+    discriminator: OperatorDiscriminator
     value: str
 
 
-class ReadResourceResponse(BaseQueryEntityResponse):
+class ReadOperatorResponse(BaseQueryEntityResponse):
     name: str
-    discriminator: ResourceDiscriminator
+    discriminator: OperatorDiscriminator
     value: dict
 
 
-class UpdateResourceRequest(BaseUpdateEntityRequest):
+class UpdateOperatorRequest(BaseUpdateEntityRequest):
     name: Optional[str] = None
-    discriminator: Optional[ResourceDiscriminator] = None
+    discriminator: Optional[OperatorDiscriminator] = None
     value: Optional[str] = None
 
 
-class ResourceFilter(BaseModel):
-    discriminators: list[ResourceDiscriminator]
+class OperatorFilter(BaseModel):
+    discriminators: list[OperatorDiscriminator]
 
 
-async def get_resource_filter(
-    discriminators: Annotated[Optional[list[ResourceDiscriminator]], Query()] = None,
-) -> ResourceFilter:
-    return ResourceFilter(
+async def get_operator_filter(
+    discriminators: Annotated[Optional[list[OperatorDiscriminator]], Query()] = None,
+) -> OperatorFilter:
+    return OperatorFilter(
         discriminators=discriminators or [],
     )
 
 
-# Resource
+# Operator
 
 
-@router.get("/users/me/resources")
-async def get_users_me_resources(
-    filter: ResourceFilter = Depends(get_resource_filter),
+@router.get("/users/me/operators")
+async def get_users_me_operators(
+    filter: OperatorFilter = Depends(get_operator_filter),
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
     current_user: User = Depends(get_current_user),
 ):
     async with uow:
-        filters = [Resource.user_reference == current_user.reference]
+        filters = [Operator.user_reference == current_user.reference]
         if len(filter.discriminators) > 0:
-            filters.append(Resource.discriminator.in_(filter.discriminators))
-        count_statement = select(func.count()).select_from(Resource).filter(*filters)
+            filters.append(Operator.discriminator.in_(filter.discriminators))
+        count_statement = select(func.count()).select_from(Operator).filter(*filters)
         count = await uow.session.scalar(count_statement)
         metadata = MetadataSchema(
             offset_pagination=MetadataSchema.OffsetPagination(count=count)
         )
         statement = (
-            select(Resource)
+            select(Operator)
             .filter(*filters)
             .offset(offset_pagination.offset)
             .limit(offset_pagination.limit)
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        return ResponseSchema[list[ReadResourceResponse]](
+        return ResponseSchema[list[ReadOperatorResponse]](
             status=StatusEnum.SUCCESS,
             data=[entity.model_dump() for entity in entities],
             metadata=metadata,
         )
 
 
-@router.post("/users/me/resources")
-async def post_users_me_resources(
-    create_entity_request: CreateResourceRequest,
+@router.post("/users/me/operators")
+async def post_users_me_operators(
+    create_entity_request: CreateOperatorRequest,
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
     current_user: User = Depends(get_current_user),
 ):
@@ -121,32 +121,32 @@ async def post_users_me_resources(
         create_entity_request.model_dump(exclude_unset=True, exclude={"value"})
     )
     async with uow:
-        entity = Resource(**entity_dict)
-        await uow.resource_repository.insert_one(entity)
+        entity = Operator(**entity_dict)
+        await uow.operator_repository.insert_one(entity)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/users/me/resources/{resource_reference}")
-async def get_users_me_resources_resource_reference(
-    resource_reference: Annotated[str, Path()],
+@router.get("/users/me/operators/{operator_reference}")
+async def get_users_me_operators_operator_reference(
+    operator_reference: Annotated[str, Path()],
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
     current_user: User = Depends(get_current_user),
 ):
     async with uow:
-        entity = await uow.resource_repository.find_one(
+        entity = await uow.operator_repository.find_one(
             filter={
-                "reference": resource_reference,
+                "reference": operator_reference,
                 "user_reference": current_user.reference,
             }
         )
         return ResponseSchema(status=StatusEnum.SUCCESS, data=entity.model_dump())
 
 
-@router.patch("/users/me/resources/{resource_reference}")
-async def patch_users_me_resources_resource_reference(
-    resource_reference: Annotated[str, Path()],
-    update_entity_request: UpdateResourceRequest,
+@router.patch("/users/me/operators/{operator_reference}")
+async def patch_users_me_operators_operator_reference(
+    operator_reference: Annotated[str, Path()],
+    update_entity_request: UpdateOperatorRequest,
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
     current_user: User = Depends(get_current_user),
 ):
@@ -163,10 +163,10 @@ async def patch_users_me_resources_resource_reference(
                 "Invalid value format, please check the value format."
             )
     async with uow:
-        await uow.resource_repository.update_many(
+        await uow.operator_repository.update_many(
             values=update_entity_dict,
             filter={
-                "reference": resource_reference,
+                "reference": operator_reference,
                 "user_reference": current_user.reference,
             },
         )
@@ -174,16 +174,16 @@ async def patch_users_me_resources_resource_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/users/me/resources/{resource_reference}")
-async def delete_users_me_resources_resource_reference(
-    resource_reference: Annotated[str, Path()],
+@router.delete("/users/me/operators/{operator_reference}")
+async def delete_users_me_operators_operator_reference(
+    operator_reference: Annotated[str, Path()],
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
     current_user: User = Depends(get_current_user),
 ):
     async with uow:
-        await uow.resource_repository.delete_many(
+        await uow.operator_repository.delete_many(
             filter={
-                "reference": resource_reference,
+                "reference": operator_reference,
                 "user_reference": current_user.reference,
             },
             limit=1,

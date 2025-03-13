@@ -42,7 +42,7 @@ package identity {
 }
 
 package integration {
-  entity "Resource" {
+  entity "Operator" {
     * reference: str <<PK>>
     * user_reference: str <<FK>>
     * discriminator: str \n = 'yahoo_finance_feed' $add("| 'node_manager'")
@@ -160,7 +160,7 @@ package finance {
 
 User                 ||--o{ UserRole
 User                 ||--o{ UserSession
-User                 ||--o{ Resource
+User                 ||--o{ Operator
 User                 ||--o{ Account
 User                 ||--o{ BalanceSheet
 User                 ||--o{ Asset
