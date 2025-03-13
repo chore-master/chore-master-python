@@ -2,6 +2,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.identity import User
@@ -13,9 +14,13 @@ from apps.chore_master_api.end_user_space.unit_of_works.integration import (
     IntegrationSQLAlchemyUnitOfWork,
 )
 from apps.chore_master_api.web_server.dependencies.auth import get_current_user
+from apps.chore_master_api.web_server.dependencies.pagination import (
+    get_offset_pagination,
+)
 from apps.chore_master_api.web_server.dependencies.unit_of_work import (
     get_integration_uow,
 )
+from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
@@ -23,7 +28,11 @@ from apps.chore_master_api.web_server.schemas.request import (
 from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
 from modules.utils.json_utils import JSONUtils
 from modules.web_server.exceptions import BadRequestError
-from modules.web_server.schemas.response import ResponseSchema, StatusEnum
+from modules.web_server.schemas.response import (
+    MetadataSchema,
+    ResponseSchema,
+    StatusEnum,
+)
 
 router = APIRouter()
 
@@ -67,26 +76,31 @@ async def get_resource_filter(
 @router.get("/users/me/resources")
 async def get_users_me_resources(
     filter: ResourceFilter = Depends(get_resource_filter),
+    offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
     current_user: User = Depends(get_current_user),
 ):
     async with uow:
+        filters = [Resource.user_reference == current_user.reference]
         if len(filter.discriminators) > 0:
-            statement = select(Resource).filter(
-                Resource.user_reference == current_user.reference,
-                Resource.discriminator.in_(filter.discriminators),
-            )
-            result = await uow.session.execute(statement)
-            entities = result.scalars().unique().all()
-        else:
-            entities = await uow.resource_repository.find_many(
-                filter={
-                    "user_reference": current_user.reference,
-                }
-            )
+            filters.append(Resource.discriminator.in_(filter.discriminators))
+        count_statement = select(func.count()).select_from(Resource).filter(*filters)
+        count = await uow.session.scalar(count_statement)
+        metadata = MetadataSchema(
+            offset_pagination=MetadataSchema.OffsetPagination(count=count)
+        )
+        statement = (
+            select(Resource)
+            .filter(*filters)
+            .offset(offset_pagination.offset)
+            .limit(offset_pagination.limit)
+        )
+        result = await uow.session.execute(statement)
+        entities = result.scalars().unique().all()
         return ResponseSchema[list[ReadResourceResponse]](
             status=StatusEnum.SUCCESS,
             data=[entity.model_dump() for entity in entities],
+            metadata=metadata,
         )
 
 

@@ -1,7 +1,7 @@
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path, Query
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Asset
@@ -10,13 +10,21 @@ from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
 from apps.chore_master_api.web_server.dependencies.auth import get_current_user
+from apps.chore_master_api.web_server.dependencies.pagination import (
+    get_offset_pagination,
+)
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
+from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
 )
 from apps.chore_master_api.web_server.schemas.response import BaseQueryEntityResponse
-from modules.web_server.schemas.response import ResponseSchema, StatusEnum
+from modules.web_server.schemas.response import (
+    MetadataSchema,
+    ResponseSchema,
+    StatusEnum,
+)
 
 router = APIRouter()
 
@@ -47,26 +55,40 @@ async def get_users_me_assets(
     search: Annotated[Optional[str], Query()] = None,
     references: Annotated[Optional[list[str]], Query()] = None,
     is_settleable: Annotated[Optional[bool], Query()] = None,
+    offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        statement = select(Asset).filter(Asset.user_reference == current_user.reference)
+        filters = [Asset.user_reference == current_user.reference]
         if is_settleable is not None:
-            statement = statement.filter(Asset.is_settleable == is_settleable)
+            filters.append(Asset.is_settleable == is_settleable)
         if search is not None:
-            statement = statement.filter(
+            filters.append(
                 or_(
                     Asset.name.ilike(f"%{search}%"),
                     Asset.symbol.ilike(f"%{search}%"),
                 )
             )
         if references is not None:
-            statement = statement.filter(Asset.reference.in_(references))
+            filters.append(Asset.reference.in_(references))
+        count_statement = select(func.count()).select_from(Asset).filter(*filters)
+        count = await uow.session.scalar(count_statement)
+        metadata = MetadataSchema(
+            offset_pagination=MetadataSchema.OffsetPagination(count=count)
+        )
+        statement = (
+            select(Asset)
+            .filter(*filters)
+            .offset(offset_pagination.offset)
+            .limit(offset_pagination.limit)
+        )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
         return ResponseSchema[list[ReadAssetResponse]](
-            status=StatusEnum.SUCCESS, data=[entity.model_dump() for entity in entities]
+            status=StatusEnum.SUCCESS,
+            data=[entity.model_dump() for entity in entities],
+            metadata=metadata,
         )
 
 

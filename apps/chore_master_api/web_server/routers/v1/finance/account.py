@@ -64,25 +64,10 @@ async def get_users_me_accounts(
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        count_statement = (
-            select(func.count())
-            .select_from(Account)
-            .filter(Account.user_reference == current_user.reference)
-        )
-        count = await uow.session.scalar(count_statement)
-        metadata = MetadataSchema(
-            offset_pagination=MetadataSchema.OffsetPagination(count=count)
-        )
-        statement = (
-            select(Account)
-            .filter(Account.user_reference == current_user.reference)
-            .order_by(Account.closed_time.desc().nulls_first(), Account.name.desc())
-            .offset(offset_pagination.offset)
-            .limit(offset_pagination.limit)
-        )
+        filters = [Account.user_reference == current_user.reference]
         if active_as_of_time is not None:
             active_as_of_time = active_as_of_time.replace(tzinfo=None)
-            statement = statement.filter(
+            filters.append(
                 and_(
                     Account.opened_time <= active_as_of_time,
                     or_(
@@ -91,6 +76,18 @@ async def get_users_me_accounts(
                     ),
                 ),
             )
+        count_statement = select(func.count()).select_from(Account).filter(*filters)
+        count = await uow.session.scalar(count_statement)
+        metadata = MetadataSchema(
+            offset_pagination=MetadataSchema.OffsetPagination(count=count)
+        )
+        statement = (
+            select(Account)
+            .filter(*filters)
+            .order_by(Account.closed_time.desc().nulls_first(), Account.name.desc())
+            .offset(offset_pagination.offset)
+            .limit(offset_pagination.limit)
+        )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
         return ResponseSchema[list[ReadAccountResponse]](
