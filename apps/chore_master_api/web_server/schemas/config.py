@@ -1,9 +1,12 @@
+from typing import Optional
+
 from modules.web_server.schemas.config import WebServerConfigSchema
 
 
 class ChoreMasterAPIWebServerConfigSchema(WebServerConfigSchema):
     UVICORN_AUTO_RELOAD: bool
-    MONGODB_URI: str
+    DATABASE_ORIGIN: str
+    DATABASE_SCHEMA_NAME: Optional[str] = None
 
     IAM_API_ORIGIN: str
     FRONTEND_ORIGIN: str
@@ -12,8 +15,5 @@ class ChoreMasterAPIWebServerConfigSchema(WebServerConfigSchema):
     SESSION_COOKIE_KEY: str
     SESSION_COOKIE_DOMAIN: str
 
-    GOOGLE_OAUTH_ENDPOINT: str
-    GOOGLE_OAUTH_TOKEN_URI: str
-    GOOGLE_OAUTH_JWKS_URI: str
-    GOOGLE_OAUTH_CLIENT_ID: str
-    GOOGLE_OAUTH_SECRET: str
+    CLOUDFLARE_TURNSTILE_SECRET_KEY: Optional[str] = None
+    CLOUDFLARE_TURNSTILE_VERIFY_URL: str

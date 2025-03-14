@@ -4,8 +4,8 @@ from typing import Any, Callable, Optional, Union
 
 import httpx
 
-from apps.chore_master_api.modules.base_discriminated_resource import (
-    BaseDiscriminatedResource,
+from apps.chore_master_api.modules.base_discriminated_operator import (
+    BaseDiscriminatedOperator,
 )
 from modules.utils.symbol_utils import SymbolUtils
 
@@ -40,7 +40,7 @@ def binary_search_lte_from_ascendingly_ordered_items(
         return None
 
 
-class FeedDiscriminatedResource(BaseDiscriminatedResource):
+class FeedDiscriminatedOperator(BaseDiscriminatedOperator):
     async def fetch_prices(
         self,
         instrument_symbol: str,
@@ -50,7 +50,7 @@ class FeedDiscriminatedResource(BaseDiscriminatedResource):
         raise NotImplementedError
 
 
-class OandaFeedDiscriminatedResource(FeedDiscriminatedResource):
+class OandaFeedDiscriminatedOperator(FeedDiscriminatedOperator):
     async def fetch_prices(
         self,
         instrument_symbol: str,
@@ -61,7 +61,7 @@ class OandaFeedDiscriminatedResource(FeedDiscriminatedResource):
         raise NotImplementedError
 
 
-class YahooFinanceFeedDiscriminatedResource(FeedDiscriminatedResource):
+class YahooFinanceFeedDiscriminatedOperator(FeedDiscriminatedOperator):
     async def fetch_prices(
         self,
         instrument_symbol: str,
@@ -127,7 +127,7 @@ class YahooFinanceFeedDiscriminatedResource(FeedDiscriminatedResource):
             raise ValueError(f"Unsupported interval: {target_interval}")
 
 
-class CoingeckoFeedDiscriminatedResource(FeedDiscriminatedResource):
+class CoingeckoFeedDiscriminatedOperator(FeedDiscriminatedOperator):
     async def fetch_prices(
         self,
         instrument_symbol: str,

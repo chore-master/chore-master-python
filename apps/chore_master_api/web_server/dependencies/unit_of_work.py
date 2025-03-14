@@ -1,35 +1,48 @@
-from typing import Type
-
 from fastapi import Depends
+from sqlalchemy.orm import registry
 
-from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
-from apps.chore_master_api.web_server.dependencies.google_service import (
-    get_google_service,
+from apps.chore_master_api.end_user_space.unit_of_works.finance import (
+    FinanceSQLAlchemyUnitOfWork,
 )
-from modules.google_service.google_service import GoogleService
-from modules.unit_of_works.base_spreadsheet_unit_of_work import (
-    BaseSpreadsheetUnitOfWork,
+from apps.chore_master_api.end_user_space.unit_of_works.identity import (
+    IdentitySQLAlchemyUnitOfWork,
 )
-from modules.web_server.exceptions import NotFoundError
+from apps.chore_master_api.end_user_space.unit_of_works.integration import (
+    IntegrationSQLAlchemyUnitOfWork,
+)
+from apps.chore_master_api.end_user_space.unit_of_works.some_module import (
+    SomeModuleSQLAlchemyUnitOfWork,
+)
+from apps.chore_master_api.web_server.dependencies.database import (
+    get_chore_master_db,
+    get_chore_master_db_registry,
+)
+from modules.database.relational_database import RelationalDatabase
 
 
-def get_spreadsheet_unit_of_work_factory(
-    uow_name: str, uow_class: Type[BaseSpreadsheetUnitOfWork]
-):
-    async def _get_spreadsheet_unit_of_work(
-        current_end_user: dict = Depends(get_current_end_user),
-        google_service: GoogleService = Depends(get_google_service),
-    ) -> BaseSpreadsheetUnitOfWork:
-        uow_spreadsheet_id = (
-            current_end_user.get("google", {})
-            .get("spreadsheet", {})
-            .get(f"{uow_name}_spreadsheet_id")
-        )
-        if uow_spreadsheet_id is None:
-            raise NotFoundError(f"`{uow_name}_spreadsheet_id` is not set yet")
-        return uow_class(
-            google_service=google_service,
-            spreadsheet_id=uow_spreadsheet_id,
-        )
+async def get_identity_uow(
+    chore_master_db: RelationalDatabase = Depends(get_chore_master_db),
+    _end_user_db_registry: registry = Depends(get_chore_master_db_registry),
+) -> IdentitySQLAlchemyUnitOfWork:
+    return IdentitySQLAlchemyUnitOfWork(relational_database=chore_master_db)
 
-    return _get_spreadsheet_unit_of_work
+
+async def get_integration_uow(
+    chore_master_db: RelationalDatabase = Depends(get_chore_master_db),
+    _end_user_db_registry: registry = Depends(get_chore_master_db_registry),
+) -> IntegrationSQLAlchemyUnitOfWork:
+    return IntegrationSQLAlchemyUnitOfWork(relational_database=chore_master_db)
+
+
+async def get_finance_uow(
+    chore_master_db: RelationalDatabase = Depends(get_chore_master_db),
+    _end_user_db_registry: registry = Depends(get_chore_master_db_registry),
+) -> FinanceSQLAlchemyUnitOfWork:
+    return FinanceSQLAlchemyUnitOfWork(relational_database=chore_master_db)
+
+
+async def get_some_module_uow(
+    chore_master_db: RelationalDatabase = Depends(get_chore_master_db),
+    _end_user_db_registry: registry = Depends(get_chore_master_db_registry),
+) -> SomeModuleSQLAlchemyUnitOfWork:
+    return SomeModuleSQLAlchemyUnitOfWork(relational_database=chore_master_db)

@@ -13,12 +13,13 @@
             "cwd": "${workspaceRoot}",
             "justMyCode": false,
             "env": {
+                "PYDEVD_DISABLE_FILE_VALIDATION": "1",
                 "ENV": "local",
                 "SERVICE_NAME": "chore_master_api",
                 "COMPONENT_NAME": "web_server",
-                "MONGODB_URI": "mongodb://localhost:27088",
-                "GOOGLE_OAUTH_CLIENT_ID": "<GOOGLE_OAUTH_CLIENT_ID>",
-                "GOOGLE_OAUTH_SECRET": "<GOOGLE_OAUTH_SECRET>",
+                "DATABASE_ORIGIN": "sqlite+aiosqlite:///./dbs/local.db",
+                "DATABASE_SCHEMA_NAME": "",
+                "CLOUDFLARE_TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
             }
         },
         {

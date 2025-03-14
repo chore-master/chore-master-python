@@ -7,13 +7,15 @@ from sqlalchemy import and_, func, or_
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Account
+from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.end_user_space import get_finance_uow
+from apps.chore_master_api.web_server.dependencies.auth import get_current_user
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
+from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
 from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
@@ -54,27 +56,18 @@ class UpdateAccountRequest(BaseUpdateEntityRequest):
     ecosystem_type: Optional[Account.EcosystemTypeEnum] = None
 
 
-@router.get("/accounts")
-async def get_accounts(
+@router.get("/users/me/accounts")
+async def get_users_me_accounts(
     active_as_of_time: Annotated[Optional[datetime], Query()] = None,
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        count_statement = select(func.count()).select_from(Account)
-        count = await uow.session.scalar(count_statement)
-        metadata = MetadataSchema(
-            offset_pagination=MetadataSchema.OffsetPagination(count=count)
-        )
-        statement = (
-            select(Account)
-            .order_by(Account.closed_time.desc().nulls_first(), Account.name.desc())
-            .offset(offset_pagination.offset)
-            .limit(offset_pagination.limit)
-        )
+        filters = [Account.user_reference == current_user.reference]
         if active_as_of_time is not None:
             active_as_of_time = active_as_of_time.replace(tzinfo=None)
-            statement = statement.filter(
+            filters.append(
                 and_(
                     Account.opened_time <= active_as_of_time,
                     or_(
@@ -83,6 +76,18 @@ async def get_accounts(
                     ),
                 ),
             )
+        count_statement = select(func.count()).select_from(Account).filter(*filters)
+        count = await uow.session.scalar(count_statement)
+        metadata = MetadataSchema(
+            offset_pagination=MetadataSchema.OffsetPagination(count=count)
+        )
+        statement = (
+            select(Account)
+            .filter(*filters)
+            .order_by(Account.closed_time.desc().nulls_first(), Account.name.desc())
+            .offset(offset_pagination.offset)
+            .limit(offset_pagination.limit)
+        )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
         return ResponseSchema[list[ReadAccountResponse]](
@@ -92,12 +97,15 @@ async def get_accounts(
         )
 
 
-@router.post("/accounts")
-async def post_accounts(
+@router.post("/users/me/accounts")
+async def post_users_me_accounts(
     create_entity_request: CreateAccountRequest,
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
-    entity_dict = {}
+    entity_dict = {
+        "user_reference": current_user.reference,
+    }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
     async with uow:
         entity = Account(**entity_dict)
@@ -106,29 +114,38 @@ async def post_accounts(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.patch("/accounts/{account_reference}")
-async def patch_accounts_account_reference(
+@router.patch("/users/me/accounts/{account_reference}")
+async def patch_users_me_accounts_account_reference(
     account_reference: Annotated[str, Path()],
     update_entity_request: UpdateAccountRequest,
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
         await uow.account_repository.update_many(
             values=update_entity_request.model_dump(exclude_unset=True),
-            filter={"reference": account_reference},
+            filter={
+                "reference": account_reference,
+                "user_reference": current_user.reference,
+            },
         )
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/accounts/{account_reference}")
-async def delete_accounts_account_reference(
+@router.delete("/users/me/accounts/{account_reference}")
+async def delete_users_me_accounts_account_reference(
     account_reference: Annotated[str, Path()],
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
         await uow.account_repository.delete_many(
-            filter={"reference": account_reference}, limit=1
+            filter={
+                "reference": account_reference,
+                "user_reference": current_user.reference,
+            },
+            limit=1,
         )
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)

@@ -9,10 +9,10 @@ from fastapi import APIRouter, Depends
 from numpy import exp, log, sqrt
 from pydantic import BaseModel
 
-from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
-from apps.chore_master_api.web_server.dependencies.database import (
+from apps.chore_master_api.web_server.dependencies._database import (
     get_chore_master_api_db,
 )
+from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
 from modules.database.mongo_client import MongoDB
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 

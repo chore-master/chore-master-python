@@ -5,13 +5,15 @@ from sqlalchemy import func
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Instrument
+from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.end_user_space import get_finance_uow
+from apps.chore_master_api.web_server.dependencies.auth import get_current_user
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
+from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
 from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
@@ -57,19 +59,25 @@ class UpdateInstrumentRequest(BaseUpdateEntityRequest):
     name: Optional[str] = None
 
 
-@router.get("/instruments")
-async def get_instruments(
+@router.get("/users/me/instruments")
+async def get_users_me_instruments(
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        count_statement = select(func.count()).select_from(Instrument)
+        count_statement = (
+            select(func.count())
+            .select_from(Instrument)
+            .filter(Instrument.user_reference == current_user.reference)
+        )
         count = await uow.session.scalar(count_statement)
         metadata = MetadataSchema(
             offset_pagination=MetadataSchema.OffsetPagination(count=count)
         )
         statement = (
             select(Instrument)
+            .filter(Instrument.user_reference == current_user.reference)
             .order_by(Instrument.created_time.desc())
             .offset(offset_pagination.offset)
             .limit(offset_pagination.limit)
@@ -83,12 +91,15 @@ async def get_instruments(
         )
 
 
-@router.post("/instruments")
-async def post_instruments(
+@router.post("/users/me/instruments")
+async def post_users_me_instruments(
     create_entity_request: CreateInstrumentRequest,
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
-    entity_dict = {}
+    entity_dict = {
+        "user_reference": current_user.reference,
+    }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
     async with uow:
         entity = Instrument(**entity_dict)
@@ -97,29 +108,38 @@ async def post_instruments(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.patch("/instruments/{instrument_reference}")
-async def patch_instruments_instrument_reference(
+@router.patch("/users/me/instruments/{instrument_reference}")
+async def patch_users_me_instruments_instrument_reference(
     instrument_reference: Annotated[str, Path()],
     update_entity_request: UpdateInstrumentRequest,
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
         await uow.instrument_repository.update_many(
             values=update_entity_request.model_dump(exclude_unset=True),
-            filter={"reference": instrument_reference},
+            filter={
+                "reference": instrument_reference,
+                "user_reference": current_user.reference,
+            },
         )
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/instruments/{instrument_reference}")
-async def delete_instruments_instrument_reference(
+@router.delete("/users/me/instruments/{instrument_reference}")
+async def delete_users_me_instruments_instrument_reference(
     instrument_reference: Annotated[str, Path()],
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
         await uow.instrument_repository.delete_many(
-            filter={"reference": instrument_reference}, limit=1
+            filter={
+                "reference": instrument_reference,
+                "user_reference": current_user.reference,
+            },
+            limit=1,
         )
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)

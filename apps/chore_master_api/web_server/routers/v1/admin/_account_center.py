@@ -7,17 +7,17 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, RootModel
 from sqlalchemy.orm import registry
 
-from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
-from apps.chore_master_api.web_server.dependencies.database import (
+from apps.chore_master_api.web_server.dependencies._database import (
     get_chore_master_api_db,
 )
+from apps.chore_master_api.web_server.dependencies._google_service import (
+    get_google_service,
+)
+from apps.chore_master_api.web_server.dependencies.auth import get_current_end_user
 from apps.chore_master_api.web_server.dependencies.end_user_space import (
     get_end_user_db,
     get_end_user_db_migration,
     get_end_user_db_registry,
-)
-from apps.chore_master_api.web_server.dependencies.google_service import (
-    get_google_service,
 )
 from modules.database.mongo_client import MongoDB
 from modules.database.relational_database import RelationalDatabase, SchemaMigration

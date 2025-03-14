@@ -170,3 +170,5 @@ apps/sample_strategy_manager/typing_extensions.py
 !apps/sample_strategy_manager/*.md
 !apps/sample_strategy_manager/*.txt
 data/
+!apps/chore_master_api/end_user_space/data/
+dbs

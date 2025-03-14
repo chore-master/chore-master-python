@@ -12,33 +12,40 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
     web_server_config = get_web_server_config()
 
     UVICORN_AUTO_RELOAD = False
-    MONGODB_URI = get_env("MONGODB_URI")
-
-    FRONTEND_ORIGIN = None
+    DATABASE_ORIGIN = get_env("DATABASE_ORIGIN")
+    DATABASE_SCHEMA_NAME = get_env("DATABASE_SCHEMA_NAME")
+    FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN")
     IAM_API_ORIGIN = None
     ALLOW_ORIGINS = ["*"]
 
     SESSION_COOKIE_KEY = "cm_end_user_session_reference"
     SESSION_COOKIE_DOMAIN = "localhost"
-    GOOGLE_OAUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
-    GOOGLE_OAUTH_TOKEN_URI = "https://oauth2.googleapis.com/token"
-    GOOGLE_OAUTH_JWKS_URI = "https://www.googleapis.com/oauth2/v3/certs"
-    GOOGLE_OAUTH_CLIENT_ID = get_env("GOOGLE_OAUTH_CLIENT_ID")
-    GOOGLE_OAUTH_SECRET = get_env("GOOGLE_OAUTH_SECRET")
+    # GOOGLE_OAUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
+    # GOOGLE_OAUTH_TOKEN_URI = "https://oauth2.googleapis.com/token"
+    # GOOGLE_OAUTH_JWKS_URI = "https://www.googleapis.com/oauth2/v3/certs"
+    # GOOGLE_OAUTH_CLIENT_ID = get_env("GOOGLE_OAUTH_CLIENT_ID")
+    # GOOGLE_OAUTH_SECRET = get_env("GOOGLE_OAUTH_SECRET")
+
+    CLOUDFLARE_TURNSTILE_SECRET_KEY = get_env("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+    CLOUDFLARE_TURNSTILE_VERIFY_URL = (
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    )
 
     if base_config.ENV == EnvEnum.LOCAL:
         UVICORN_AUTO_RELOAD = True
-        FRONTEND_ORIGIN = "http://localhost:2000"
+        FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "http://localhost:2000")
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
         IAM_API_ORIGIN = "http://localhost:10000"
         SESSION_COOKIE_DOMAIN = "localhost"
     elif base_config.ENV == EnvEnum.DEVELOPING:
-        FRONTEND_ORIGIN = "https://dev--chore-master.lation.app"
+        FRONTEND_ORIGIN = get_env(
+            "FRONTEND_ORIGIN", "https://dev--chore-master.lation.app"
+        )
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
         IAM_API_ORIGIN = "https://dev--chore-master-api.lation.app"
         SESSION_COOKIE_DOMAIN = "dev--chore-master-api.lation.app"
     elif base_config.ENV == EnvEnum.PRODUCTION:
-        FRONTEND_ORIGIN = "https://chore-master.lation.app"
+        FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "https://chore-master.lation.app")
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
         IAM_API_ORIGIN = "https://chore-master-api.lation.app"
         SESSION_COOKIE_DOMAIN = "chore-master-api.lation.app"
@@ -47,14 +54,12 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
         **web_server_config.model_dump(),
         UVICORN_AUTO_RELOAD=UVICORN_AUTO_RELOAD,
         ALLOW_ORIGINS=ALLOW_ORIGINS,
-        MONGODB_URI=MONGODB_URI,
+        DATABASE_ORIGIN=DATABASE_ORIGIN,
+        DATABASE_SCHEMA_NAME=DATABASE_SCHEMA_NAME,
         FRONTEND_ORIGIN=FRONTEND_ORIGIN,
         IAM_API_ORIGIN=IAM_API_ORIGIN,
         SESSION_COOKIE_KEY=SESSION_COOKIE_KEY,
         SESSION_COOKIE_DOMAIN=SESSION_COOKIE_DOMAIN,
-        GOOGLE_OAUTH_ENDPOINT=GOOGLE_OAUTH_ENDPOINT,
-        GOOGLE_OAUTH_TOKEN_URI=GOOGLE_OAUTH_TOKEN_URI,
-        GOOGLE_OAUTH_JWKS_URI=GOOGLE_OAUTH_JWKS_URI,
-        GOOGLE_OAUTH_CLIENT_ID=GOOGLE_OAUTH_CLIENT_ID,
-        GOOGLE_OAUTH_SECRET=GOOGLE_OAUTH_SECRET,
+        CLOUDFLARE_TURNSTILE_SECRET_KEY=CLOUDFLARE_TURNSTILE_SECRET_KEY,
+        CLOUDFLARE_TURNSTILE_VERIFY_URL=CLOUDFLARE_TURNSTILE_VERIFY_URL,
     )

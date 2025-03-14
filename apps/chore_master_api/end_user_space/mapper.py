@@ -41,28 +41,92 @@ class Mapper:
             self._metadata,
             *get_base_columns(),
             Column("name", types.String, nullable=False),
+            Column("username", types.String, nullable=False),
+            Column("password", types.String, nullable=False),
         )
         if getattr(identity.User, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(identity.User, identity_user_table)
 
-        integration_resource_table = Table(
-            "integration_resource",
+        identity_role_table = Table(
+            "identity_role",
             self._metadata,
             *get_base_columns(),
-            Column("end_user_reference", types.String, nullable=False),
+            Column("symbol", types.String, nullable=False),
+        )
+        if getattr(identity.Role, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(identity.Role, identity_role_table)
+
+        identity_user_role_table = Table(
+            "identity_user_role",
+            self._metadata,
+            *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
+            Column("role_reference", types.String, nullable=False),
+        )
+        if getattr(identity.UserRole, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                identity.UserRole,
+                identity_user_role_table,
+                properties={
+                    "user": relationship(
+                        "User",
+                        foreign_keys=[identity_user_role_table.columns.user_reference],
+                        primaryjoin="UserRole.user_reference == User.reference",
+                        backref="user_roles",
+                    ),
+                    "role": relationship(
+                        "Role",
+                        foreign_keys=[identity_user_role_table.columns.role_reference],
+                        primaryjoin="UserRole.role_reference == Role.reference",
+                        backref="user_roles",
+                    ),
+                },
+            )
+
+        identity_user_session_table = Table(
+            "identity_user_session",
+            self._metadata,
+            *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
+            Column("user_agent", types.String, nullable=False),
+            Column("is_active", types.Boolean, nullable=False),
+            Column("expired_time", types.DateTime, nullable=False),
+            Column("deactivated_time", types.DateTime, nullable=True),
+        )
+        if getattr(identity.UserSession, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                identity.UserSession,
+                identity_user_session_table,
+                properties={
+                    "user": relationship(
+                        "User",
+                        foreign_keys=[
+                            identity_user_session_table.columns.user_reference
+                        ],
+                        primaryjoin="UserSession.user_reference == User.reference",
+                    )
+                },
+            )
+
+        integration_operator_table = Table(
+            "integration_operator",
+            self._metadata,
+            *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("discriminator", types.String, nullable=False),
             Column("value", types.JSON, nullable=False),
         )
-        if getattr(integration.Resource, "_sa_class_manager", None) is None:
+        if getattr(integration.Operator, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
-                integration.Resource, integration_resource_table
+                integration.Operator, integration_operator_table
             )
 
         finance_asset_table = Table(
             "finance_asset",
             self._metadata,
             *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("symbol", types.String, nullable=False),
             Column("decimals", types.Integer, nullable=False),
@@ -75,6 +139,7 @@ class Mapper:
             "finance_account",
             self._metadata,
             *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("opened_time", types.DateTime, nullable=False),
             Column("closed_time", types.DateTime, nullable=True),
@@ -90,6 +155,7 @@ class Mapper:
             "finance_balance_sheet",
             self._metadata,
             *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("balanced_time", types.DateTime, nullable=False),
         )
         if getattr(finance.BalanceSheet, "_sa_class_manager", None) is None:
@@ -125,6 +191,7 @@ class Mapper:
             "finance_instrument",
             self._metadata,
             *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("quantity_decimals", types.Integer, nullable=False),
             Column("price_decimals", types.Integer, nullable=False),
@@ -145,6 +212,7 @@ class Mapper:
             "finance_portfolio",
             self._metadata,
             *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("description", types.String, nullable=True),
         )

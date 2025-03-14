@@ -5,13 +5,15 @@ from sqlalchemy import func
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Portfolio
+from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.end_user_space import get_finance_uow
+from apps.chore_master_api.web_server.dependencies.auth import get_current_user
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
+from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
 from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
@@ -71,9 +73,12 @@ async def get_portfolios(
 @router.post("/portfolios")
 async def post_portfolios(
     create_entity_request: CreatePortfolioRequest,
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
-    entity_dict = {}
+    entity_dict = {
+        "user_reference": current_user.reference,
+    }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
     async with uow:
         entity = Portfolio(**entity_dict)
@@ -86,12 +91,16 @@ async def post_portfolios(
 async def patch_portfolios_portfolio_reference(
     portfolio_reference: Annotated[str, Path()],
     update_entity_request: UpdatePortfolioRequest,
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
         await uow.portfolio_repository.update_many(
             values=update_entity_request.model_dump(exclude_unset=True),
-            filter={"reference": portfolio_reference},
+            filter={
+                "reference": portfolio_reference,
+                "user_reference": current_user.reference,
+            },
         )
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
@@ -100,11 +109,16 @@ async def patch_portfolios_portfolio_reference(
 @router.delete("/portfolios/{portfolio_reference}")
 async def delete_portfolios_portfolio_reference(
     portfolio_reference: Annotated[str, Path()],
+    current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
         await uow.portfolio_repository.delete_many(
-            filter={"reference": portfolio_reference}, limit=1
+            filter={
+                "reference": portfolio_reference,
+                "user_reference": current_user.reference,
+            },
+            limit=1,
         )
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)

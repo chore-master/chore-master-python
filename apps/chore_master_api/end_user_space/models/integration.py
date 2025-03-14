@@ -1,42 +1,42 @@
 from typing import Literal
 
 from apps.chore_master_api.end_user_space.models.base import Entity
-from apps.chore_master_api.modules.base_discriminated_resource import (
-    BaseDiscriminatedResource,
+from apps.chore_master_api.modules.base_discriminated_operator import (
+    BaseDiscriminatedOperator,
 )
 
-ResourceDiscriminator = Literal[
+OperatorDiscriminator = Literal[
     "oanda_feed",
     "yahoo_finance_feed",
     "coingecko_feed",
 ]
 
 
-class Resource(Entity):
-    end_user_reference: str
+class Operator(Entity):
+    user_reference: str
     name: str
-    discriminator: ResourceDiscriminator
+    discriminator: OperatorDiscriminator
     value: dict
 
-    def to_discriminated_resource(self) -> BaseDiscriminatedResource:
+    def to_discriminated_operator(self) -> BaseDiscriminatedOperator:
         if self.discriminator == "oanda_feed":
-            from apps.chore_master_api.modules.feed_discriminated_resource import (
-                OandaFeedDiscriminatedResource,
+            from apps.chore_master_api.modules.feed_discriminated_operator import (
+                OandaFeedDiscriminatedOperator,
             )
 
-            cls = OandaFeedDiscriminatedResource
+            cls = OandaFeedDiscriminatedOperator
         elif self.discriminator == "yahoo_finance_feed":
-            from apps.chore_master_api.modules.feed_discriminated_resource import (
-                YahooFinanceFeedDiscriminatedResource,
+            from apps.chore_master_api.modules.feed_discriminated_operator import (
+                YahooFinanceFeedDiscriminatedOperator,
             )
 
-            cls = YahooFinanceFeedDiscriminatedResource
+            cls = YahooFinanceFeedDiscriminatedOperator
         elif self.discriminator == "coingecko_feed":
-            from apps.chore_master_api.modules.feed_discriminated_resource import (
-                CoingeckoFeedDiscriminatedResource,
+            from apps.chore_master_api.modules.feed_discriminated_operator import (
+                CoingeckoFeedDiscriminatedOperator,
             )
 
-            cls = CoingeckoFeedDiscriminatedResource
+            cls = CoingeckoFeedDiscriminatedOperator
         else:
             raise NotImplementedError(
                 f"Unsupported discriminator: {self.discriminator}"
