@@ -6,16 +6,17 @@ from pydantic import BaseModel
 from sqlalchemy import select, update
 
 from apps.chore_master_api.config import get_chore_master_api_web_server_config
-from apps.chore_master_api.end_user_space.models.identity import User, UserSession
+from apps.chore_master_api.end_user_space.models.identity import UserSession
 from apps.chore_master_api.end_user_space.unit_of_works.identity import (
     IdentitySQLAlchemyUnitOfWork,
 )
+from apps.chore_master_api.service_layers.auth import get_is_turnstile_token_valid
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_identity_uow
 from apps.chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
 )
 from modules.utils.string_utils import StringUtils
-from modules.web_server.exceptions import UnauthenticatedError
+from modules.web_server.exceptions import UnauthenticatedError, UnauthorizedError
 from modules.web_server.schemas.response import ResponseSchema, StatusEnum
 
 router = APIRouter()
@@ -24,6 +25,7 @@ router = APIRouter()
 class LoginRequest(BaseModel):
     username: str
     password: str
+    turnstile_token: str
 
 
 @router.post("/user_sessions/login")
@@ -36,6 +38,14 @@ async def post_user_sessions_login(
     ),
     identity_uow: IdentitySQLAlchemyUnitOfWork = Depends(get_identity_uow),
 ):
+    is_turnstile_token_valid = await get_is_turnstile_token_valid(
+        verify_url=chore_master_api_web_server_config.CLOUDFLARE_TURNSTILE_VERIFY_URL,
+        secret_key=chore_master_api_web_server_config.CLOUDFLARE_TURNSTILE_SECRET_KEY,
+        token=login_request.turnstile_token,
+    )
+    if not is_turnstile_token_valid:
+        raise UnauthorizedError("Forbidden")
+
     utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
     async with identity_uow:
         users = await identity_uow.user_repository.find_many(

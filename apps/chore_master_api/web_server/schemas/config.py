@@ -14,3 +14,6 @@ class ChoreMasterAPIWebServerConfigSchema(WebServerConfigSchema):
 
     SESSION_COOKIE_KEY: str
     SESSION_COOKIE_DOMAIN: str
+
+    CLOUDFLARE_TURNSTILE_SECRET_KEY: Optional[str] = None
+    CLOUDFLARE_TURNSTILE_VERIFY_URL: str

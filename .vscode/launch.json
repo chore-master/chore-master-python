@@ -19,6 +19,7 @@
                 "COMPONENT_NAME": "web_server",
                 "DATABASE_ORIGIN": "sqlite+aiosqlite:///./dbs/local.db",
                 "DATABASE_SCHEMA_NAME": "",
+                "CLOUDFLARE_TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
             }
         },
         {

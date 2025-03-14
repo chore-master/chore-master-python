@@ -26,6 +26,11 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
     # GOOGLE_OAUTH_CLIENT_ID = get_env("GOOGLE_OAUTH_CLIENT_ID")
     # GOOGLE_OAUTH_SECRET = get_env("GOOGLE_OAUTH_SECRET")
 
+    CLOUDFLARE_TURNSTILE_SECRET_KEY = get_env("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+    CLOUDFLARE_TURNSTILE_VERIFY_URL = (
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    )
+
     if base_config.ENV == EnvEnum.LOCAL:
         UVICORN_AUTO_RELOAD = True
         FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "http://localhost:2000")
@@ -55,4 +60,6 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
         IAM_API_ORIGIN=IAM_API_ORIGIN,
         SESSION_COOKIE_KEY=SESSION_COOKIE_KEY,
         SESSION_COOKIE_DOMAIN=SESSION_COOKIE_DOMAIN,
+        CLOUDFLARE_TURNSTILE_SECRET_KEY=CLOUDFLARE_TURNSTILE_SECRET_KEY,
+        CLOUDFLARE_TURNSTILE_VERIFY_URL=CLOUDFLARE_TURNSTILE_VERIFY_URL,
     )
