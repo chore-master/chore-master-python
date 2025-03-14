@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f16adeae2198
+Revision ID: f46a1ec0f608
 Revises: 
-Create Date: 2025-03-11 14:34:48.209358
+Create Date: 2025-03-14 17:22:35.954197
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f16adeae2198'
+revision = 'f46a1ec0f608'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -202,7 +202,7 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_identity_user_session_reference'), ['reference'], unique=False)
         batch_op.create_index(batch_op.f('ix_identity_user_session_updated_time'), ['updated_time'], unique=False)
 
-    op.create_table('integration_resource',
+    op.create_table('integration_operator',
     sa.Column('reference', sa.String(), nullable=False),
     sa.Column('created_time', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.Column('updated_time', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
@@ -210,12 +210,12 @@ def upgrade():
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('discriminator', sa.String(), nullable=False),
     sa.Column('value', sa.JSON(), nullable=False),
-    sa.PrimaryKeyConstraint('reference', name=op.f('pk_integration_resource'))
+    sa.PrimaryKeyConstraint('reference', name=op.f('pk_integration_operator'))
     )
-    with op.batch_alter_table('integration_resource', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_integration_resource_created_time'), ['created_time'], unique=False)
-        batch_op.create_index(batch_op.f('ix_integration_resource_reference'), ['reference'], unique=False)
-        batch_op.create_index(batch_op.f('ix_integration_resource_updated_time'), ['updated_time'], unique=False)
+    with op.batch_alter_table('integration_operator', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_integration_operator_created_time'), ['created_time'], unique=False)
+        batch_op.create_index(batch_op.f('ix_integration_operator_reference'), ['reference'], unique=False)
+        batch_op.create_index(batch_op.f('ix_integration_operator_updated_time'), ['updated_time'], unique=False)
 
     op.create_table('some_module_some_entity',
     sa.Column('reference', sa.String(), nullable=False),
@@ -248,12 +248,12 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_some_module_some_entity_created_time'))
 
     op.drop_table('some_module_some_entity')
-    with op.batch_alter_table('integration_resource', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_integration_resource_updated_time'))
-        batch_op.drop_index(batch_op.f('ix_integration_resource_reference'))
-        batch_op.drop_index(batch_op.f('ix_integration_resource_created_time'))
+    with op.batch_alter_table('integration_operator', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_integration_operator_updated_time'))
+        batch_op.drop_index(batch_op.f('ix_integration_operator_reference'))
+        batch_op.drop_index(batch_op.f('ix_integration_operator_created_time'))
 
-    op.drop_table('integration_resource')
+    op.drop_table('integration_operator')
     with op.batch_alter_table('identity_user_session', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_identity_user_session_updated_time'))
         batch_op.drop_index(batch_op.f('ix_identity_user_session_reference'))
