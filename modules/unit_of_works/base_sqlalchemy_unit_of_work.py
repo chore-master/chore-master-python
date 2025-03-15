@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from modules.database.relational_database import RelationalDatabase
@@ -20,6 +22,7 @@ class BaseSQLAlchemyUnitOfWork(BaseUnitOfWork):
     async def __aexit__(self, *args):
         await super().__aexit__(*args)
         await self.session.close()
+        await asyncio.shield(self.session.close())
 
     async def _commit(self):
         await self.session.commit()
