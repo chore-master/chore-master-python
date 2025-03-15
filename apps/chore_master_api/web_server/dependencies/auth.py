@@ -73,3 +73,4 @@ def require_all_roles(role_symbols: list[str]):
 
 
 require_admin_role = require_all_roles(["ADMIN"])
+require_freemium_role = require_all_roles(["FREEMIUM"])

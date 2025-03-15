@@ -15,7 +15,10 @@ from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.auth import get_current_user
+from apps.chore_master_api.web_server.dependencies.auth import (
+    get_current_user,
+    require_freemium_role,
+)
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
@@ -68,7 +71,7 @@ class UpdateBalanceSheetRequest(BaseUpdateEntityRequest):
     balance_entries: list[UpdateBalanceEntryRequest]
 
 
-@router.get("/users/me/balance_sheets")
+@router.get("/users/me/balance_sheets", dependencies=[Depends(require_freemium_role)])
 async def get_users_me_balance_sheets(
     current_user: User = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
@@ -87,7 +90,7 @@ async def get_users_me_balance_sheets(
         )
 
 
-@router.post("/users/me/balance_sheets")
+@router.post("/users/me/balance_sheets", dependencies=[Depends(require_freemium_role)])
 async def post_users_me_balance_sheets(
     create_entity_request: CreateBalanceSheetRequest,
     current_user: User = Depends(get_current_user),
@@ -116,7 +119,9 @@ async def post_users_me_balance_sheets(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.get("/users/me/balance_sheets/series")
+@router.get(
+    "/users/me/balance_sheets/series", dependencies=[Depends(require_freemium_role)]
+)
 async def get_users_me_balance_sheets_series(
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
@@ -175,7 +180,10 @@ async def get_users_me_balance_sheets_series(
         )
 
 
-@router.get("/users/me/balance_sheets/{balance_sheet_reference}")
+@router.get(
+    "/users/me/balance_sheets/{balance_sheet_reference}",
+    dependencies=[Depends(require_freemium_role)],
+)
 async def get_users_me_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
     current_user: User = Depends(get_current_user),
@@ -205,7 +213,10 @@ async def get_users_me_balance_sheets_balance_sheet_reference(
         )
 
 
-@router.put("/users/me/balance_sheets/{balance_sheet_reference}")
+@router.put(
+    "/users/me/balance_sheets/{balance_sheet_reference}",
+    dependencies=[Depends(require_freemium_role)],
+)
 async def put_users_me_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
     update_entity_request: UpdateBalanceSheetRequest,
@@ -252,7 +263,10 @@ async def put_users_me_balance_sheets_balance_sheet_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/users/me/balance_sheets/{balance_sheet_reference}")
+@router.delete(
+    "/users/me/balance_sheets/{balance_sheet_reference}",
+    dependencies=[Depends(require_freemium_role)],
+)
 async def delete_users_me_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
     current_user: User = Depends(get_current_user),

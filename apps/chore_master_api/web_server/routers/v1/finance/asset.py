@@ -9,7 +9,10 @@ from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.auth import get_current_user
+from apps.chore_master_api.web_server.dependencies.auth import (
+    get_current_user,
+    require_freemium_role,
+)
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
@@ -50,7 +53,7 @@ class UpdateAssetRequest(BaseUpdateEntityRequest):
     is_settleable: Optional[bool] = None
 
 
-@router.get("/users/me/assets")
+@router.get("/users/me/assets", dependencies=[Depends(require_freemium_role)])
 async def get_users_me_assets(
     search: Annotated[Optional[str], Query()] = None,
     references: Annotated[Optional[list[str]], Query()] = None,
@@ -92,7 +95,7 @@ async def get_users_me_assets(
         )
 
 
-@router.post("/users/me/assets")
+@router.post("/users/me/assets", dependencies=[Depends(require_freemium_role)])
 async def post_users_me_assets(
     create_entity_request: CreateAssetRequest,
     current_user: User = Depends(get_current_user),
@@ -109,7 +112,10 @@ async def post_users_me_assets(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.patch("/users/me/assets/{asset_reference}")
+@router.patch(
+    "/users/me/assets/{asset_reference}",
+    dependencies=[Depends(require_freemium_role)],
+)
 async def patch_users_me_assets_asset_reference(
     asset_reference: Annotated[str, Path()],
     update_entity_request: UpdateAssetRequest,
@@ -128,7 +134,10 @@ async def patch_users_me_assets_asset_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/users/me/assets/{asset_reference}")
+@router.delete(
+    "/users/me/assets/{asset_reference}",
+    dependencies=[Depends(require_freemium_role)],
+)
 async def delete_users_me_assets_asset_reference(
     asset_reference: Annotated[str, Path()],
     current_user: User = Depends(get_current_user),

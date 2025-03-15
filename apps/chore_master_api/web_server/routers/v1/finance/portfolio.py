@@ -9,7 +9,10 @@ from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.auth import get_current_user
+from apps.chore_master_api.web_server.dependencies.auth import (
+    get_current_user,
+    require_freemium_role,
+)
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
@@ -44,7 +47,7 @@ class UpdatePortfolioRequest(BaseUpdateEntityRequest):
     description: Optional[str] = None
 
 
-@router.get("/portfolios")
+@router.get("/portfolios", dependencies=[Depends(require_freemium_role)])
 async def get_portfolios(
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
@@ -70,7 +73,7 @@ async def get_portfolios(
         )
 
 
-@router.post("/portfolios")
+@router.post("/portfolios", dependencies=[Depends(require_freemium_role)])
 async def post_portfolios(
     create_entity_request: CreatePortfolioRequest,
     current_user: User = Depends(get_current_user),
@@ -87,7 +90,9 @@ async def post_portfolios(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.patch("/portfolios/{portfolio_reference}")
+@router.patch(
+    "/portfolios/{portfolio_reference}", dependencies=[Depends(require_freemium_role)]
+)
 async def patch_portfolios_portfolio_reference(
     portfolio_reference: Annotated[str, Path()],
     update_entity_request: UpdatePortfolioRequest,
@@ -106,7 +111,9 @@ async def patch_portfolios_portfolio_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/portfolios/{portfolio_reference}")
+@router.delete(
+    "/portfolios/{portfolio_reference}", dependencies=[Depends(require_freemium_role)]
+)
 async def delete_portfolios_portfolio_reference(
     portfolio_reference: Annotated[str, Path()],
     current_user: User = Depends(get_current_user),
