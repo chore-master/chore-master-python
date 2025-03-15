@@ -118,7 +118,7 @@ async def get_users_user_reference(
         entity = result.scalars().unique().one()
         response_data = {
             **entity.model_dump(),
-            "user_roles": [ur.model_dump() for ur in entity.user_roles],
+            "user_roles": [ur.model_dump(mode="json") for ur in entity.user_roles],
         }
     return ResponseSchema[ReadUserDetailResponse](
         status=StatusEnum.SUCCESS,
