@@ -150,6 +150,9 @@ async def delete_users_user_reference(
     if current_user.reference == user_reference:
         raise BadRequestError("Cannot delete current logged in user")
     async with uow:
+        await uow.user_role_repository.delete_many(
+            filter={"user_reference": user_reference},
+        )
         await uow.user_repository.delete_many(
             filter={"reference": user_reference},
             limit=1,
