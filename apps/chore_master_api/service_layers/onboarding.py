@@ -1,3 +1,4 @@
+import alembic
 from sqlalchemy.orm import registry
 
 from modules.database.relational_database import (
@@ -13,11 +14,21 @@ async def ensure_system_initialized(
     chore_master_db_registry: registry,
     schema_migration: SchemaMigration,
 ):
-    applied_revision = schema_migration.applied_revision(
-        metadata=chore_master_db_registry.metadata
-    )
-    if applied_revision is not None:
-        return
+    try:
+        applied_revision = schema_migration.applied_revision(
+            metadata=chore_master_db_registry.metadata
+        )
+        if applied_revision is not None:
+            return
+    except alembic.util.exc.CommandError as e:
+        if str(e).startswith("Can't locate revision identified by"):
+            # 當實際版本無法匹配任一 scripts 的版本時
+            await chore_master_db.drop_tables(
+                metadata=chore_master_db_registry.metadata
+            )
+        else:
+            raise NotImplementedError
+
     all_revisions = schema_migration.all_revisions(
         metadata=chore_master_db_registry.metadata
     )
