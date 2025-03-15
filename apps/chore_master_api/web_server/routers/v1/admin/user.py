@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Path
 from pydantic import ConfigDict
 from sqlalchemy import func
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 
 from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.identity import (
@@ -40,9 +41,18 @@ class CreateUserRequest(BaseCreateEntityRequest):
     password: str
 
 
-class ReadUserResponse(BaseQueryEntityResponse):
+class ReadUserSummaryResponse(BaseQueryEntityResponse):
     name: str
     username: str
+
+
+class ReadUserDetailResponse(BaseQueryEntityResponse):
+    class ReadUserRoleResponse(BaseQueryEntityResponse):
+        role_reference: str
+
+    name: str
+    username: str
+    user_roles: list[ReadUserRoleResponse]
 
 
 class UpdateUserRequest(BaseUpdateEntityRequest):
@@ -72,7 +82,7 @@ async def get_users(
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        return ResponseSchema[list[ReadUserResponse]](
+        return ResponseSchema[list[ReadUserSummaryResponse]](
             status=StatusEnum.SUCCESS,
             data=[entity.model_dump() for entity in entities],
             metadata=metadata,
@@ -91,6 +101,29 @@ async def post_users(
         await uow.user_repository.insert_one(entity)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.get("/users/{user_reference}", dependencies=[Depends(require_admin_role)])
+async def get_users_user_reference(
+    user_reference: Annotated[str, Path()],
+    uow: IdentitySQLAlchemyUnitOfWork = Depends(get_identity_uow),
+):
+    async with uow:
+        statement = (
+            select(User)
+            .filter_by(reference=user_reference)
+            .options(joinedload(User.user_roles))
+        )
+        result = await uow.session.execute(statement)
+        entity = result.scalars().unique().one()
+        response_data = {
+            **entity.model_dump(),
+            "user_roles": [ur.model_dump() for ur in entity.user_roles],
+        }
+    return ResponseSchema[ReadUserDetailResponse](
+        status=StatusEnum.SUCCESS,
+        data=response_data,
+    )
 
 
 @router.patch("/users/{user_reference}", dependencies=[Depends(require_admin_role)])

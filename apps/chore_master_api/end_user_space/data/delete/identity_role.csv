@@ -1,2 +1,6 @@
 OP,OP_REFERENCE
+DELETE,role_guest
+DELETE,role_free_trial
+DELETE,role_freemium
+DELETE,role_premium
 DELETE,role_admin
