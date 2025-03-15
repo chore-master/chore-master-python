@@ -1,2 +1,2 @@
 OP,reference,name,username,password
-INSERT,user_admin,admin,admin,admin
+INSERT,user_admin,Admin,admin,admin

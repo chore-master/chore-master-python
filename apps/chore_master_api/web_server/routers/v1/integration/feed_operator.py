@@ -12,7 +12,10 @@ from apps.chore_master_api.modules.feed_discriminated_operator import (
     FeedDiscriminatedOperator,
     IntervalEnum,
 )
-from apps.chore_master_api.web_server.dependencies.auth import get_current_user
+from apps.chore_master_api.web_server.dependencies.auth import (
+    get_current_user,
+    require_freemium_role,
+)
 from apps.chore_master_api.web_server.dependencies.unit_of_work import (
     get_integration_uow,
 )
@@ -30,7 +33,10 @@ class FetchPricesRequest(BaseModel):
 # Feed Operator
 
 
-@router.post("/operators/{operator_reference}/feed/fetch_prices")
+@router.post(
+    "/operators/{operator_reference}/feed/fetch_prices",
+    dependencies=[Depends(require_freemium_role)],
+)
 async def post_operators_operator_reference_feed_fetch_prices(
     operator_reference: Annotated[str, Path()],
     fetch_prices_request: FetchPricesRequest,

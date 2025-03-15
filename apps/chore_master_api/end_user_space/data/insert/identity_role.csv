@@ -1,2 +1,6 @@
 OP,reference,symbol
+INSERT,role_guest,GUEST
+INSERT,role_free_trial,FREE_TRIAL
+INSERT,role_freemium,FREEMIUM
+INSERT,role_premium,PREMIUM
 INSERT,role_admin,ADMIN

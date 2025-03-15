@@ -8,7 +8,6 @@ class ChoreMasterAPIWebServerConfigSchema(WebServerConfigSchema):
     DATABASE_ORIGIN: str
     DATABASE_SCHEMA_NAME: Optional[str] = None
 
-    IAM_API_ORIGIN: str
     FRONTEND_ORIGIN: str
     ALLOW_ORIGINS: list[str]
 

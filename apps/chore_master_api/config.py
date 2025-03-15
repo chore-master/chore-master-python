@@ -15,7 +15,6 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
     DATABASE_ORIGIN = get_env("DATABASE_ORIGIN")
     DATABASE_SCHEMA_NAME = get_env("DATABASE_SCHEMA_NAME")
     FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN")
-    IAM_API_ORIGIN = None
     ALLOW_ORIGINS = ["*"]
 
     SESSION_COOKIE_KEY = "cm_end_user_session_reference"
@@ -35,20 +34,15 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
         UVICORN_AUTO_RELOAD = True
         FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "http://localhost:2000")
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
-        IAM_API_ORIGIN = "http://localhost:10000"
         SESSION_COOKIE_DOMAIN = "localhost"
     elif base_config.ENV == EnvEnum.DEVELOPING:
-        FRONTEND_ORIGIN = get_env(
-            "FRONTEND_ORIGIN", "https://dev--chore-master.lation.app"
-        )
+        FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "https://dev.chore-master.app")
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
-        IAM_API_ORIGIN = "https://dev--chore-master-api.lation.app"
-        SESSION_COOKIE_DOMAIN = "dev--chore-master-api.lation.app"
+        SESSION_COOKIE_DOMAIN = "dev-api.chore-master.app"
     elif base_config.ENV == EnvEnum.PRODUCTION:
-        FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "https://chore-master.lation.app")
+        FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "https://chore-master.app")
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
-        IAM_API_ORIGIN = "https://chore-master-api.lation.app"
-        SESSION_COOKIE_DOMAIN = "chore-master-api.lation.app"
+        SESSION_COOKIE_DOMAIN = "api.chore-master.app"
 
     return ChoreMasterAPIWebServerConfigSchema(
         **web_server_config.model_dump(),
@@ -57,7 +51,6 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
         DATABASE_ORIGIN=DATABASE_ORIGIN,
         DATABASE_SCHEMA_NAME=DATABASE_SCHEMA_NAME,
         FRONTEND_ORIGIN=FRONTEND_ORIGIN,
-        IAM_API_ORIGIN=IAM_API_ORIGIN,
         SESSION_COOKIE_KEY=SESSION_COOKIE_KEY,
         SESSION_COOKIE_DOMAIN=SESSION_COOKIE_DOMAIN,
         CLOUDFLARE_TURNSTILE_SECRET_KEY=CLOUDFLARE_TURNSTILE_SECRET_KEY,

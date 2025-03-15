@@ -9,7 +9,10 @@ from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.auth import get_current_user
+from apps.chore_master_api.web_server.dependencies.auth import (
+    get_current_user,
+    require_freemium_role,
+)
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
@@ -59,7 +62,7 @@ class UpdateInstrumentRequest(BaseUpdateEntityRequest):
     name: Optional[str] = None
 
 
-@router.get("/users/me/instruments")
+@router.get("/users/me/instruments", dependencies=[Depends(require_freemium_role)])
 async def get_users_me_instruments(
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     current_user: User = Depends(get_current_user),
@@ -91,7 +94,7 @@ async def get_users_me_instruments(
         )
 
 
-@router.post("/users/me/instruments")
+@router.post("/users/me/instruments", dependencies=[Depends(require_freemium_role)])
 async def post_users_me_instruments(
     create_entity_request: CreateInstrumentRequest,
     current_user: User = Depends(get_current_user),
@@ -108,7 +111,10 @@ async def post_users_me_instruments(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.patch("/users/me/instruments/{instrument_reference}")
+@router.patch(
+    "/users/me/instruments/{instrument_reference}",
+    dependencies=[Depends(require_freemium_role)],
+)
 async def patch_users_me_instruments_instrument_reference(
     instrument_reference: Annotated[str, Path()],
     update_entity_request: UpdateInstrumentRequest,
@@ -127,7 +133,10 @@ async def patch_users_me_instruments_instrument_reference(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
-@router.delete("/users/me/instruments/{instrument_reference}")
+@router.delete(
+    "/users/me/instruments/{instrument_reference}",
+    dependencies=[Depends(require_freemium_role)],
+)
 async def delete_users_me_instruments_instrument_reference(
     instrument_reference: Annotated[str, Path()],
     current_user: User = Depends(get_current_user),

@@ -51,11 +51,11 @@ async def get_current_user_session(
 
 async def get_current_user(
     current_user_session: UserSession = Depends(get_current_user_session),
-) -> User:
+) -> AsyncIterator[User]:
     current_user = current_user_session.user
     if current_user is None:
         raise UnauthenticatedError("current request is not authenticated")
-    return current_user
+    yield current_user
 
 
 def require_all_roles(role_symbols: list[str]):
@@ -73,3 +73,4 @@ def require_all_roles(role_symbols: list[str]):
 
 
 require_admin_role = require_all_roles(["ADMIN"])
+require_freemium_role = require_all_roles(["FREEMIUM"])
