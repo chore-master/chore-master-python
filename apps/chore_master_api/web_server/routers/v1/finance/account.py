@@ -110,6 +110,9 @@ async def post_users_me_accounts(
         "user_reference": current_user.reference,
     }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
+    entity_dict["opened_time"] = entity_dict["opened_time"].replace(tzinfo=None)
+    if entity_dict["closed_time"] is not None:
+        entity_dict["closed_time"] = entity_dict["closed_time"].replace(tzinfo=None)
     async with uow:
         entity = Account(**entity_dict)
         await uow.account_repository.insert_one(entity)
@@ -127,9 +130,14 @@ async def patch_users_me_accounts_account_reference(
     current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
+    entity_dict = update_entity_request.model_dump(exclude_unset=True)
+    if entity_dict["opened_time"] is not None:
+        entity_dict["opened_time"] = entity_dict["opened_time"].replace(tzinfo=None)
+    if entity_dict["closed_time"] is not None:
+        entity_dict["closed_time"] = entity_dict["closed_time"].replace(tzinfo=None)
     async with uow:
         await uow.account_repository.update_many(
-            values=update_entity_request.model_dump(exclude_unset=True),
+            values=entity_dict,
             filter={
                 "reference": account_reference,
                 "user_reference": current_user.reference,
