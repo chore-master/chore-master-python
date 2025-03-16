@@ -1,0 +1,3 @@
+OP,reference,created_time,updated_time,user_reference,name,opened_time,closed_time,ecosystem_type,settlement_asset_reference
+INSERT,account_savings,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,A 銀行 - 活存,2025-01-02T00:00:00Z,,TRAD_FI,asset_twd
+INSERT,account_securities,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,A 券商 - 交割帳戶,2025-01-02T00:00:00Z,,TRAD_FI,asset_twd
