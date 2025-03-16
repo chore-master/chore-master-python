@@ -1,0 +1,2 @@
+OP,reference,created_time,updated_time,user_reference,name,discriminator,value
+INSERT,operator_yahoo_finance,2025-01-01T00:00:00Z,2025-01-01T00:00:00Z,user_demo,Yahoo Finance,yahoo_finance_feed,{}

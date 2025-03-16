@@ -1,3 +1,6 @@
 OP,OP_REFERENCE
 DELETE,account_savings
 DELETE,account_securities
+DELETE,account_mortgage
+DELETE,account_evm_1
+DELETE,account_evm_2
