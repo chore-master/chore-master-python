@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.future import select
 
-from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.models.integration import (
     Operator,
     OperatorDiscriminator,
@@ -23,7 +22,7 @@ from apps.chore_master_api.web_server.dependencies.pagination import (
 from apps.chore_master_api.web_server.dependencies.unit_of_work import (
     get_integration_uow,
 )
-from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
+from apps.chore_master_api.web_server.schemas.dto import CurrentUser, OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
@@ -81,7 +80,7 @@ async def get_users_me_operators(
     filter: OperatorFilter = Depends(get_operator_filter),
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     async with uow:
         filters = [Operator.user_reference == current_user.reference]
@@ -100,18 +99,19 @@ async def get_users_me_operators(
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        return ResponseSchema[list[ReadOperatorResponse]](
-            status=StatusEnum.SUCCESS,
-            data=[entity.model_dump() for entity in entities],
-            metadata=metadata,
-        )
+        response_data = [entity.model_dump() for entity in entities]
+    return ResponseSchema[list[ReadOperatorResponse]](
+        status=StatusEnum.SUCCESS,
+        data=response_data,
+        metadata=metadata,
+    )
 
 
 @router.post("/users/me/operators")
 async def post_users_me_operators(
     create_entity_request: CreateOperatorRequest,
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     try:
         entity_dict = {
@@ -134,7 +134,7 @@ async def post_users_me_operators(
 async def get_users_me_operators_operator_reference(
     operator_reference: Annotated[str, Path()],
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     async with uow:
         entity = await uow.operator_repository.find_one(
@@ -143,7 +143,8 @@ async def get_users_me_operators_operator_reference(
                 "user_reference": current_user.reference,
             }
         )
-        return ResponseSchema(status=StatusEnum.SUCCESS, data=entity.model_dump())
+        response_data = entity.model_dump()
+    return ResponseSchema[dict](status=StatusEnum.SUCCESS, data=response_data)
 
 
 @router.patch("/users/me/operators/{operator_reference}")
@@ -151,7 +152,7 @@ async def patch_users_me_operators_operator_reference(
     operator_reference: Annotated[str, Path()],
     update_entity_request: UpdateOperatorRequest,
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     update_entity_dict = update_entity_request.model_dump(exclude_unset=True)
     if "value" in update_entity_dict:
@@ -181,7 +182,7 @@ async def patch_users_me_operators_operator_reference(
 async def delete_users_me_operators_operator_reference(
     operator_reference: Annotated[str, Path()],
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     async with uow:
         await uow.operator_repository.delete_many(

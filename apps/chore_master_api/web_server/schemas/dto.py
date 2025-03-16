@@ -9,6 +9,8 @@ class CurrentUser(BaseModel):
         class _Role(BaseModel):
             symbol: str
 
+        reference: str
+        user_reference: str
         role: _Role
 
     reference: str

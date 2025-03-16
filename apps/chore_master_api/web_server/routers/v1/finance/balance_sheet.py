@@ -11,7 +11,6 @@ from apps.chore_master_api.end_user_space.models.finance import (
     BalanceEntry,
     BalanceSheet,
 )
-from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
@@ -23,7 +22,7 @@ from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
-from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
+from apps.chore_master_api.web_server.schemas.dto import CurrentUser, OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
@@ -73,7 +72,7 @@ class UpdateBalanceSheetRequest(BaseUpdateEntityRequest):
 
 @router.get("/users/me/balance_sheets", dependencies=[Depends(require_freemium_role)])
 async def get_users_me_balance_sheets(
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
@@ -84,16 +83,17 @@ async def get_users_me_balance_sheets(
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        return ResponseSchema[list[ReadBalanceSheetSummaryResponse]](
-            status=StatusEnum.SUCCESS,
-            data=[entity.model_dump() for entity in entities],
-        )
+        response_data = [entity.model_dump() for entity in entities]
+    return ResponseSchema[list[ReadBalanceSheetSummaryResponse]](
+        status=StatusEnum.SUCCESS,
+        data=response_data,
+    )
 
 
 @router.post("/users/me/balance_sheets", dependencies=[Depends(require_freemium_role)])
 async def post_users_me_balance_sheets(
     create_entity_request: CreateBalanceSheetRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     balance_sheet_reference = StringUtils.new_short_id(8)
@@ -125,7 +125,7 @@ async def post_users_me_balance_sheets(
 async def get_users_me_balance_sheets_series(
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     async with uow:
         count_statement = (
@@ -162,22 +162,21 @@ async def get_users_me_balance_sheets_series(
         statement = select(Account).filter(Account.reference.in_(account_reference_set))
         result = await uow.session.execute(statement)
         accounts = result.scalars().unique().all()
-
-        return ResponseSchema[dict](
-            status=StatusEnum.SUCCESS,
-            data={
-                # "assets": [asset.model_dump() for asset in assets],
-                "accounts": [account.model_dump() for account in accounts],
-                "balance_sheets": [
-                    balance_sheet.model_dump() for balance_sheet in balance_sheets
-                ],
-                "balance_entries": [
-                    balance_entry.model_dump(mode="json")
-                    for balance_entry in balance_entries
-                ],
-            },
-            metadata=metadata,
-        )
+        response_data = {
+            "accounts": [account.model_dump() for account in accounts],
+            "balance_sheets": [
+                balance_sheet.model_dump() for balance_sheet in balance_sheets
+            ],
+            "balance_entries": [
+                balance_entry.model_dump(mode="json")
+                for balance_entry in balance_entries
+            ],
+        }
+    return ResponseSchema[dict](
+        status=StatusEnum.SUCCESS,
+        data=response_data,
+        metadata=metadata,
+    )
 
 
 @router.get(
@@ -186,7 +185,7 @@ async def get_users_me_balance_sheets_series(
 )
 async def get_users_me_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
@@ -202,15 +201,16 @@ async def get_users_me_balance_sheets_balance_sheet_reference(
         )
         result = await uow.session.execute(statement)
         entity = result.scalars().unique().one()
-        return ResponseSchema[ReadBalanceSheetDetailResponse](
-            status=StatusEnum.SUCCESS,
-            data={
-                **entity.model_dump(),
-                "balance_entries": [
-                    be.model_dump(mode="json") for be in entity.balance_entries
-                ],
-            },
-        )
+        response_data = {
+            **entity.model_dump(),
+            "balance_entries": [
+                be.model_dump(mode="json") for be in entity.balance_entries
+            ],
+        }
+    return ResponseSchema[ReadBalanceSheetDetailResponse](
+        status=StatusEnum.SUCCESS,
+        data=response_data,
+    )
 
 
 @router.put(
@@ -220,7 +220,7 @@ async def get_users_me_balance_sheets_balance_sheet_reference(
 async def put_users_me_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
     update_entity_request: UpdateBalanceSheetRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     update_entity_dict = update_entity_request.model_dump(
@@ -269,7 +269,7 @@ async def put_users_me_balance_sheets_balance_sheet_reference(
 )
 async def delete_users_me_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:

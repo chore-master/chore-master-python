@@ -7,7 +7,6 @@ from sqlalchemy import and_, func, or_
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Account
-from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
@@ -19,7 +18,7 @@ from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
-from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
+from apps.chore_master_api.web_server.schemas.dto import CurrentUser, OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
@@ -63,7 +62,7 @@ class UpdateAccountRequest(BaseUpdateEntityRequest):
 async def get_users_me_accounts(
     active_as_of_time: Annotated[Optional[datetime], Query()] = None,
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
@@ -93,17 +92,18 @@ async def get_users_me_accounts(
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        return ResponseSchema[list[ReadAccountResponse]](
-            status=StatusEnum.SUCCESS,
-            data=[entity.model_dump() for entity in entities],
-            metadata=metadata,
-        )
+        response_data = [entity.model_dump() for entity in entities]
+    return ResponseSchema[list[ReadAccountResponse]](
+        status=StatusEnum.SUCCESS,
+        data=response_data,
+        metadata=metadata,
+    )
 
 
 @router.post("/users/me/accounts", dependencies=[Depends(require_freemium_role)])
 async def post_users_me_accounts(
     create_entity_request: CreateAccountRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     entity_dict = {
@@ -124,7 +124,7 @@ async def post_users_me_accounts(
 async def patch_users_me_accounts_account_reference(
     account_reference: Annotated[str, Path()],
     update_entity_request: UpdateAccountRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
@@ -145,7 +145,7 @@ async def patch_users_me_accounts_account_reference(
 )
 async def delete_users_me_accounts_account_reference(
     account_reference: Annotated[str, Path()],
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:

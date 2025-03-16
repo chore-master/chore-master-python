@@ -5,7 +5,6 @@ from sqlalchemy import func
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Instrument
-from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
@@ -17,7 +16,7 @@ from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
-from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
+from apps.chore_master_api.web_server.schemas.dto import CurrentUser, OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
@@ -65,7 +64,7 @@ class UpdateInstrumentRequest(BaseUpdateEntityRequest):
 @router.get("/users/me/instruments", dependencies=[Depends(require_freemium_role)])
 async def get_users_me_instruments(
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
@@ -87,17 +86,18 @@ async def get_users_me_instruments(
         )
         result = await uow.session.execute(statement)
         instruments = result.scalars().unique().all()
-        return ResponseSchema[list[ReadInstrumentResponse]](
-            status=StatusEnum.SUCCESS,
-            data=[entity.model_dump() for entity in instruments],
-            metadata=metadata,
-        )
+        response_data = [entity.model_dump() for entity in instruments]
+    return ResponseSchema[list[ReadInstrumentResponse]](
+        status=StatusEnum.SUCCESS,
+        data=response_data,
+        metadata=metadata,
+    )
 
 
 @router.post("/users/me/instruments", dependencies=[Depends(require_freemium_role)])
 async def post_users_me_instruments(
     create_entity_request: CreateInstrumentRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     entity_dict = {
@@ -118,7 +118,7 @@ async def post_users_me_instruments(
 async def patch_users_me_instruments_instrument_reference(
     instrument_reference: Annotated[str, Path()],
     update_entity_request: UpdateInstrumentRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
@@ -139,7 +139,7 @@ async def patch_users_me_instruments_instrument_reference(
 )
 async def delete_users_me_instruments_instrument_reference(
     instrument_reference: Annotated[str, Path()],
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:

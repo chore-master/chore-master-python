@@ -5,7 +5,6 @@ from sqlalchemy import func
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Portfolio
-from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
@@ -17,7 +16,7 @@ from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
-from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
+from apps.chore_master_api.web_server.schemas.dto import CurrentUser, OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
@@ -66,17 +65,18 @@ async def get_portfolios(
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        return ResponseSchema[list[ReadPortfolioResponse]](
-            status=StatusEnum.SUCCESS,
-            data=[entity.model_dump() for entity in entities],
-            metadata=metadata,
-        )
+        response_data = [entity.model_dump() for entity in entities]
+    return ResponseSchema[list[ReadPortfolioResponse]](
+        status=StatusEnum.SUCCESS,
+        data=response_data,
+        metadata=metadata,
+    )
 
 
 @router.post("/portfolios", dependencies=[Depends(require_freemium_role)])
 async def post_portfolios(
     create_entity_request: CreatePortfolioRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     entity_dict = {
@@ -96,7 +96,7 @@ async def post_portfolios(
 async def patch_portfolios_portfolio_reference(
     portfolio_reference: Annotated[str, Path()],
     update_entity_request: UpdatePortfolioRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
@@ -116,7 +116,7 @@ async def patch_portfolios_portfolio_reference(
 )
 async def delete_portfolios_portfolio_reference(
     portfolio_reference: Annotated[str, Path()],
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
