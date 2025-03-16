@@ -102,6 +102,7 @@ async def post_users_me_balance_sheets(
         "user_reference": current_user.reference,
     }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
+    entity_dict["balanced_time"] = entity_dict["balanced_time"].replace(tzinfo=None)
     async with uow:
         balance_entries = []
         for be in create_entity_request.balance_entries:
@@ -228,6 +229,9 @@ async def put_users_me_balance_sheets_balance_sheet_reference(
         exclude={
             "balance_entries",
         },
+    )
+    update_entity_dict["balanced_time"] = update_entity_dict["balanced_time"].replace(
+        tzinfo=None
     )
     async with uow:
         balance_sheet_count = await uow.balance_sheet_repository.count(
