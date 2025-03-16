@@ -21,7 +21,6 @@ class BaseSQLAlchemyUnitOfWork(BaseUnitOfWork):
 
     async def __aexit__(self, *args):
         await super().__aexit__(*args)
-        await self.session.close()
         await asyncio.shield(self.session.close())
 
     async def _commit(self):

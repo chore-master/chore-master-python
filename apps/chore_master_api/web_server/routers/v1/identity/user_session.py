@@ -46,7 +46,7 @@ async def post_user_sessions_login(
     if not is_turnstile_token_valid:
         raise UnauthorizedError("Forbidden")
 
-    utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
+    utc_now = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     async with identity_uow:
         users = await identity_uow.user_repository.find_many(
             filter={
@@ -58,16 +58,6 @@ async def post_user_sessions_login(
         user = next(iter(users), None)
         if user is None:
             raise UnauthenticatedError("Invalid username or password")
-            # user_reference = StringUtils.new_short_id(length=8)
-            # await identity_uow.user_repository.insert_one(
-            #     User(
-            #         reference=user_reference,
-            #         created_time=utc_now,
-            #         name=login_request.username,
-            #         username=login_request.username,
-            #         password=login_request.password,
-            #     )
-            # )
         else:
             user_reference = user.reference
 
@@ -83,7 +73,7 @@ async def post_user_sessions_login(
             update(UserSession)
             .filter(
                 UserSession.user_reference == user_reference,
-                UserSession.expired_time < utc_now.replace(tzinfo=None),
+                UserSession.expired_time < utc_now,
             )
             .values(
                 is_active=False,
@@ -106,9 +96,7 @@ async def post_user_sessions_login(
             )
         else:
             user_session_reference = active_user_session.reference
-            user_session_ttl = (
-                active_user_session.expired_time.replace(tzinfo=timezone.utc) - utc_now
-            )
+            user_session_ttl = active_user_session.expired_time - utc_now
         await identity_uow.commit()
 
     response.set_cookie(

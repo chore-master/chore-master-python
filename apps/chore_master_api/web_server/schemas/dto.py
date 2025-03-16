@@ -4,6 +4,22 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class CurrentUser(BaseModel):
+    class _UserRole(BaseModel):
+        class _Role(BaseModel):
+            symbol: str
+
+        role: _Role
+
+    reference: str
+    name: str
+    user_roles: list[_UserRole]
+
+
+class CurrentUserSession(BaseModel):
+    user: CurrentUser
+
+
 class OffsetPagination(BaseModel):
     offset: int
     limit: int

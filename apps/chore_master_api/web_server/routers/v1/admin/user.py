@@ -18,7 +18,7 @@ from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_identity_uow
-from apps.chore_master_api.web_server.schemas.dto import OffsetPagination
+from apps.chore_master_api.web_server.schemas.dto import CurrentUser, OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
     BaseUpdateEntityRequest,
@@ -82,11 +82,12 @@ async def get_users(
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        return ResponseSchema[list[ReadUserSummaryResponse]](
-            status=StatusEnum.SUCCESS,
-            data=[entity.model_dump() for entity in entities],
-            metadata=metadata,
-        )
+        response_data = [entity.model_dump() for entity in entities]
+    return ResponseSchema[list[ReadUserSummaryResponse]](
+        status=StatusEnum.SUCCESS,
+        data=response_data,
+        metadata=metadata,
+    )
 
 
 @router.post("/users", dependencies=[Depends(require_admin_role)])
@@ -144,7 +145,7 @@ async def patch_users_user_reference(
 @router.delete("/users/{user_reference}", dependencies=[Depends(require_admin_role)])
 async def delete_users_user_reference(
     user_reference: Annotated[str, Path()],
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     uow: IdentitySQLAlchemyUnitOfWork = Depends(get_identity_uow),
 ):
     if current_user.reference == user_reference:

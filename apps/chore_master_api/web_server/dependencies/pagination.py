@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Optional
 
 from fastapi import Query
@@ -33,7 +33,7 @@ async def get_time_cursor_pagination(
         raise BadRequestError("`start_time` and `end_time` are mutually exclusive")
     is_from_request = start_time is not None or end_time is not None
     if start_time is None and end_time is None:
-        end_time = datetime.utcnow()
+        end_time = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     if limit is None:
         limit = 100
     elif limit <= 0 or 100 < limit:

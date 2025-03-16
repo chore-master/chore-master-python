@@ -50,8 +50,9 @@ async def get_roles(
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        return ResponseSchema[list[ReadRoleResponse]](
-            status=StatusEnum.SUCCESS,
-            data=[entity.model_dump() for entity in entities],
-            metadata=metadata,
-        )
+        response_data = [entity.model_dump() for entity in entities]
+    return ResponseSchema[list[ReadRoleResponse]](
+        status=StatusEnum.SUCCESS,
+        data=response_data,
+        metadata=metadata,
+    )
