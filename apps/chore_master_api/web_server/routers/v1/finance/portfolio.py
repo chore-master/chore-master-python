@@ -90,6 +90,21 @@ async def post_portfolios(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
+@router.get("/portfolios/{portfolio_reference}")
+async def get_portfolios_portfolio_reference(
+    portfolio_reference: Annotated[str, Path()],
+    uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+):
+    async with uow:
+        entity = await uow.portfolio_repository.find_one(
+            filter={"reference": portfolio_reference}
+        )
+        response_data = entity.model_dump()
+    return ResponseSchema[ReadPortfolioResponse](
+        status=StatusEnum.SUCCESS, data=response_data
+    )
+
+
 @router.patch(
     "/portfolios/{portfolio_reference}", dependencies=[Depends(require_freemium_role)]
 )

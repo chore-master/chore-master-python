@@ -97,9 +97,10 @@ async def get_some_entities(
         entities = await uow.some_entity_repository.find_many(
             filter=filter.model_dump(exclude_unset=True, exclude_none=True)
         )
-        return ResponseSchema[list[ReadSomeEntityResponse]](
-            status=StatusEnum.SUCCESS, data=[entity.model_dump() for entity in entities]
-        )
+        response_data = [entity.model_dump() for entity in entities]
+    return ResponseSchema[list[ReadSomeEntityResponse]](
+        status=StatusEnum.SUCCESS, data=response_data
+    )
 
 
 @router.delete("/some_entities")
@@ -150,9 +151,10 @@ async def get_some_entities_some_entity_reference(
         entity = await uow.some_entity_repository.find_one(
             filter={"reference": some_entity_reference}
         )
-        return ResponseSchema[ReadSomeEntityResponse](
-            status=StatusEnum.SUCCESS, data=entity.model_dump()
-        )
+        response_data = entity.model_dump()
+    return ResponseSchema[ReadSomeEntityResponse](
+        status=StatusEnum.SUCCESS, data=response_data
+    )
 
 
 @router.patch("/some_entities/{some_entity_reference}")
