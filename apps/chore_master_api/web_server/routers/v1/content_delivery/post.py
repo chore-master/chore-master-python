@@ -22,7 +22,18 @@ posts = [
     {
         "reference": "post-3",
         "title": "Post 3",
-        "content": "Content 3",
+        "content": """
+# Test
+
+~~yo~~
+
+```python
+print("Hello, world!")
+```
+
+<SampleComponent>Click me</SampleComponent>
+
+""",
     },
 ]
 
