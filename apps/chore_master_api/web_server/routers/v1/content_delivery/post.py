@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Header, Path
 
@@ -15,18 +15,21 @@ posts = [
         "reference": "post-1",
         "project_api_key": PROJECT_API_KEY,
         "title": "Post 1",
+        "template": "public",
         "content": "Content 1",
     },
     {
         "reference": "post-2",
         "project_api_key": PROJECT_API_KEY,
         "title": "Post 2",
+        "template": "gated",
         "content": "Content 2",
     },
     {
         "reference": "post-3",
         "project_api_key": PROJECT_API_KEY,
         "title": "Post 3",
+        "template": "gated",
         "content": """
 # Test
 
@@ -40,6 +43,13 @@ print("Hello, world!")
 
 """,
     },
+    {
+        "reference": "post-4",
+        "project_api_key": PROJECT_API_KEY,
+        "title": "Post 4",
+        "template": "public",
+        "content": "Content 4",
+    },
 ]
 
 
@@ -48,6 +58,7 @@ class ReadPostSummaryResponse(BaseQueryEntityResponse):
 
 
 class ReadPostDetailResponse(BaseQueryEntityResponse):
+    template: Literal["public", "gated"]
     title: str
     content: str
 
