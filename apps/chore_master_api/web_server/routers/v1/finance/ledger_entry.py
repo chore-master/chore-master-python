@@ -32,7 +32,6 @@ router = APIRouter()
 class CreateLedgerEntryRequest(BaseCreateEntityRequest):
     instrument_reference: str
     entry_type: LedgerEntry.EntryTypeEnum
-    source_type: LedgerEntry.SourceTypeEnum
     quantity: int
     price: int
     entry_time: datetime
@@ -50,7 +49,6 @@ class ReadLedgerEntryResponse(BaseQueryEntityResponse):
 class UpdateLedgerEntryRequest(BaseUpdateEntityRequest):
     instrument_reference: Optional[str] = None
     entry_type: Optional[LedgerEntry.EntryTypeEnum] = None
-    source_type: Optional[LedgerEntry.SourceTypeEnum] = None
     quantity: Optional[int] = None
     price: Optional[int] = None
     entry_time: Optional[datetime] = None
@@ -102,6 +100,7 @@ async def post_portfolios_portfolio_reference_ledger_entries(
 ):
     entity_dict = {
         "portfolio_reference": portfolio_reference,
+        "source_type": LedgerEntry.SourceTypeEnum.MANUAL,
     }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
     async with uow:
