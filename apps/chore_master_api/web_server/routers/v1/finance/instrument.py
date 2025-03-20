@@ -64,6 +64,7 @@ class UpdateInstrumentRequest(BaseUpdateEntityRequest):
 @router.get("/users/me/instruments", dependencies=[Depends(require_freemium_role)])
 async def get_users_me_instruments(
     search: Annotated[Optional[str], Query()] = None,
+    references: Annotated[Optional[list[str]], Query()] = None,
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
@@ -89,6 +90,8 @@ async def get_users_me_instruments(
             #         selectinload(Instrument.yielding_asset),
             #     ]
             # )
+        if references is not None:
+            filters.append(Instrument.reference.in_(references))
         count_statement = select(func.count()).select_from(Instrument).filter(*filters)
         count = await uow.session.scalar(count_statement)
         metadata = MetadataSchema(

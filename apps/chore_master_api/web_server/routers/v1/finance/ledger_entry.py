@@ -161,7 +161,7 @@ async def delete_portfolios_portfolio_reference_ledger_entries_ledger_entry_refe
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        await uow.portfolio_repository.delete_many(
+        await uow.ledger_entry_repository.delete_many(
             filter={
                 "reference": ledger_entry_reference,
                 "portfolio_reference": portfolio_reference,
