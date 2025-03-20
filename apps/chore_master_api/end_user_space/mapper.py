@@ -205,7 +205,52 @@ class Mapper:
         )
         if getattr(finance.Instrument, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
-                finance.Instrument, finance_instrument_table
+                finance.Instrument,
+                finance_instrument_table,
+                properties={
+                    "base_asset": relationship(
+                        "Asset",
+                        foreign_keys=[
+                            finance_instrument_table.columns.base_asset_reference
+                        ],
+                        primaryjoin="Instrument.base_asset_reference == Asset.reference",
+                    ),
+                    "quote_asset": relationship(
+                        "Asset",
+                        foreign_keys=[
+                            finance_instrument_table.columns.quote_asset_reference
+                        ],
+                        primaryjoin="Instrument.quote_asset_reference == Asset.reference",
+                    ),
+                    "settlement_asset": relationship(
+                        "Asset",
+                        foreign_keys=[
+                            finance_instrument_table.columns.settlement_asset_reference
+                        ],
+                        primaryjoin="Instrument.settlement_asset_reference == Asset.reference",
+                    ),
+                    "underlying_asset": relationship(
+                        "Asset",
+                        foreign_keys=[
+                            finance_instrument_table.columns.underlying_asset_reference
+                        ],
+                        primaryjoin="Instrument.underlying_asset_reference == Asset.reference",
+                    ),
+                    "staking_asset": relationship(
+                        "Asset",
+                        foreign_keys=[
+                            finance_instrument_table.columns.staking_asset_reference
+                        ],
+                        primaryjoin="Instrument.staking_asset_reference == Asset.reference",
+                    ),
+                    "yielding_asset": relationship(
+                        "Asset",
+                        foreign_keys=[
+                            finance_instrument_table.columns.yielding_asset_reference
+                        ],
+                        primaryjoin="Instrument.yielding_asset_reference == Asset.reference",
+                    ),
+                },
             )
 
         finance_portfolio_table = Table(

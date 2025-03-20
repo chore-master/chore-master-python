@@ -1,10 +1,10 @@
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Path
-from sqlalchemy import func
+from fastapi import APIRouter, Depends, Path, Query
+from sqlalchemy import func, or_
 from sqlalchemy.future import select
 
-from apps.chore_master_api.end_user_space.models.finance import Instrument
+from apps.chore_master_api.end_user_space.models.finance import Asset, Instrument
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
@@ -63,26 +63,44 @@ class UpdateInstrumentRequest(BaseUpdateEntityRequest):
 
 @router.get("/users/me/instruments", dependencies=[Depends(require_freemium_role)])
 async def get_users_me_instruments(
+    search: Annotated[Optional[str], Query()] = None,
     offset_pagination: OffsetPagination = Depends(get_offset_pagination),
     current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        count_statement = (
-            select(func.count())
-            .select_from(Instrument)
-            .filter(Instrument.user_reference == current_user.reference)
-        )
+        filters = [Instrument.user_reference == current_user.reference]
+        options = []
+        if search is not None:
+            filters.append(
+                or_(
+                    Instrument.name.ilike(f"%{search}%"),
+                    # Asset.name.ilike(f"%{search}%"),
+                    # Asset.symbol.ilike(f"%{search}%"),
+                )
+            )
+            # options.extend(
+            #     [
+            #         selectinload(Instrument.base_asset),
+            #         selectinload(Instrument.quote_asset),
+            #         selectinload(Instrument.settlement_asset),
+            #         selectinload(Instrument.underlying_asset),
+            #         selectinload(Instrument.staking_asset),
+            #         selectinload(Instrument.yielding_asset),
+            #     ]
+            # )
+        count_statement = select(func.count()).select_from(Instrument).filter(*filters)
         count = await uow.session.scalar(count_statement)
         metadata = MetadataSchema(
             offset_pagination=MetadataSchema.OffsetPagination(count=count)
         )
         statement = (
             select(Instrument)
-            .filter(Instrument.user_reference == current_user.reference)
+            .filter(*filters)
             .order_by(Instrument.created_time.desc())
             .offset(offset_pagination.offset)
             .limit(offset_pagination.limit)
+            .options(*options)
         )
         result = await uow.session.execute(statement)
         instruments = result.scalars().unique().all()

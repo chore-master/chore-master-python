@@ -1,0 +1,7 @@
+OP,reference,created_time,updated_time,user_reference,name,quantity_decimals,price_decimals,instrument_type,base_asset_reference,quote_asset_reference,settlement_asset_reference,underlying_asset_reference,staking_asset_reference,yielding_asset_reference
+INSERT,P8HfmjRc,2025-03-20T08:38:48Z,2025-03-20T08:38:48Z,user_admin,2330.TW,0,2,EQUITY,,,,,,
+INSERT,55F8qvbW,2025-03-20T08:38:57Z,2025-03-20T08:38:57Z,user_admin,0050.TW,0,2,EQUITY,,,,,,
+INSERT,wKefryd9,2025-03-20T08:42:53Z,2025-03-20T08:42:53Z,user_admin,SERAPH/MNT Launchpool,0,0,EARNING,,,,,k2xp5GLn,sfQd49aw
+INSERT,X7ifTCj2,2025-03-20T08:43:10Z,2025-03-20T08:43:10Z,user_admin,SERAPH/USDT Launchpool,0,0,EARNING,,,,,nr9uc4H4,sfQd49aw
+INSERT,MnTQjgN9,2025-03-20T08:43:41Z,2025-03-20T08:43:41Z,user_admin,SERAPH/USDT,0,0,FX,sfQd49aw,nr9uc4H4,,,,
+INSERT,HeUhAoas,2025-03-20T08:44:17Z,2025-03-20T08:44:17Z,user_admin,SERAPH/USDT Perp,0,0,DERIVATIVE,,nr9uc4H4,nr9uc4H4,sfQd49aw,,
