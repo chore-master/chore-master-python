@@ -99,8 +99,9 @@ package finance {
     * user_reference: str <<FK>>
     * name: str
     * quantity_decimals: int
-    * price_decimals: int
-    * instrument_type: str \n = 'EQUITY' | 'FX' | 'EARNING'
+    * $remove("price_decimals: int")
+    * $add("px_decimals: int")
+    * instrument_type: str \n = $remove("| 'EQUITY' | 'FX'") $add("| 'STOCK' | 'FOREX'") | 'EARNING'
     --
     base_asset_reference: str <<FK>>
     quote_asset_reference: str <<FK>>
@@ -113,12 +114,19 @@ package finance {
   entity "LedgerEntry" {
     * reference: str <<PK>>
     * portfolio_reference: str <<FK>>
-    * instrument_reference: str <<FK>>
-    * entry_type: str \n = 'BUY' | 'SELL' \n | 'STAKE' | 'UNSTAKE' \n | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND' \n | 'FUNDING_FEE' | 'INTEREST'
     * source_type: str \n = 'MANUAL' | 'MANAGED'
-    * quantity: int
-    * price: int
     * entry_time: datetime
+    * entry_type: str \n = $remove("| 'BUY' | 'SELL'") \n $add("| 'TRADE_BUY' | 'TRADE_SELL'") \n | 'STAKE' | 'UNSTAKE' \n | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND' \n $add(" | 'REWARD'") | 'FUNDING_FEE' | 'INTEREST'
+    * $add("settlement_amount_change: int")
+    * $add("settlement_asset_reference: str <<FK>>")
+    * $remove("instrument_reference: str <<FK>>")
+    * $remove("quantity: int")
+    * $remove("price: int")
+    --
+    $add("instrument_reference: str <<FK>>")
+    $add("quantity_change: int")
+    $add("fill_px: int")
+    $add("remark: str")
   }
 
   entity "FeeEntry" {
