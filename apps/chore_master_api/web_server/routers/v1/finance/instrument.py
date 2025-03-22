@@ -34,7 +34,7 @@ router = APIRouter()
 class CreateInstrumentRequest(BaseCreateEntityRequest):
     name: str
     quantity_decimals: int
-    price_decimals: int
+    px_decimals: int
     instrument_type: Instrument.InstrumentTypeEnum
     base_asset_reference: Optional[str] = None
     quote_asset_reference: Optional[str] = None
@@ -47,7 +47,7 @@ class CreateInstrumentRequest(BaseCreateEntityRequest):
 class ReadInstrumentResponse(BaseQueryEntityResponse):
     name: str
     quantity_decimals: int
-    price_decimals: int
+    px_decimals: int
     instrument_type: Instrument.InstrumentTypeEnum
     base_asset_reference: Optional[str]
     quote_asset_reference: Optional[str]
