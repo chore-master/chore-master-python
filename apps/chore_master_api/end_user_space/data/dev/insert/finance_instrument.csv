@@ -1,4 +1,4 @@
-OP,reference,created_time,updated_time,user_reference,name,quantity_decimals,price_decimals,instrument_type,base_asset_reference,quote_asset_reference,settlement_asset_reference,underlying_asset_reference,staking_asset_reference,yielding_asset_reference
+OP,reference,created_time,updated_time,user_reference,name,quantity_decimals,px_decimals,instrument_type,base_asset_reference,quote_asset_reference,settlement_asset_reference,underlying_asset_reference,staking_asset_reference,yielding_asset_reference
 INSERT,P8HfmjRc,2025-03-20T08:38:48Z,2025-03-20T08:38:48Z,user_admin,2330.TW,0,2,EQUITY,,,vR3UUk7a,,,
 INSERT,55F8qvbW,2025-03-20T08:38:57Z,2025-03-20T08:38:57Z,user_admin,0050.TW,0,2,EQUITY,,,vR3UUk7a,,,
 INSERT,wKefryd9,2025-03-20T08:42:53Z,2025-03-20T08:42:53Z,user_admin,SERAPH/MNT Launchpool,0,0,EARNING,,,,,k2xp5GLn,sfQd49aw

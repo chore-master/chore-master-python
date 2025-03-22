@@ -44,16 +44,15 @@ class Instrument(Entity):
     model_config = ConfigDict(use_enum_values=True)
 
     class InstrumentTypeEnum(Enum):
-        EQUITY = "EQUITY"
-        FX = "FX"
-        FUTURE = "FUTURE"
+        STOCK = "STOCK"
+        FOREX = "FOREX"
         DERIVATIVE = "DERIVATIVE"
-        EARNING = "EARNING"
+        LENDING = "LENDING"
 
     user_reference: str
     name: str
     quantity_decimals: int
-    price_decimals: int
+    px_decimals: int
     instrument_type: InstrumentTypeEnum
     base_asset_reference: Optional[str] = None
     quote_asset_reference: Optional[str] = None
@@ -72,27 +71,31 @@ class Portfolio(Entity):
 class LedgerEntry(Entity):
     model_config = ConfigDict(use_enum_values=True)
 
-    class EntryTypeEnum(Enum):
-        BUY = "BUY"
-        SELL = "SELL"
-        STAKE = "STAKE"
-        UNSTAKE = "UNSTAKE"
-        CASH_DIVIDEND = "CASH_DIVIDEND"
-        STOCK_DIVIDEND = "STOCK_DIVIDEND"
-        FUNDING_FEE = "FUNDING_FEE"
-        INTEREST = "INTEREST"
-
     class SourceTypeEnum(Enum):
         MANUAL = "MANUAL"
         MANAGED = "MANAGED"
 
+    class EntryTypeEnum(Enum):
+        TRADE_BUY = "TRADE_BUY"
+        TRADE_SELL = "TRADE_SELL"
+        STAKE = "STAKE"
+        UNSTAKE = "UNSTAKE"
+        CASH_DIVIDEND = "CASH_DIVIDEND"
+        STOCK_DIVIDEND = "STOCK_DIVIDEND"
+        REWARD = "REWARD"
+        FUNDING_FEE = "FUNDING_FEE"
+        INTEREST = "INTEREST"
+
     portfolio_reference: str
-    instrument_reference: str
-    entry_type: EntryTypeEnum
     source_type: SourceTypeEnum
-    quantity: int
-    price: int
     entry_time: datetime
+    entry_type: EntryTypeEnum
+    settlement_amount_change: int
+    settlement_asset_reference: str
+    instrument_reference: Optional[str] = None
+    quantity_change: Optional[int] = None
+    fill_px: Optional[int] = None
+    remark: Optional[str] = None
 
 
 class FeeEntry(Entity):
@@ -105,5 +108,5 @@ class FeeEntry(Entity):
 
     ledger_entry_reference: str
     fee_type: FeeTypeEnum
-    amount: int
+    amount_change: int
     asset_reference: str

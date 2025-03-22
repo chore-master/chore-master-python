@@ -45,7 +45,7 @@ async def ensure_system_initialized(
                 open(file_path, "rb"),
             )
             for file_path in FileSystemUtils.match_paths(
-                "apps/chore_master_api/end_user_space/data/delete/**/*.csv",
+                "apps/chore_master_api/end_user_space/data/*/delete/**/*.csv",
                 recursive=True,
             )
         ]
@@ -57,7 +57,7 @@ async def ensure_system_initialized(
                 open(file_path, "rb"),
             )
             for file_path in FileSystemUtils.match_paths(
-                "apps/chore_master_api/end_user_space/data/insert/**/*.csv",
+                "apps/chore_master_api/end_user_space/data/*/insert/**/*.csv",
                 recursive=True,
             )
         ]

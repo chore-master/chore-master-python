@@ -45,7 +45,7 @@ package integration {
   entity "Operator" {
     * reference: str <<PK>>
     * user_reference: str <<FK>>
-    * discriminator: str \n = 'yahoo_finance_feed' $add("| 'node_manager'")
+    * discriminator: str = \n | 'yahoo_finance_feed' \n $add("| 'node_manager'")
     * value: str
     --
     name: str
@@ -99,9 +99,8 @@ package finance {
     * user_reference: str <<FK>>
     * name: str
     * quantity_decimals: int
-    * $remove("price_decimals: int")
-    * $add("px_decimals: int")
-    * instrument_type: str \n = $remove("| 'EQUITY' | 'FX'") $add("| 'STOCK' | 'FOREX'") | 'EARNING'
+    * px_decimals: int
+    * instrument_type: str = \n | 'STOCK' | 'FOREX' | 'DERIVATIVE' | 'LENDING'
     --
     base_asset_reference: str <<FK>>
     quote_asset_reference: str <<FK>>
@@ -116,31 +115,28 @@ package finance {
     * portfolio_reference: str <<FK>>
     * source_type: str \n = 'MANUAL' | 'MANAGED'
     * entry_time: datetime
-    * entry_type: str \n = $remove("| 'BUY' | 'SELL'") \n $add("| 'TRADE_BUY' | 'TRADE_SELL'") \n | 'STAKE' | 'UNSTAKE' \n | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND' \n $add(" | 'REWARD'") | 'FUNDING_FEE' | 'INTEREST'
-    * $add("settlement_amount_change: int")
-    * $add("settlement_asset_reference: str <<FK>>")
-    * $remove("instrument_reference: str <<FK>>")
-    * $remove("quantity: int")
-    * $remove("price: int")
+    * entry_type: str = \n | 'TRADE_BUY' | 'TRADE_SELL' \n | 'STAKE' | 'UNSTAKE' \n | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND' \n | 'REWARD' | 'FUNDING_FEE' | 'INTEREST'
+    * settlement_amount_change: int
+    * settlement_asset_reference: str <<FK>>
     --
-    $add("instrument_reference: str <<FK>>")
-    $add("quantity_change: int")
-    $add("fill_px: int")
-    $add("remark: str")
+    instrument_reference: str <<FK>>
+    quantity_change: int
+    fill_px: int
+    remark: str
   }
 
   entity "FeeEntry" {
     * reference: str <<PK>>
     * ledger_entry_reference: str <<FK>>
-    * fee_type: str \n = 'TRADE' | 'TAX' | 'GAS'
-    * amount: int
+    * fee_type: str = \n | 'TRADE' | 'TAX' | 'GAS'
+    * amount_change: int
     * asset_reference: str <<FK>>
   }
 
   entity "IncomeStatementEntry" {
     * $add("reference: str <<PK>>")
     * $add("portfolio_reference: str <<FK>>")
-    * $add("entry_type: str") \n $add(" = 'CAPITAL_GAIN'") \n $add(" | 'CASH_DIVIDEND'") \n $add(" | 'STAKING_YIELD'") \n $add(" | 'FUNDING_FEE'") \n $add(" | 'TRADE_FEE' | 'TAX_FEE' | 'GAS_FEE'")
+    * $add("entry_type: str =") \n $add("| 'CAPITAL_GAIN'") \n $add("| 'CASH_DIVIDEND'") \n $add("| 'STAKING_YIELD'") \n $add("| 'FUNDING_FEE'") \n $add("| 'TRADE_FEE' | 'TAX_FEE' | 'GAS_FEE'")
     * $add("amount: int")
     * $add("asset_reference: str <<FK>>")
     * $add("settled_time: datetime")

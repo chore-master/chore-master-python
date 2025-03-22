@@ -194,7 +194,7 @@ class Mapper:
             Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
             Column("quantity_decimals", types.Integer, nullable=False),
-            Column("price_decimals", types.Integer, nullable=False),
+            Column("px_decimals", types.Integer, nullable=False),
             Column("instrument_type", types.String, nullable=False),
             Column("base_asset_reference", types.String, nullable=True),
             Column("quote_asset_reference", types.String, nullable=True),
@@ -271,12 +271,15 @@ class Mapper:
             self._metadata,
             *get_base_columns(),
             Column("portfolio_reference", types.String, nullable=False),
-            Column("instrument_reference", types.String, nullable=False),
-            Column("entry_type", types.String, nullable=False),
             Column("source_type", types.String, nullable=False),
-            Column("quantity", types.Integer, nullable=False),
-            Column("price", types.Integer, nullable=False),
             Column("entry_time", types.DateTime, nullable=False),
+            Column("entry_type", types.String, nullable=False),
+            Column("settlement_amount_change", types.Integer, nullable=False),
+            Column("settlement_asset_reference", types.String, nullable=False),
+            Column("instrument_reference", types.String, nullable=True),
+            Column("quantity_change", types.Integer, nullable=True),
+            Column("fill_px", types.Integer, nullable=True),
+            Column("remark", types.String, nullable=True),
         )
         if getattr(finance.LedgerEntry, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
@@ -289,7 +292,7 @@ class Mapper:
             *get_base_columns(),
             Column("ledger_entry_reference", types.String, nullable=False),
             Column("fee_type", types.String, nullable=False),
-            Column("amount", types.Integer, nullable=False),
+            Column("amount_change", types.Integer, nullable=False),
             Column("asset_reference", types.String, nullable=False),
         )
         if getattr(finance.FeeEntry, "_sa_class_manager", None) is None:
