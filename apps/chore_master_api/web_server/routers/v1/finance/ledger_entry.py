@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 from sqlalchemy import func
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 
 from apps.chore_master_api.end_user_space.models.finance import LedgerEntry
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
@@ -53,6 +56,9 @@ class ReadLedgerEntryResponse(BaseQueryEntityResponse):
     fill_px: Optional[int]
     remark: Optional[str]
     parent_ledger_entry_reference: Optional[str]
+    children_ledger_entries: Optional[list[ReadLedgerEntryResponse]] = Field(
+        default_factory=list
+    )
 
 
 class UpdateLedgerEntryRequest(BaseUpdateEntityRequest):
@@ -81,6 +87,7 @@ async def get_portfolios_portfolio_reference_ledger_entries(
     async with uow:
         filters = [
             LedgerEntry.portfolio_reference == portfolio_reference,
+            LedgerEntry.parent_ledger_entry_reference == None,
         ]
         count_statement = select(func.count()).select_from(LedgerEntry).where(*filters)
         count = await uow.session.scalar(count_statement)
@@ -93,10 +100,19 @@ async def get_portfolios_portfolio_reference_ledger_entries(
             .order_by(LedgerEntry.entry_time.desc())
             .offset(offset_pagination.offset)
             .limit(offset_pagination.limit)
+            .options(joinedload(LedgerEntry.children_ledger_entries))
         )
         result = await uow.session.execute(statement)
         entities = result.scalars().unique().all()
-        response_data = [entity.model_dump() for entity in entities]
+        response_data = [
+            {
+                **entity.model_dump(),
+                "children_ledger_entries": [
+                    child.model_dump() for child in entity.children_ledger_entries
+                ],
+            }
+            for entity in entities
+        ]
     return ResponseSchema[list[ReadLedgerEntryResponse]](
         status=StatusEnum.SUCCESS,
         data=response_data,

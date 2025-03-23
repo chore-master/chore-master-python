@@ -284,7 +284,19 @@ class Mapper:
         )
         if getattr(finance.LedgerEntry, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
-                finance.LedgerEntry, finance_ledger_entry_table
+                finance.LedgerEntry,
+                finance_ledger_entry_table,
+                properties={
+                    "parent_ledger_entry": relationship(
+                        "LedgerEntry",
+                        foreign_keys=[
+                            finance_ledger_entry_table.columns.parent_ledger_entry_reference
+                        ],
+                        primaryjoin="LedgerEntry.parent_ledger_entry_reference == LedgerEntry.reference",
+                        backref="children_ledger_entries",
+                        remote_side="LedgerEntry.reference",
+                    ),
+                },
             )
 
         # financial_management_account_table = Table(
