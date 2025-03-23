@@ -38,27 +38,29 @@ async def ensure_system_initialized(
     schema_migration.upgrade(metadata=chore_master_db_registry.metadata)
 
     data_migration = DataMigration(chore_master_db, chore_master_db_registry)
-    await data_migration.import_files(
-        [
-            (
-                file_path.split("/")[-1],
-                open(file_path, "rb"),
-            )
-            for file_path in FileSystemUtils.match_paths(
-                "apps/chore_master_api/end_user_space/data/*/delete/**/*.csv",
-                recursive=True,
-            )
-        ]
-    )
-    await data_migration.import_files(
-        [
-            (
-                file_path.split("/")[-1],
-                open(file_path, "rb"),
-            )
-            for file_path in FileSystemUtils.match_paths(
-                "apps/chore_master_api/end_user_space/data/*/insert/**/*.csv",
-                recursive=True,
-            )
-        ]
-    )
+
+    for directory in ["global", "admin"]:
+        await data_migration.import_files(
+            [
+                (
+                    file_path.split("/")[-1],
+                    open(file_path, "rb"),
+                )
+                for file_path in FileSystemUtils.match_paths(
+                    f"apps/chore_master_api/end_user_space/data/{directory}/delete/**/*.csv",
+                    recursive=True,
+                )
+            ]
+        )
+        await data_migration.import_files(
+            [
+                (
+                    file_path.split("/")[-1],
+                    open(file_path, "rb"),
+                )
+                for file_path in FileSystemUtils.match_paths(
+                    f"apps/chore_master_api/end_user_space/data/{directory}/insert/**/*.csv",
+                    recursive=True,
+                )
+            ]
+        )

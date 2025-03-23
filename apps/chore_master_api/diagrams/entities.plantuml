@@ -115,22 +115,15 @@ package finance {
     * portfolio_reference: str <<FK>>
     * source_type: str \n = 'MANUAL' | 'MANAGED'
     * entry_time: datetime
-    * entry_type: str = \n | 'TRADE_BUY' | 'TRADE_SELL' \n | 'STAKE' | 'UNSTAKE' \n | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND' \n | 'REWARD' | 'FUNDING_FEE' | 'INTEREST'
+    * entry_type: str = \n | 'TRADE_BUY' | 'TRADE_SELL' \n | 'STAKE' | 'UNSTAKE' \n | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND' \n | 'REWARD' | 'FUNDING_FEE' | 'INTEREST' \n | 'TRADE_FEE' | 'TAX' | 'GAS_FEE'
     * settlement_amount_change: int
     * settlement_asset_reference: str <<FK>>
     --
+    parent_ledger_entry_reference: str <<FK>>
     instrument_reference: str <<FK>>
     quantity_change: int
     fill_px: int
     remark: str
-  }
-
-  entity "FeeEntry" {
-    * reference: str <<PK>>
-    * ledger_entry_reference: str <<FK>>
-    * fee_type: str = \n | 'TRADE' | 'TAX' | 'GAS'
-    * amount_change: int
-    * asset_reference: str <<FK>>
   }
 
   entity "IncomeStatementEntry" {
@@ -183,12 +176,11 @@ Portfolio            ||--o{ LedgerEntry: ledger_entries
 Portfolio            ||--o{ IncomeStatementEntry: income_statement_entries
 Portfolio            ||--o{ Holding: holdings
 
-LedgerEntry          ||--o{ FeeEntry: fee_entries
+LedgerEntry          }o--|| Asset: settlement_asset
 LedgerEntry          }o--|| Instrument
+LedgerEntry          }o--|| LedgerEntry
 
 Instrument           }o--o{ Asset: xxx_asset
-
-FeeEntry             }o--|| Asset
 
 IncomeStatementEntry }o--|| Asset
 

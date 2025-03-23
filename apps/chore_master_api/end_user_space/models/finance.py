@@ -92,21 +92,8 @@ class LedgerEntry(Entity):
     entry_type: EntryTypeEnum
     settlement_amount_change: int
     settlement_asset_reference: str
+    parent_ledger_entry_reference: Optional[str] = None
     instrument_reference: Optional[str] = None
     quantity_change: Optional[int] = None
     fill_px: Optional[int] = None
     remark: Optional[str] = None
-
-
-class FeeEntry(Entity):
-    model_config = ConfigDict(use_enum_values=True)
-
-    class FeeTypeEnum(Enum):
-        TRADE = "TRADE"
-        TAX = "TAX"
-        GAS = "GAS"
-
-    ledger_entry_reference: str
-    fee_type: FeeTypeEnum
-    amount_change: int
-    asset_reference: str

@@ -5,7 +5,6 @@ from apps.chore_master_api.end_user_space.models.finance import (
     Asset,
     BalanceEntry,
     BalanceSheet,
-    FeeEntry,
     Instrument,
     LedgerEntry,
     Portfolio,
@@ -53,9 +52,3 @@ class LedgerEntryRepository(BaseSQLAlchemyRepository[LedgerEntry]):
     @property
     def entity_class(self) -> Type[LedgerEntry]:
         return LedgerEntry
-
-
-class FeeEntryRepository(BaseSQLAlchemyRepository[FeeEntry]):
-    @property
-    def entity_class(self) -> Type[FeeEntry]:
-        return FeeEntry

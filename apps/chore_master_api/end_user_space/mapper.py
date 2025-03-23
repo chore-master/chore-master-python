@@ -276,6 +276,7 @@ class Mapper:
             Column("entry_type", types.String, nullable=False),
             Column("settlement_amount_change", types.Integer, nullable=False),
             Column("settlement_asset_reference", types.String, nullable=False),
+            Column("parent_ledger_entry_reference", types.String, nullable=True),
             Column("instrument_reference", types.String, nullable=True),
             Column("quantity_change", types.Integer, nullable=True),
             Column("fill_px", types.Integer, nullable=True),
@@ -284,20 +285,6 @@ class Mapper:
         if getattr(finance.LedgerEntry, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
                 finance.LedgerEntry, finance_ledger_entry_table
-            )
-
-        finance_fee_entry_table = Table(
-            "finance_fee_entry",
-            self._metadata,
-            *get_base_columns(),
-            Column("ledger_entry_reference", types.String, nullable=False),
-            Column("fee_type", types.String, nullable=False),
-            Column("amount_change", types.Integer, nullable=False),
-            Column("asset_reference", types.String, nullable=False),
-        )
-        if getattr(finance.FeeEntry, "_sa_class_manager", None) is None:
-            self._mapper_registry.map_imperatively(
-                finance.FeeEntry, finance_fee_entry_table
             )
 
         # financial_management_account_table = Table(
