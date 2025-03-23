@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path
+from pydantic import ConfigDict
 from sqlalchemy import func
 from sqlalchemy.future import select
 
@@ -55,6 +56,8 @@ class ReadLedgerEntryResponse(BaseQueryEntityResponse):
 
 
 class UpdateLedgerEntryRequest(BaseUpdateEntityRequest):
+    model_config = ConfigDict(use_enum_values=True)
+
     entry_type: Optional[LedgerEntry.EntryTypeEnum] = None
     entry_time: Optional[datetime] = None
     settlement_amount_change: Optional[int] = None
