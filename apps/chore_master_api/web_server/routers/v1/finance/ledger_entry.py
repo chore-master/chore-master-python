@@ -30,28 +30,40 @@ router = APIRouter()
 
 
 class CreateLedgerEntryRequest(BaseCreateEntityRequest):
-    instrument_reference: str
-    entry_type: LedgerEntry.EntryTypeEnum
-    quantity: int
-    price: int
     entry_time: datetime
+    entry_type: LedgerEntry.EntryTypeEnum
+    settlement_amount_change: int
+    settlement_asset_reference: str
+    quantity_change: Optional[int] = None
+    instrument_reference: Optional[str] = None
+    fill_px: Optional[int] = None
+    remark: Optional[str] = None
+    parent_ledger_entry_reference: Optional[str] = None
 
 
 class ReadLedgerEntryResponse(BaseQueryEntityResponse):
-    instrument_reference: str
-    entry_type: LedgerEntry.EntryTypeEnum
     source_type: LedgerEntry.SourceTypeEnum
-    quantity: int
-    price: int
     entry_time: datetime
+    entry_type: LedgerEntry.EntryTypeEnum
+    settlement_amount_change: int
+    settlement_asset_reference: str
+    quantity_change: Optional[int]
+    instrument_reference: Optional[str]
+    fill_px: Optional[int]
+    remark: Optional[str]
+    parent_ledger_entry_reference: Optional[str]
 
 
 class UpdateLedgerEntryRequest(BaseUpdateEntityRequest):
-    instrument_reference: Optional[str] = None
     entry_type: Optional[LedgerEntry.EntryTypeEnum] = None
-    quantity: Optional[int] = None
-    price: Optional[int] = None
     entry_time: Optional[datetime] = None
+    settlement_amount_change: Optional[int] = None
+    settlement_asset_reference: Optional[str] = None
+    quantity_change: Optional[int] = None
+    instrument_reference: Optional[str] = None
+    fill_px: Optional[int] = None
+    remark: Optional[str] = None
+    parent_ledger_entry_reference: Optional[str] = None
 
 
 @router.get(

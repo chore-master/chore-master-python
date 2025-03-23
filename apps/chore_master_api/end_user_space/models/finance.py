@@ -85,6 +85,9 @@ class LedgerEntry(Entity):
         REWARD = "REWARD"
         FUNDING_FEE = "FUNDING_FEE"
         INTEREST = "INTEREST"
+        TRADE_FEE = "TRADE_FEE"
+        TAX = "TAX"
+        GAS_FEE = "GAS_FEE"
 
     portfolio_reference: str
     source_type: SourceTypeEnum
