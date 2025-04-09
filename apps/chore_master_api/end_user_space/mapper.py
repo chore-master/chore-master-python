@@ -187,71 +187,71 @@ class Mapper:
                 },
             )
 
-        finance_instrument_table = Table(
-            "finance_instrument",
-            self._metadata,
-            *get_base_columns(),
-            Column("user_reference", types.String, nullable=False),
-            Column("name", types.String, nullable=False),
-            Column("quantity_decimals", types.Integer, nullable=False),
-            Column("px_decimals", types.Integer, nullable=False),
-            Column("instrument_type", types.String, nullable=False),
-            Column("base_asset_reference", types.String, nullable=True),
-            Column("quote_asset_reference", types.String, nullable=True),
-            Column("settlement_asset_reference", types.String, nullable=True),
-            Column("underlying_asset_reference", types.String, nullable=True),
-            Column("staking_asset_reference", types.String, nullable=True),
-            Column("yielding_asset_reference", types.String, nullable=True),
-        )
-        if getattr(finance.Instrument, "_sa_class_manager", None) is None:
-            self._mapper_registry.map_imperatively(
-                finance.Instrument,
-                finance_instrument_table,
-                properties={
-                    "base_asset": relationship(
-                        "Asset",
-                        foreign_keys=[
-                            finance_instrument_table.columns.base_asset_reference
-                        ],
-                        primaryjoin="Instrument.base_asset_reference == Asset.reference",
-                    ),
-                    "quote_asset": relationship(
-                        "Asset",
-                        foreign_keys=[
-                            finance_instrument_table.columns.quote_asset_reference
-                        ],
-                        primaryjoin="Instrument.quote_asset_reference == Asset.reference",
-                    ),
-                    "settlement_asset": relationship(
-                        "Asset",
-                        foreign_keys=[
-                            finance_instrument_table.columns.settlement_asset_reference
-                        ],
-                        primaryjoin="Instrument.settlement_asset_reference == Asset.reference",
-                    ),
-                    "underlying_asset": relationship(
-                        "Asset",
-                        foreign_keys=[
-                            finance_instrument_table.columns.underlying_asset_reference
-                        ],
-                        primaryjoin="Instrument.underlying_asset_reference == Asset.reference",
-                    ),
-                    "staking_asset": relationship(
-                        "Asset",
-                        foreign_keys=[
-                            finance_instrument_table.columns.staking_asset_reference
-                        ],
-                        primaryjoin="Instrument.staking_asset_reference == Asset.reference",
-                    ),
-                    "yielding_asset": relationship(
-                        "Asset",
-                        foreign_keys=[
-                            finance_instrument_table.columns.yielding_asset_reference
-                        ],
-                        primaryjoin="Instrument.yielding_asset_reference == Asset.reference",
-                    ),
-                },
-            )
+        # finance_instrument_table = Table(
+        #     "finance_instrument",
+        #     self._metadata,
+        #     *get_base_columns(),
+        #     Column("user_reference", types.String, nullable=False),
+        #     Column("name", types.String, nullable=False),
+        #     Column("quantity_decimals", types.Integer, nullable=False),
+        #     Column("px_decimals", types.Integer, nullable=False),
+        #     Column("instrument_type", types.String, nullable=False),
+        #     Column("base_asset_reference", types.String, nullable=True),
+        #     Column("quote_asset_reference", types.String, nullable=True),
+        #     Column("settlement_asset_reference", types.String, nullable=True),
+        #     Column("underlying_asset_reference", types.String, nullable=True),
+        #     Column("staking_asset_reference", types.String, nullable=True),
+        #     Column("yielding_asset_reference", types.String, nullable=True),
+        # )
+        # if getattr(finance.Instrument, "_sa_class_manager", None) is None:
+        #     self._mapper_registry.map_imperatively(
+        #         finance.Instrument,
+        #         finance_instrument_table,
+        #         properties={
+        #             "base_asset": relationship(
+        #                 "Asset",
+        #                 foreign_keys=[
+        #                     finance_instrument_table.columns.base_asset_reference
+        #                 ],
+        #                 primaryjoin="Instrument.base_asset_reference == Asset.reference",
+        #             ),
+        #             "quote_asset": relationship(
+        #                 "Asset",
+        #                 foreign_keys=[
+        #                     finance_instrument_table.columns.quote_asset_reference
+        #                 ],
+        #                 primaryjoin="Instrument.quote_asset_reference == Asset.reference",
+        #             ),
+        #             "settlement_asset": relationship(
+        #                 "Asset",
+        #                 foreign_keys=[
+        #                     finance_instrument_table.columns.settlement_asset_reference
+        #                 ],
+        #                 primaryjoin="Instrument.settlement_asset_reference == Asset.reference",
+        #             ),
+        #             "underlying_asset": relationship(
+        #                 "Asset",
+        #                 foreign_keys=[
+        #                     finance_instrument_table.columns.underlying_asset_reference
+        #                 ],
+        #                 primaryjoin="Instrument.underlying_asset_reference == Asset.reference",
+        #             ),
+        #             "staking_asset": relationship(
+        #                 "Asset",
+        #                 foreign_keys=[
+        #                     finance_instrument_table.columns.staking_asset_reference
+        #                 ],
+        #                 primaryjoin="Instrument.staking_asset_reference == Asset.reference",
+        #             ),
+        #             "yielding_asset": relationship(
+        #                 "Asset",
+        #                 foreign_keys=[
+        #                     finance_instrument_table.columns.yielding_asset_reference
+        #                 ],
+        #                 primaryjoin="Instrument.yielding_asset_reference == Asset.reference",
+        #             ),
+        #         },
+        #     )
 
         finance_portfolio_table = Table(
             "finance_portfolio",
@@ -266,38 +266,69 @@ class Mapper:
                 finance.Portfolio, finance_portfolio_table
             )
 
-        finance_ledger_entry_table = Table(
-            "finance_ledger_entry",
+        finance_transaction_table = Table(
+            "finance_transaction",
             self._metadata,
             *get_base_columns(),
             Column("portfolio_reference", types.String, nullable=False),
-            Column("source_type", types.String, nullable=False),
-            Column("entry_time", types.DateTime, nullable=False),
-            Column("entry_type", types.String, nullable=False),
-            Column("settlement_amount_change", types.Integer, nullable=False),
-            Column("settlement_asset_reference", types.String, nullable=False),
-            Column("parent_ledger_entry_reference", types.String, nullable=True),
-            Column("instrument_reference", types.String, nullable=True),
-            Column("quantity_change", types.Integer, nullable=True),
-            Column("fill_px", types.Integer, nullable=True),
+            Column("transacted_time", types.DateTime, nullable=False),
+            Column("chain_id", types.String, nullable=True),
+            Column("tx_hash", types.String, nullable=True),
             Column("remark", types.String, nullable=True),
         )
-        if getattr(finance.LedgerEntry, "_sa_class_manager", None) is None:
+        if getattr(finance.Transaction, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
-                finance.LedgerEntry,
-                finance_ledger_entry_table,
-                properties={
-                    "parent_ledger_entry": relationship(
-                        "LedgerEntry",
-                        foreign_keys=[
-                            finance_ledger_entry_table.columns.parent_ledger_entry_reference
-                        ],
-                        primaryjoin="LedgerEntry.parent_ledger_entry_reference == LedgerEntry.reference",
-                        backref="children_ledger_entries",
-                        remote_side="LedgerEntry.reference",
-                    ),
-                },
+                finance.Transaction, finance_transaction_table
             )
+
+        finance_transfer_table = Table(
+            "finance_transfer",
+            self._metadata,
+            *get_base_columns(),
+            Column("transaction_reference", types.String, nullable=False),
+            Column("flow_type", types.String, nullable=False),
+            Column("asset_amount_change", types.Integer, nullable=False),
+            Column("asset_reference", types.String, nullable=False),
+            Column("settlement_asset_amount_change", types.Integer, nullable=True),
+            Column("remark", types.String, nullable=True),
+        )
+        if getattr(finance.Transfer, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                finance.Transfer, finance_transfer_table
+            )
+
+        # finance_ledger_entry_table = Table(
+        #     "finance_ledger_entry",
+        #     self._metadata,
+        #     *get_base_columns(),
+        #     Column("portfolio_reference", types.String, nullable=False),
+        #     Column("source_type", types.String, nullable=False),
+        #     Column("entry_time", types.DateTime, nullable=False),
+        #     Column("entry_type", types.String, nullable=False),
+        #     Column("settlement_amount_change", types.Integer, nullable=False),
+        #     Column("settlement_asset_reference", types.String, nullable=False),
+        #     Column("parent_ledger_entry_reference", types.String, nullable=True),
+        #     Column("instrument_reference", types.String, nullable=True),
+        #     Column("quantity_change", types.Integer, nullable=True),
+        #     Column("fill_px", types.Integer, nullable=True),
+        #     Column("remark", types.String, nullable=True),
+        # )
+        # if getattr(finance.LedgerEntry, "_sa_class_manager", None) is None:
+        #     self._mapper_registry.map_imperatively(
+        #         finance.LedgerEntry,
+        #         finance_ledger_entry_table,
+        #         properties={
+        #             "parent_ledger_entry": relationship(
+        #                 "LedgerEntry",
+        #                 foreign_keys=[
+        #                     finance_ledger_entry_table.columns.parent_ledger_entry_reference
+        #                 ],
+        #                 primaryjoin="LedgerEntry.parent_ledger_entry_reference == LedgerEntry.reference",
+        #                 backref="children_ledger_entries",
+        #                 remote_side="LedgerEntry.reference",
+        #             ),
+        #         },
+        #     )
 
         # financial_management_account_table = Table(
         #     "financial_management_account",

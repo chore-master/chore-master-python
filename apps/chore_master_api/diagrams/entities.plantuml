@@ -81,7 +81,7 @@ package finance {
     * reference: str <<PK>>
     * user_reference: str <<FK>>
     * name: str
-    * $add("settlement_asset_reference: str <<FK>>")
+    * settlement_asset_reference: str <<FK>>
     --
     description: str
   }
@@ -95,6 +95,52 @@ package finance {
     * is_settleable: bool
   }
 
+  entity "Transaction" {
+    * reference: str <<PK>>
+    * portfolio_reference: str <<FK>>
+    * transacted_time: datetime
+    --
+    * chain_id: str
+    * tx_hash: str
+    * remark: str
+  }
+
+  entity "Transfer" {
+    * reference: str <<PK>>
+    * transaction_reference: str <<FK>>
+    * flow_type: str = \n | 'COST' \n | 'EXPENSE' \n | 'REVENUE' \n | 'UPDATE_POSITION'
+    * asset_amount_change: int
+    * asset_reference: str <<FK>>
+    --
+    * settlement_asset_amount_change: int
+    * remark: str
+  }
+
+  entity "IncomeStatementEntry" {
+    * $add("reference: str <<PK>>")
+    * $add("portfolio_reference: str <<FK>>")
+    * $add("entry_type: str =") \n $add("| 'CAPITAL_GAIN'") \n $add("| 'CASH_DIVIDEND'") \n $add("| 'STAKING_YIELD'") \n $add("| 'FUNDING_FEE'") \n $add("| 'TRADE_FEE' | 'TAX_FEE' | 'GAS_FEE'")
+    * $add("amount: int")
+    * $add("asset_reference: str <<FK>>")
+    * $add("settled_time: datetime")
+  }
+
+  entity "Holding" {
+    * $add("reference: str <<PK>>")
+    * $add("portfolio_reference: str <<FK>>")
+    * $add("held_time: datetime")
+  }
+
+  entity "HoldingEntry" { 
+    * $add("reference: str <<PK>>")
+    * $add("holding_reference: str <<FK>>")
+    * $add("instrument_reference: str <<FK>>")
+    * $add("quantity: int")
+    * $add("average_cost_price: int")
+  }
+}
+
+package legacy {
   entity "Instrument" {
     * $remove("reference: str <<PK>>")
     * $remove("user_reference: str <<FK>>")
@@ -125,50 +171,6 @@ package finance {
     $remove("quantity_change: int")
     $remove("fill_px: int")
     $remove("remark: str")
-  }
-
-  entity "Transaction" {
-    * $add("reference: str <<PK>>")
-    * $add("portfolio_reference: str <<FK>>")
-    * $add("transacted_time: datetime")
-    --
-    * $add("chain_id: str")
-    * $add("tx_hash: str")
-    * $add("remark: str")
-  }
-
-  entity "Transfer" {
-    * $add("reference: str <<PK>>")
-    * $add("transaction_reference: str <<FK>>")
-    * $add("flow_type: str = \n | 'COST' \n | 'EXPENSE' \n | 'REVENUE' \n | 'UPDATE_POSITION'")
-    * $add("asset_amount_change: int")
-    * $add("asset_reference: str <<FK>>")
-    --
-    * $add("settlement_asset_amount_change: int")
-    * $add("remark: str")
-  }
-
-  entity "IncomeStatementEntry" {
-    * $add("reference: str <<PK>>")
-    * $add("portfolio_reference: str <<FK>>")
-    * $add("entry_type: str =") \n $add("| 'CAPITAL_GAIN'") \n $add("| 'CASH_DIVIDEND'") \n $add("| 'STAKING_YIELD'") \n $add("| 'FUNDING_FEE'") \n $add("| 'TRADE_FEE' | 'TAX_FEE' | 'GAS_FEE'")
-    * $add("amount: int")
-    * $add("asset_reference: str <<FK>>")
-    * $add("settled_time: datetime")
-  }
-
-  entity "Holding" {
-    * $add("reference: str <<PK>>")
-    * $add("portfolio_reference: str <<FK>>")
-    * $add("held_time: datetime")
-  }
-
-  entity "HoldingEntry" { 
-    * $add("reference: str <<PK>>")
-    * $add("holding_reference: str <<FK>>")
-    * $add("instrument_reference: str <<FK>>")
-    * $add("quantity: int")
-    * $add("average_cost_price: int")
   }
 }
 

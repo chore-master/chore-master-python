@@ -1,13 +1,13 @@
 from typing import Type
 
-from apps.chore_master_api.end_user_space.models.finance import (
+from apps.chore_master_api.end_user_space.models.finance import (  # Instrument,; LedgerEntry,
     Account,
     Asset,
     BalanceEntry,
     BalanceSheet,
-    Instrument,
-    LedgerEntry,
     Portfolio,
+    Transaction,
+    Transfer,
 )
 from modules.repositories.base_sqlalchemy_repository import BaseSQLAlchemyRepository
 
@@ -36,10 +36,10 @@ class BalanceEntryRepository(BaseSQLAlchemyRepository[BalanceEntry]):
         return BalanceEntry
 
 
-class InstrumentRepository(BaseSQLAlchemyRepository[Instrument]):
-    @property
-    def entity_class(self) -> Type[Instrument]:
-        return Instrument
+# class InstrumentRepository(BaseSQLAlchemyRepository[Instrument]):
+#     @property
+#     def entity_class(self) -> Type[Instrument]:
+#         return Instrument
 
 
 class PortfolioRepository(BaseSQLAlchemyRepository[Portfolio]):
@@ -48,7 +48,19 @@ class PortfolioRepository(BaseSQLAlchemyRepository[Portfolio]):
         return Portfolio
 
 
-class LedgerEntryRepository(BaseSQLAlchemyRepository[LedgerEntry]):
+# class LedgerEntryRepository(BaseSQLAlchemyRepository[LedgerEntry]):
+#     @property
+#     def entity_class(self) -> Type[LedgerEntry]:
+#         return LedgerEntry
+
+
+class TransactionRepository(BaseSQLAlchemyRepository[Transaction]):
     @property
-    def entity_class(self) -> Type[LedgerEntry]:
-        return LedgerEntry
+    def entity_class(self) -> Type[Transaction]:
+        return Transaction
+
+
+class TransferRepository(BaseSQLAlchemyRepository[Transfer]):
+    @property
+    def entity_class(self) -> Type[Transfer]:
+        return Transfer
