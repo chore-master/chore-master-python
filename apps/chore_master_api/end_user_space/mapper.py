@@ -279,15 +279,7 @@ class Mapper:
         )
         if getattr(finance.Transaction, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
-                finance.Transaction,
-                finance_transaction_table,
-                properties={
-                    "transfers": relationship(
-                        "Transfer",
-                        foreign_keys=[finance_transaction_table.columns.reference],
-                        primaryjoin="Transaction.reference == Transfer.transaction_reference",
-                    ),
-                },
+                finance.Transaction, finance_transaction_table
             )
 
         finance_transfer_table = Table(
@@ -303,7 +295,18 @@ class Mapper:
         )
         if getattr(finance.Transfer, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
-                finance.Transfer, finance_transfer_table
+                finance.Transfer,
+                finance_transfer_table,
+                properties={
+                    "transaction": relationship(
+                        "Transaction",
+                        foreign_keys=[
+                            finance_transfer_table.columns.transaction_reference
+                        ],
+                        primaryjoin="Transfer.transaction_reference == Transaction.reference",
+                        backref="transfers",
+                    ),
+                },
             )
 
         # finance_ledger_entry_table = Table(

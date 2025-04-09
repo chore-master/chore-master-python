@@ -34,7 +34,6 @@ router = APIRouter()
 
 
 class CreateTransactionRequest(BaseCreateEntityRequest):
-    portfolio_reference: str
     transacted_time: datetime
     chain_id: Optional[str] = None
     tx_hash: Optional[str] = None
@@ -117,7 +116,6 @@ async def post_portfolios_portfolio_reference_transactions(
 ):
     entity_dict = {
         "portfolio_reference": portfolio_reference,
-        # "source_type": Transaction.SourceTypeEnum.MANUAL,
     }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
     async with uow:

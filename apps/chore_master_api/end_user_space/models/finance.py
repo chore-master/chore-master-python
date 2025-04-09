@@ -78,6 +78,8 @@ class Transaction(Entity):
 
 
 class Transfer(Entity):
+    model_config = ConfigDict(use_enum_values=True)
+
     class FlowTypeEnum(Enum):
         COST = "COST"
         EXPENSE = "EXPENSE"
