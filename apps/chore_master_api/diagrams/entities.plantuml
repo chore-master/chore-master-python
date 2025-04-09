@@ -81,6 +81,7 @@ package finance {
     * reference: str <<PK>>
     * user_reference: str <<FK>>
     * name: str
+    * $add("settlement_asset_reference: str <<FK>>")
     --
     description: str
   }
@@ -95,35 +96,56 @@ package finance {
   }
 
   entity "Instrument" {
-    * reference: str <<PK>>
-    * user_reference: str <<FK>>
-    * name: str
-    * quantity_decimals: int
-    * px_decimals: int
-    * instrument_type: str = \n | 'STOCK' | 'FOREX' | 'DERIVATIVE' | 'LENDING'
+    * $remove("reference: str <<PK>>")
+    * $remove("user_reference: str <<FK>>")
+    * $remove("name: str")
+    * $remove("quantity_decimals: int")
+    * $remove("px_decimals: int")
+    * $remove("instrument_type: str = \n | 'STOCK' | 'FOREX' | 'DERIVATIVE' | 'LENDING'")
     --
-    base_asset_reference: str <<FK>>
-    quote_asset_reference: str <<FK>>
-    settlement_asset_reference: str <<FK>>
-    underlying_asset_reference: str <<FK>>
-    staking_asset_reference: str <<FK>>
-    yielding_asset_reference: str <<FK>>
+    $remove("base_asset_reference: str <<FK>>")
+    $remove("quote_asset_reference: str <<FK>>")
+    $remove("settlement_asset_reference: str <<FK>>")
+    $remove("underlying_asset_reference: str <<FK>>")
+    $remove("staking_asset_reference: str <<FK>>")
+    $remove("yielding_asset_reference: str <<FK>>")
   }
 
   entity "LedgerEntry" {
-    * reference: str <<PK>>
-    * portfolio_reference: str <<FK>>
-    * source_type: str \n = 'MANUAL' | 'MANAGED'
-    * entry_time: datetime
-    * entry_type: str = \n | 'TRADE_BUY' | 'TRADE_SELL' \n | 'STAKE' | 'UNSTAKE' \n | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND' \n | 'REWARD' | 'FUNDING_FEE' | 'INTEREST' \n | 'TRADE_FEE' | 'TAX' | 'GAS_FEE'
-    * settlement_amount_change: int
-    * settlement_asset_reference: str <<FK>>
+    * $remove("reference: str <<PK>>")
+    * $remove("portfolio_reference: str <<FK>>")
+    * $remove("source_type: str \n = 'MANUAL' | 'MANAGED'")
+    * $remove("entry_time: datetime")
+    * $remove("entry_type: str = \n | 'TRADE_BUY' | 'TRADE_SELL' \n | 'STAKE' | 'UNSTAKE' \n | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND' \n | 'REWARD' | 'FUNDING_FEE' | 'INTEREST' \n | 'TRADE_FEE' | 'TAX' | 'GAS_FEE'")
+    * $remove("settlement_amount_change: int")
+    * $remove("settlement_asset_reference: str <<FK>>")
     --
-    parent_ledger_entry_reference: str <<FK>>
-    instrument_reference: str <<FK>>
-    quantity_change: int
-    fill_px: int
-    remark: str
+    $remove("parent_ledger_entry_reference: str <<FK>>")
+    $remove("instrument_reference: str <<FK>>")
+    $remove("quantity_change: int")
+    $remove("fill_px: int")
+    $remove("remark: str")
+  }
+
+  entity "Transaction" {
+    * $add("reference: str <<PK>>")
+    * $add("portfolio_reference: str <<FK>>")
+    * $add("transacted_time: datetime")
+    --
+    * $add("chain_id: str")
+    * $add("tx_hash: str")
+    * $add("remark: str")
+  }
+
+  entity "Transfer" {
+    * $add("reference: str <<PK>>")
+    * $add("transaction_reference: str <<FK>>")
+    * $add("flow_type: str = \n | 'COST' \n | 'EXPENSE' \n | 'REVENUE' \n | 'UPDATE_POSITION'")
+    * $add("asset_amount_change: int")
+    * $add("asset_reference: str <<FK>>")
+    --
+    * $add("settlement_asset_amount_change: int")
+    * $add("remark: str")
   }
 
   entity "IncomeStatementEntry" {
@@ -161,7 +183,7 @@ User                 ||--o{ Operator
 User                 ||--o{ Account
 User                 ||--o{ BalanceSheet
 User                 ||--o{ Asset
-User                 ||--o{ Instrument
+' User                 ||--o{ Instrument
 User                 ||--o{ Portfolio
 
 UserRole             }o--|| Role
@@ -172,20 +194,24 @@ BalanceEntry         }o--|| Account
 
 Account              }o--|| Asset: settlement_asset
 
-Portfolio            ||--o{ LedgerEntry: ledger_entries
+' Portfolio            ||--o{ LedgerEntry: ledger_entries
+Portfolio            }o--|| Asset: settlement_asset
+Portfolio            ||--o{ Transaction: transactions
 Portfolio            ||--o{ IncomeStatementEntry: income_statement_entries
 Portfolio            ||--o{ Holding: holdings
 
-LedgerEntry          }o--|| Asset: settlement_asset
-LedgerEntry          }o--|| Instrument
-LedgerEntry          }o--|| LedgerEntry
+Transaction          ||--o{ Transfer: transfers
 
-Instrument           }o--o{ Asset: xxx_asset
+' LedgerEntry          }o--|| Asset: settlement_asset
+' LedgerEntry          }o--|| Instrument
+' LedgerEntry          }o--|| LedgerEntry
+
+' Instrument           }o--o{ Asset: xxx_asset
 
 IncomeStatementEntry }o--|| Asset
 
 Holding              ||--o{ HoldingEntry: holding_entries
 
-HoldingEntry         }o--|| Instrument
+' HoldingEntry         }o--|| Instrument
 
 @enduml
