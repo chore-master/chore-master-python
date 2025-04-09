@@ -259,6 +259,7 @@ class Mapper:
             *get_base_columns(),
             Column("user_reference", types.String, nullable=False),
             Column("name", types.String, nullable=False),
+            Column("settlement_asset_reference", types.String, nullable=False),
             Column("description", types.String, nullable=True),
         )
         if getattr(finance.Portfolio, "_sa_class_manager", None) is None:
@@ -278,7 +279,15 @@ class Mapper:
         )
         if getattr(finance.Transaction, "_sa_class_manager", None) is None:
             self._mapper_registry.map_imperatively(
-                finance.Transaction, finance_transaction_table
+                finance.Transaction,
+                finance_transaction_table,
+                properties={
+                    "transfers": relationship(
+                        "Transfer",
+                        foreign_keys=[finance_transaction_table.columns.reference],
+                        primaryjoin="Transaction.reference == Transfer.transaction_reference",
+                    ),
+                },
             )
 
         finance_transfer_table = Table(

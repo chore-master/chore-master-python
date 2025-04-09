@@ -1,5 +1,0 @@
-OP,reference,created_time,updated_time,user_reference,name,quantity_decimals,px_decimals,instrument_type,base_asset_reference,quote_asset_reference,settlement_asset_reference,underlying_asset_reference,staking_asset_reference,yielding_asset_reference
-INSERT,P8HfmjRc,2025-03-20T08:38:48Z,2025-03-20T08:38:48Z,user_admin,2330.TW,0,2,STOCK,,,vR3UUk7a,,,
-INSERT,55F8qvbW,2025-03-20T08:38:57Z,2025-03-20T08:38:57Z,user_admin,0050.TW,0,2,STOCK,,,vR3UUk7a,,,
-INSERT,MnTQjgN9,2025-03-20T08:43:41Z,2025-03-20T08:43:41Z,user_admin,SERAPH/USDT,0,0,FOREX,sfQd49aw,nr9uc4H4,,,,
-INSERT,HeUhAoas,2025-03-20T08:44:17Z,2025-03-20T08:44:17Z,user_admin,SERAPH/USDT Perp,0,0,DERIVATIVE,,nr9uc4H4,nr9uc4H4,sfQd49aw,,

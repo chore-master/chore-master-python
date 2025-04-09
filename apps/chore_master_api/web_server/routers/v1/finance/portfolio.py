@@ -33,11 +33,13 @@ router = APIRouter()
 
 class CreatePortfolioRequest(BaseCreateEntityRequest):
     name: str
+    settlement_asset_reference: str
     description: Optional[str] = None
 
 
 class ReadPortfolioResponse(BaseQueryEntityResponse):
     name: str
+    settlement_asset_reference: str
     description: Optional[str]
 
 

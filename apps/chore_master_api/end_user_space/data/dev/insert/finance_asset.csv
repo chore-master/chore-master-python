@@ -1,5 +1,3 @@
 OP,reference,created_time,updated_time,user_reference,name,symbol,decimals,is_settleable
 INSERT,vR3UUk7a,2025-03-20T08:41:35Z,2025-03-20T08:41:35Z,user_admin,新台幣,TWD,0,true
-INSERT,k2xp5GLn,2025-03-20T08:41:49Z,2025-03-20T08:41:49Z,user_admin,MNT,MNT,6,false
-INSERT,nr9uc4H4,2025-03-20T08:42:10Z,2025-03-20T08:42:10Z,user_admin,USDT,USDT,6,false
-INSERT,sfQd49aw,2025-03-20T08:42:20Z,2025-03-20T08:42:20Z,user_admin,SERAPH,SERAPH,6,false
+INSERT,CH6cRTKd,2025-03-20T08:41:35Z,2025-03-20T08:41:35Z,user_admin,美元,USD,2,true

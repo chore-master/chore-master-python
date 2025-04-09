@@ -78,8 +78,14 @@ class Transaction(Entity):
 
 
 class Transfer(Entity):
+    class FlowTypeEnum(Enum):
+        COST = "COST"
+        EXPENSE = "EXPENSE"
+        REVENUE = "REVENUE"
+        UPDATE_POSITION = "UPDATE_POSITION"
+
     transaction_reference: str
-    flow_type: str
+    flow_type: FlowTypeEnum
     asset_amount_change: int
     asset_reference: str
     settlement_asset_amount_change: Optional[int]
