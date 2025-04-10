@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path
+from pydantic import ConfigDict
 
 from apps.chore_master_api.end_user_space.models.finance import Transfer
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
@@ -28,6 +29,8 @@ class CreateTransferRequest(BaseCreateEntityRequest):
 
 
 class UpdateTransferRequest(BaseUpdateEntityRequest):
+    model_config = ConfigDict(use_enum_values=True)
+
     flow_type: Optional[Transfer.FlowTypeEnum] = None
     asset_amount_change: Optional[int] = None
     asset_reference: Optional[str] = None
