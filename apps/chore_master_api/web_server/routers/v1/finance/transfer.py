@@ -22,9 +22,9 @@ router = APIRouter()
 
 class CreateTransferRequest(BaseCreateEntityRequest):
     flow_type: Transfer.FlowTypeEnum
-    asset_amount_change: int
+    asset_amount_change: str
     asset_reference: str
-    settlement_asset_amount_change: Optional[int] = None
+    settlement_asset_amount_change: Optional[str] = None
     remark: Optional[str] = None
 
 
@@ -32,9 +32,9 @@ class UpdateTransferRequest(BaseUpdateEntityRequest):
     model_config = ConfigDict(use_enum_values=True)
 
     flow_type: Optional[Transfer.FlowTypeEnum] = None
-    asset_amount_change: Optional[int] = None
+    asset_amount_change: Optional[str] = None
     asset_reference: Optional[str] = None
-    settlement_asset_amount_change: Optional[int] = None
+    settlement_asset_amount_change: Optional[str] = None
     remark: Optional[str] = None
 
 

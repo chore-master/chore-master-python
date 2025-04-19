@@ -88,9 +88,9 @@ class Transfer(Entity):
 
     transaction_reference: str
     flow_type: FlowTypeEnum
-    asset_amount_change: int
+    asset_amount_change: str
     asset_reference: str
-    settlement_asset_amount_change: Optional[int]
+    settlement_asset_amount_change: Optional[str]
     remark: Optional[str]
 
 

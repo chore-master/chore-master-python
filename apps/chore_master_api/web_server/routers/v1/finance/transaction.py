@@ -43,9 +43,9 @@ class CreateTransactionRequest(BaseCreateEntityRequest):
 class ReadTransactionResponse(BaseQueryEntityResponse):
     class ReadTransferResponse(BaseQueryEntityResponse):
         flow_type: Transfer.FlowTypeEnum
-        asset_amount_change: int
+        asset_amount_change: str
         asset_reference: str
-        settlement_asset_amount_change: Optional[int]
+        settlement_asset_amount_change: Optional[str]
         remark: Optional[str]
 
     portfolio_reference: str

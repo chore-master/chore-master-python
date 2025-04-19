@@ -288,9 +288,9 @@ class Mapper:
             *get_base_columns(),
             Column("transaction_reference", types.String, nullable=False),
             Column("flow_type", types.String, nullable=False),
-            Column("asset_amount_change", types.Integer, nullable=False),
+            Column("asset_amount_change", types.String, nullable=False),
             Column("asset_reference", types.String, nullable=False),
-            Column("settlement_asset_amount_change", types.Integer, nullable=True),
+            Column("settlement_asset_amount_change", types.String, nullable=True),
             Column("remark", types.String, nullable=True),
         )
         if getattr(finance.Transfer, "_sa_class_manager", None) is None:
