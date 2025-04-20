@@ -40,7 +40,7 @@ def get_chore_master_api_web_server_config() -> ChoreMasterAPIWebServerConfigSch
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
         SESSION_COOKIE_DOMAIN = "dev-api.chore-master.app"
     elif base_config.ENV == EnvEnum.PRODUCTION:
-        FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "https://chore-master.app")
+        FRONTEND_ORIGIN = get_env("FRONTEND_ORIGIN", "https://www.chore-master.app")
         ALLOW_ORIGINS = [FRONTEND_ORIGIN]
         SESSION_COOKIE_DOMAIN = "api.chore-master.app"
 
