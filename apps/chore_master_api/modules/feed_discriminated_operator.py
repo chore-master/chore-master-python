@@ -78,7 +78,7 @@ class YahooFinanceFeedDiscriminatedOperator(FeedDiscriminatedOperator):
                 response = await client.get(
                     f"https://query1.finance.yahoo.com/v8/finance/chart/{base_asset.upper()}{quote_asset.upper()}=X",
                     params={
-                        "period1": f"{int((min(target_datetimes) - timedelta(days=1)).timestamp())}",
+                        "period1": f"{int((min(target_datetimes) - timedelta(days=3)).timestamp())}",
                         "period2": f"{int(max(target_datetimes).timestamp())}",
                         "interval": "1d",
                     },
