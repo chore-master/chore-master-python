@@ -139,40 +139,6 @@ package finance {
   }
 }
 
-package legacy {
-  entity "Instrument" {
-    * $remove("reference: str <<PK>>")
-    * $remove("user_reference: str <<FK>>")
-    * $remove("name: str")
-    * $remove("quantity_decimals: int")
-    * $remove("px_decimals: int")
-    * $remove("instrument_type: str = \n | 'STOCK' | 'FOREX' | 'DERIVATIVE' | 'LENDING'")
-    --
-    $remove("base_asset_reference: str <<FK>>")
-    $remove("quote_asset_reference: str <<FK>>")
-    $remove("settlement_asset_reference: str <<FK>>")
-    $remove("underlying_asset_reference: str <<FK>>")
-    $remove("staking_asset_reference: str <<FK>>")
-    $remove("yielding_asset_reference: str <<FK>>")
-  }
-
-  entity "LedgerEntry" {
-    * $remove("reference: str <<PK>>")
-    * $remove("portfolio_reference: str <<FK>>")
-    * $remove("source_type: str \n = 'MANUAL' | 'MANAGED'")
-    * $remove("entry_time: datetime")
-    * $remove("entry_type: str = \n | 'TRADE_BUY' | 'TRADE_SELL' \n | 'STAKE' | 'UNSTAKE' \n | 'CASH_DIVIDEND' | 'STOCK_DIVIDEND' \n | 'REWARD' | 'FUNDING_FEE' | 'INTEREST' \n | 'TRADE_FEE' | 'TAX' | 'GAS_FEE'")
-    * $remove("settlement_amount_change: int")
-    * $remove("settlement_asset_reference: str <<FK>>")
-    --
-    $remove("parent_ledger_entry_reference: str <<FK>>")
-    $remove("instrument_reference: str <<FK>>")
-    $remove("quantity_change: int")
-    $remove("fill_px: int")
-    $remove("remark: str")
-  }
-}
-
 'Zero or One  |o--
 'Exactly One  ||--
 'Zero or Many }o--
