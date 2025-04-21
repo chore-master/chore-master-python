@@ -16,17 +16,11 @@ class Asset(Entity):
 
 
 class Account(Entity):
-    model_config = ConfigDict(use_enum_values=True)
-
-    class EcosystemTypeEnum(Enum):
-        TRAD_FI = "TRAD_FI"
-
     user_reference: str
     settlement_asset_reference: str
     name: str
     opened_time: datetime
     closed_time: Optional[datetime]
-    ecosystem_type: EcosystemTypeEnum
 
 
 class BalanceSheet(Entity):

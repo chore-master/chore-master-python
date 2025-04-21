@@ -37,7 +37,6 @@ class CreateAccountRequest(BaseCreateEntityRequest):
     name: str
     opened_time: datetime
     closed_time: Optional[datetime]
-    ecosystem_type: Account.EcosystemTypeEnum
     settlement_asset_reference: Optional[str]
 
 
@@ -45,7 +44,6 @@ class ReadAccountResponse(BaseQueryEntityResponse):
     name: str
     opened_time: datetime
     closed_time: Optional[datetime]
-    ecosystem_type: Account.EcosystemTypeEnum
     settlement_asset_reference: str
 
 
@@ -55,7 +53,6 @@ class UpdateAccountRequest(BaseUpdateEntityRequest):
     name: Optional[str] = None
     opened_time: Optional[datetime] = None
     closed_time: Optional[datetime] = None
-    ecosystem_type: Optional[Account.EcosystemTypeEnum] = None
 
 
 @router.get("/users/me/accounts", dependencies=[Depends(require_freemium_role)])

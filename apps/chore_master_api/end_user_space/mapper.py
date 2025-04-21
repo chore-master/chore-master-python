@@ -143,7 +143,6 @@ class Mapper:
             Column("name", types.String, nullable=False),
             Column("opened_time", types.DateTime, nullable=False),
             Column("closed_time", types.DateTime, nullable=True),
-            Column("ecosystem_type", types.String, nullable=False),
             Column("settlement_asset_reference", types.String, nullable=False),
         )
         if getattr(finance.Account, "_sa_class_manager", None) is None:

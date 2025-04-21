@@ -59,7 +59,6 @@ package finance {
     * settlement_asset_reference: str <<FK>>
     * name: str
     * opened_time: datetime
-    * ecosystem_type: str = 'TRAD_FI'
     --
     closed_time: datetime
   }

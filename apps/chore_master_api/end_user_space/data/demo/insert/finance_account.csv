@@ -1,6 +1,6 @@
-OP,reference,created_time,updated_time,user_reference,name,opened_time,closed_time,ecosystem_type,settlement_asset_reference
-INSERT,account_savings,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,A 銀行 - 活存,2024-01-02T00:00:00Z,,TRAD_FI,asset_twd
-INSERT,account_securities,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,A 券商 - 證券現值,2024-01-02T00:00:00Z,,TRAD_FI,asset_twd
-INSERT,account_mortgage,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,B 銀行 - 房貸,2024-01-02T00:00:00Z,,TRAD_FI,asset_twd
-INSERT,account_evm_1,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,以太坊 - 錢包1,2024-01-02T00:00:00Z,,TRAD_FI,asset_usd
-INSERT,account_evm_2,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,以太坊 - 錢包2,2024-01-02T00:00:00Z,,TRAD_FI,asset_usd
+OP,reference,created_time,updated_time,user_reference,name,opened_time,closed_time,settlement_asset_reference
+INSERT,account_savings,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,A 銀行 - 活存,2024-01-02T00:00:00Z,,asset_twd
+INSERT,account_securities,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,A 券商 - 證券現值,2024-01-02T00:00:00Z,,asset_twd
+INSERT,account_mortgage,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,B 銀行 - 房貸,2024-01-02T00:00:00Z,,asset_twd
+INSERT,account_evm_1,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,以太坊 - 錢包1,2024-01-02T00:00:00Z,,asset_usd
+INSERT,account_evm_2,2025-01-02T00:00:00Z,2025-01-02T00:00:00Z,user_demo,以太坊 - 錢包2,2024-01-02T00:00:00Z,,asset_usd
