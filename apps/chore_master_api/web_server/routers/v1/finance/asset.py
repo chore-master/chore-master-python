@@ -48,7 +48,6 @@ class ReadAssetResponse(BaseQueryEntityResponse):
 class UpdateAssetRequest(BaseUpdateEntityRequest):
     name: Optional[str] = None
     symbol: Optional[str] = None
-    decimals: Optional[int] = None
     is_settleable: Optional[bool] = None
 
 
