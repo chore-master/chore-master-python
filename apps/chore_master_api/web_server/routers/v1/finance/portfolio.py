@@ -137,6 +137,22 @@ async def delete_portfolios_portfolio_reference(
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
+        transactions = await uow.transaction_repository.find_many(
+            filter={
+                "portfolio_reference": portfolio_reference,
+            },
+        )
+        for transaction in transactions:
+            await uow.transfer_repository.delete_many(
+                filter={
+                    "transaction_reference": transaction.reference,
+                },
+            )
+        await uow.transaction_repository.delete_many(
+            filter={
+                "portfolio_reference": portfolio_reference,
+            },
+        )
         await uow.portfolio_repository.delete_many(
             filter={
                 "reference": portfolio_reference,
