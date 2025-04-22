@@ -78,7 +78,7 @@ class YahooFinanceFeedDiscriminatedOperator(FeedDiscriminatedOperator):
                 response = await client.get(
                     f"https://query1.finance.yahoo.com/v8/finance/chart/{base_asset.upper()}{quote_asset.upper()}=X",
                     params={
-                        "period1": f"{int((min(target_datetimes) - timedelta(days=3)).timestamp())}",
+                        "period1": f"{int((min(target_datetimes) - timedelta(days=7)).timestamp())}",
                         "period2": f"{int(max(target_datetimes).timestamp())}",
                         "interval": "1d",
                     },
@@ -88,10 +88,20 @@ class YahooFinanceFeedDiscriminatedOperator(FeedDiscriminatedOperator):
                 )
                 response.raise_for_status()
                 response_dict = response.json()
-                timestamps = response_dict["chart"]["result"][0]["timestamp"]
-                close_prices = response_dict["chart"]["result"][0]["indicators"][
-                    "adjclose"
-                ][0]["adjclose"]
+
+                # remove null prices
+                timestamps, close_prices = zip(
+                    *[
+                        (timestamp, close_price)
+                        for timestamp, close_price in zip(
+                            response_dict["chart"]["result"][0]["timestamp"],
+                            response_dict["chart"]["result"][0]["indicators"][
+                                "adjclose"
+                            ][0]["adjclose"],
+                        )
+                        if close_price is not None
+                    ]
+                )
 
                 for target_datetime in target_datetimes:
                     matched_idx = binary_search_lte_from_ascendingly_ordered_items(
