@@ -42,7 +42,7 @@ router = APIRouter()
 class CreateBalanceSheetRequest(BaseCreateEntityRequest):
     class CreateBalanceEntryRequest(BaseCreateEntityRequest):
         account_reference: str
-        amount: int
+        amount: str
 
     balanced_time: datetime
     balance_entries: list[CreateBalanceEntryRequest]
@@ -55,7 +55,7 @@ class ReadBalanceSheetSummaryResponse(BaseQueryEntityResponse):
 class ReadBalanceSheetDetailResponse(BaseQueryEntityResponse):
     class ReadBalanceEntryResponse(BaseQueryEntityResponse):
         account_reference: str
-        amount: int
+        amount: str
 
     balanced_time: datetime
     balance_entries: list[ReadBalanceEntryResponse]
@@ -64,7 +64,7 @@ class ReadBalanceSheetDetailResponse(BaseQueryEntityResponse):
 class UpdateBalanceSheetRequest(BaseUpdateEntityRequest):
     class UpdateBalanceEntryRequest(BaseUpdateEntityRequest):
         account_reference: str
-        amount: int
+        amount: str
 
     balanced_time: Optional[datetime] = None
     balance_entries: list[UpdateBalanceEntryRequest]
