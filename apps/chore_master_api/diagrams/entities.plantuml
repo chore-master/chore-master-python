@@ -53,6 +53,23 @@ package integration {
 }
 
 package finance {
+  entity "Asset" {
+    * reference: str <<PK>>
+    * user_reference: str <<FK>>
+    * name: str
+    * symbol: str
+    * decimals: int
+    * is_settleable: bool
+  }
+
+  entity "Price" {
+    * $add("reference: str <<PK>>")
+    * $add("base_asset_reference: str <<FK>>")
+    * $add("quote_asset_reference: str <<FK>>")
+    * $add("value: str")
+    * $add("confirmed_time: datetime")
+  }
+
   entity "Account" {
     * reference: str <<PK>>
     * user_reference: str <<FK>>
@@ -73,7 +90,7 @@ package finance {
     * reference: str <<PK>>
     * balance_sheet_reference: str <<FK>>
     * account_reference: str <<FK>>
-    * amount: int
+    * amount: str
   }
 
   entity "Portfolio" {
@@ -83,15 +100,6 @@ package finance {
     * settlement_asset_reference: str <<FK>>
     --
     description: str
-  }
-
-  entity "Asset" {
-    * reference: str <<PK>>
-    * user_reference: str <<FK>>
-    * name: str
-    * symbol: str
-    * decimals: int
-    * is_settleable: bool
   }
 
   entity "Transaction" {
@@ -150,18 +158,19 @@ User                 ||--o{ Operator
 User                 ||--o{ Account
 User                 ||--o{ BalanceSheet
 User                 ||--o{ Asset
-' User                 ||--o{ Instrument
 User                 ||--o{ Portfolio
 
 UserRole             }o--|| Role
+
+Price                }o--|| Asset: base_asset
+Price                }o--|| Asset: quote_asset
+
+Account              }o--|| Asset: settlement_asset
 
 BalanceSheet         ||--o{ BalanceEntry: balance_entries
 
 BalanceEntry         }o--|| Account
 
-Account              }o--|| Asset: settlement_asset
-
-' Portfolio            ||--o{ LedgerEntry: ledger_entries
 Portfolio            }o--|| Asset: settlement_asset
 Portfolio            ||--o{ Transaction: transactions
 Portfolio            ||--o{ IncomeStatementEntry: income_statement_entries
@@ -169,16 +178,8 @@ Portfolio            ||--o{ Holding: holdings
 
 Transaction          ||--o{ Transfer: transfers
 
-' LedgerEntry          }o--|| Asset: settlement_asset
-' LedgerEntry          }o--|| Instrument
-' LedgerEntry          }o--|| LedgerEntry
-
-' Instrument           }o--o{ Asset: xxx_asset
-
 IncomeStatementEntry }o--|| Asset
 
 Holding              ||--o{ HoldingEntry: holding_entries
-
-' HoldingEntry         }o--|| Instrument
 
 @enduml
