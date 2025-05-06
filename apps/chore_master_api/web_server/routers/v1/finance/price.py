@@ -122,7 +122,7 @@ async def patch_users_me_prices_price_reference(
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        await uow.asset_repository.update_many(
+        await uow.price_repository.update_many(
             values=update_entity_request.model_dump(exclude_unset=True),
             filter={
                 "reference": price_reference,
@@ -143,7 +143,7 @@ async def delete_users_me_prices_price_reference(
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     async with uow:
-        await uow.asset_repository.delete_many(
+        await uow.price_repository.delete_many(
             filter={
                 "reference": price_reference,
                 "user_reference": current_user.reference,
