@@ -15,6 +15,14 @@ class Asset(Entity):
     is_settleable: bool
 
 
+class Price(Entity):
+    user_reference: str
+    base_asset_reference: str
+    quote_asset_reference: str
+    value: str
+    confirmed_time: datetime
+
+
 class Account(Entity):
     user_reference: str
     settlement_asset_reference: str

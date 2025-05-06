@@ -150,6 +150,19 @@ class Mapper:
                 finance.Account, finance_account_table
             )
 
+        finance_price_table = Table(
+            "finance_price",
+            self._metadata,
+            *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
+            Column("base_asset_reference", types.String, nullable=False),
+            Column("quote_asset_reference", types.String, nullable=False),
+            Column("value", types.String, nullable=False),
+            Column("confirmed_time", types.DateTime, nullable=False),
+        )
+        if getattr(finance.Price, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(finance.Price, finance_price_table)
+
         finance_balance_sheet_table = Table(
             "finance_balance_sheet",
             self._metadata,

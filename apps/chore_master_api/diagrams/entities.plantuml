@@ -63,11 +63,12 @@ package finance {
   }
 
   entity "Price" {
-    * $add("reference: str <<PK>>")
-    * $add("base_asset_reference: str <<FK>>")
-    * $add("quote_asset_reference: str <<FK>>")
-    * $add("value: str")
-    * $add("confirmed_time: datetime")
+    reference: str <<PK>>
+    user_reference: str <<FK>>
+    base_asset_reference: str <<FK>>
+    quote_asset_reference: str <<FK>>
+    value: str
+    confirmed_time: datetime
   }
 
   entity "Account" {
@@ -158,6 +159,7 @@ User                 ||--o{ Operator
 User                 ||--o{ Account
 User                 ||--o{ BalanceSheet
 User                 ||--o{ Asset
+User                 ||--o{ Price
 User                 ||--o{ Portfolio
 
 UserRole             }o--|| Role

@@ -1,11 +1,12 @@
 from typing import Type
 
-from apps.chore_master_api.end_user_space.models.finance import (  # Instrument,; LedgerEntry,
+from apps.chore_master_api.end_user_space.models.finance import (
     Account,
     Asset,
     BalanceEntry,
     BalanceSheet,
     Portfolio,
+    Price,
     Transaction,
     Transfer,
 )
@@ -24,6 +25,12 @@ class AssetRepository(BaseSQLAlchemyRepository[Asset]):
         return Asset
 
 
+class PriceRepository(BaseSQLAlchemyRepository[Price]):
+    @property
+    def entity_class(self) -> Type[Price]:
+        return Price
+
+
 class BalanceSheetRepository(BaseSQLAlchemyRepository[BalanceSheet]):
     @property
     def entity_class(self) -> Type[BalanceSheet]:
@@ -36,22 +43,10 @@ class BalanceEntryRepository(BaseSQLAlchemyRepository[BalanceEntry]):
         return BalanceEntry
 
 
-# class InstrumentRepository(BaseSQLAlchemyRepository[Instrument]):
-#     @property
-#     def entity_class(self) -> Type[Instrument]:
-#         return Instrument
-
-
 class PortfolioRepository(BaseSQLAlchemyRepository[Portfolio]):
     @property
     def entity_class(self) -> Type[Portfolio]:
         return Portfolio
-
-
-# class LedgerEntryRepository(BaseSQLAlchemyRepository[LedgerEntry]):
-#     @property
-#     def entity_class(self) -> Type[LedgerEntry]:
-#         return LedgerEntry
 
 
 class TransactionRepository(BaseSQLAlchemyRepository[Transaction]):
