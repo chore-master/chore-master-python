@@ -69,6 +69,7 @@ package finance {
     quote_asset_reference: str <<FK>>
     value: str
     confirmed_time: datetime
+    $add("source_type: str =") \n $add("| 'MANUAL'") \n $add("| 'MANAGED'")
   }
 
   entity "Account" {
