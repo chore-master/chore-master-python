@@ -148,6 +148,83 @@ async def post_users_me_prices(
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
+# must be placed before `PATCH /users/me/prices/{price_reference}`
+@router.patch(
+    "/users/me/prices/auto-fill",
+    dependencies=[Depends(require_freemium_role)],
+)
+async def patch_users_me_prices_auto_fill(
+    auto_fill_price_request: AutoFillPriceRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    finance_uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+    integration_uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
+):
+    async with finance_uow, integration_uow:
+        operator = await integration_uow.operator_repository.find_one(
+            filter={
+                "reference": auto_fill_price_request.operator_reference,
+                "user_reference": current_user.reference,
+            }
+        )
+        feed_operator: FeedDiscriminatedOperator = operator.to_discriminated_operator()
+
+        settlable_assets = await finance_uow.asset_repository.find_many(
+            filter={
+                "user_reference": current_user.reference,
+                "is_settleable": True,
+            }
+        )
+        base_asset = next(
+            (
+                settlable_asset
+                for settlable_asset in settlable_assets
+                if settlable_asset.symbol == "USD"
+            ),
+            None,
+        )
+        quote_assets = [
+            settlable_asset
+            for settlable_asset in settlable_assets
+            if settlable_asset.symbol != "USD"
+        ]
+        balance_sheets = await finance_uow.balance_sheet_repository.find_many(
+            filter={
+                "user_reference": current_user.reference,
+            }
+        )
+        occupied_datetimes_set = {
+            balance_sheet.balanced_time for balance_sheet in balance_sheets
+        }
+        for quote_asset in quote_assets:
+            prices = await finance_uow.price_repository.find_many(
+                filter={
+                    "user_reference": current_user.reference,
+                    "base_asset_reference": base_asset.reference,
+                    "quote_asset_reference": quote_asset.reference,
+                },
+            )
+            existing_datetimes_set = {price.confirmed_time for price in prices}
+            target_datetimes = list(occupied_datetimes_set - existing_datetimes_set)
+            feed_price_dicts = await feed_operator.fetch_prices(
+                instrument_symbol=f"{base_asset.symbol}_{quote_asset.symbol}",
+                target_interval=IntervalEnum.PER_1_DAY,
+                target_datetimes=target_datetimes,
+            )
+            for feed_price_dict in feed_price_dicts:
+                matched_datetime = feed_price_dict["matched_datetime"]
+                if matched_datetime not in existing_datetimes_set:
+                    entity = Price(
+                        user_reference=current_user.reference,
+                        base_asset_reference=base_asset.reference,
+                        quote_asset_reference=quote_asset.reference,
+                        value=f"{feed_price_dict['matched_price']}",
+                        confirmed_time=matched_datetime,
+                    )
+                    await finance_uow.price_repository.insert_one(entity)
+        await finance_uow.commit()
+    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
 @router.patch(
     "/users/me/prices/{price_reference}",
     dependencies=[Depends(require_freemium_role)],
@@ -244,79 +321,3 @@ async def post_users_me_query_mark_prices(
     return ResponseSchema[list[ReadMarkPriceResponse]](
         status=StatusEnum.SUCCESS, data=response_data
     )
-
-
-@router.patch(
-    "/users/me/prices/auto-fill",
-    dependencies=[Depends(require_freemium_role)],
-)
-async def patch_users_me_prices_auto_fill(
-    auto_fill_price_request: AutoFillPriceRequest,
-    current_user: CurrentUser = Depends(get_current_user),
-    finance_uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
-    integration_uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
-):
-    async with finance_uow, integration_uow:
-        operator = await integration_uow.operator_repository.find_one(
-            filter={
-                "reference": auto_fill_price_request.operator_reference,
-                "user_reference": current_user.reference,
-            }
-        )
-        feed_operator: FeedDiscriminatedOperator = operator.to_discriminated_operator()
-
-        settlable_assets = await finance_uow.asset_repository.find_many(
-            filter={
-                "user_reference": current_user.reference,
-                "is_settleable": True,
-            }
-        )
-        base_asset = next(
-            (
-                settlable_asset
-                for settlable_asset in settlable_assets
-                if settlable_asset.symbol == "USD"
-            ),
-            None,
-        )
-        quote_assets = [
-            settlable_asset
-            for settlable_asset in settlable_assets
-            if settlable_asset.symbol != "USD"
-        ]
-        balance_sheets = await finance_uow.balance_sheet_repository.find_many(
-            filter={
-                "user_reference": current_user.reference,
-            }
-        )
-        occupied_datetimes_set = {
-            balance_sheet.balanced_time for balance_sheet in balance_sheets
-        }
-        for quote_asset in quote_assets:
-            prices = await finance_uow.price_repository.find_many(
-                filter={
-                    "user_reference": current_user.reference,
-                    "base_asset_reference": base_asset.reference,
-                    "quote_asset_reference": quote_asset.reference,
-                },
-            )
-            existing_datetimes_set = {price.confirmed_time for price in prices}
-            target_datetimes = list(occupied_datetimes_set - existing_datetimes_set)
-            feed_price_dicts = await feed_operator.fetch_prices(
-                instrument_symbol=f"{base_asset.symbol}_{quote_asset.symbol}",
-                target_interval=IntervalEnum.PER_1_DAY,
-                target_datetimes=target_datetimes,
-            )
-            for feed_price_dict in feed_price_dicts:
-                matched_datetime = feed_price_dict["matched_datetime"]
-                if matched_datetime not in existing_datetimes_set:
-                    entity = Price(
-                        user_reference=current_user.reference,
-                        base_asset_reference=base_asset.reference,
-                        quote_asset_reference=quote_asset.reference,
-                        value=f"{feed_price_dict['matched_price']}",
-                        confirmed_time=matched_datetime,
-                    )
-                    await finance_uow.price_repository.insert_one(entity)
-        await finance_uow.commit()
-    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
