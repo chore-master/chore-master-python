@@ -95,6 +95,7 @@ async def get_users_me_prices(
         statement = (
             select(Price)
             .filter(*filters)
+            .order_by(Price.confirmed_time.desc())
             .offset(offset_pagination.offset)
             .limit(offset_pagination.limit)
         )
@@ -168,7 +169,7 @@ async def patch_users_me_prices_auto_fill(
                 "user_reference": current_user.reference,
             }
         )
-        target_datetimes_set = {
+        occupied_datetimes_set = {
             balance_sheet.balanced_time for balance_sheet in balance_sheets
         }
         for quote_asset in quote_assets:
@@ -180,20 +181,23 @@ async def patch_users_me_prices_auto_fill(
                 },
             )
             existing_datetimes_set = {price.confirmed_time for price in prices}
-            price_dicts = await feed_operator.fetch_prices(
+            target_datetimes = list(occupied_datetimes_set - existing_datetimes_set)
+            feed_price_dicts = await feed_operator.fetch_prices(
                 instrument_symbol=f"{base_asset.symbol}_{quote_asset.symbol}",
                 target_interval=IntervalEnum.PER_1_DAY,
-                target_datetimes=list(target_datetimes_set - existing_datetimes_set),
+                target_datetimes=target_datetimes,
             )
-            for price_dict in price_dicts:
-                entity = Price(
-                    user_reference=current_user.reference,
-                    base_asset_reference=base_asset.reference,
-                    quote_asset_reference=quote_asset.reference,
-                    value=f"{price_dict['matched_price']}",
-                    confirmed_time=price_dict["matched_datetime"],
-                )
-                await finance_uow.price_repository.insert_one(entity)
+            for feed_price_dict in feed_price_dicts:
+                matched_datetime = feed_price_dict["matched_datetime"]
+                if matched_datetime not in existing_datetimes_set:
+                    entity = Price(
+                        user_reference=current_user.reference,
+                        base_asset_reference=base_asset.reference,
+                        quote_asset_reference=quote_asset.reference,
+                        value=f"{feed_price_dict['matched_price']}",
+                        confirmed_time=matched_datetime,
+                    )
+                    await finance_uow.price_repository.insert_one(entity)
         await finance_uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
