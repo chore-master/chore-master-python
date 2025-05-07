@@ -9,6 +9,13 @@ from apps.chore_master_api.end_user_space.models.finance import Price
 from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
+from apps.chore_master_api.end_user_space.unit_of_works.integration import (
+    IntegrationSQLAlchemyUnitOfWork,
+)
+from apps.chore_master_api.modules.feed_discriminated_operator import (
+    FeedDiscriminatedOperator,
+    IntervalEnum,
+)
 from apps.chore_master_api.web_server.dependencies.auth import (
     get_current_user,
     require_freemium_role,
@@ -16,7 +23,10 @@ from apps.chore_master_api.web_server.dependencies.auth import (
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
-from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
+from apps.chore_master_api.web_server.dependencies.unit_of_work import (
+    get_finance_uow,
+    get_integration_uow,
+)
 from apps.chore_master_api.web_server.schemas.dto import CurrentUser, OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
@@ -51,6 +61,10 @@ class UpdatePriceRequest(BaseUpdateEntityRequest):
     quote_asset_reference: Optional[str] = None
     value: Optional[str] = None
     confirmed_time: Optional[datetime] = None
+
+
+class AutoFillPriceRequest(BaseUpdateEntityRequest):
+    operator_reference: str
 
 
 @router.get("/users/me/prices", dependencies=[Depends(require_freemium_role)])
@@ -108,6 +122,79 @@ async def post_users_me_prices(
         entity = Price(**entity_dict)
         await uow.price_repository.insert_one(entity)
         await uow.commit()
+    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.patch(
+    "/users/me/prices/auto-fill",
+    dependencies=[Depends(require_freemium_role)],
+)
+async def patch_users_me_prices_auto_fill(
+    auto_fill_price_request: AutoFillPriceRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    finance_uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+    integration_uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
+):
+    async with finance_uow, integration_uow:
+        operator = await integration_uow.operator_repository.find_one(
+            filter={
+                "reference": auto_fill_price_request.operator_reference,
+                "user_reference": current_user.reference,
+            }
+        )
+        feed_operator: FeedDiscriminatedOperator = operator.to_discriminated_operator()
+
+        settlable_assets = await finance_uow.asset_repository.find_many(
+            filter={
+                "user_reference": current_user.reference,
+                "is_settleable": True,
+            }
+        )
+        base_asset = next(
+            (
+                settlable_asset
+                for settlable_asset in settlable_assets
+                if settlable_asset.symbol == "USD"
+            ),
+            None,
+        )
+        quote_assets = [
+            settlable_asset
+            for settlable_asset in settlable_assets
+            if settlable_asset.symbol != "USD"
+        ]
+        balance_sheets = await finance_uow.balance_sheet_repository.find_many(
+            filter={
+                "user_reference": current_user.reference,
+            }
+        )
+        target_datetimes_set = {
+            balance_sheet.balanced_time for balance_sheet in balance_sheets
+        }
+        for quote_asset in quote_assets:
+            prices = await finance_uow.price_repository.find_many(
+                filter={
+                    "user_reference": current_user.reference,
+                    "base_asset_reference": base_asset.reference,
+                    "quote_asset_reference": quote_asset.reference,
+                },
+            )
+            existing_datetimes_set = {price.confirmed_time for price in prices}
+            price_dicts = await feed_operator.fetch_prices(
+                instrument_symbol=f"{base_asset.symbol}_{quote_asset.symbol}",
+                target_interval=IntervalEnum.PER_1_DAY,
+                target_datetimes=list(target_datetimes_set - existing_datetimes_set),
+            )
+            for price_dict in price_dicts:
+                entity = Price(
+                    user_reference=current_user.reference,
+                    base_asset_reference=base_asset.reference,
+                    quote_asset_reference=quote_asset.reference,
+                    value=f"{price_dict['matched_price']}",
+                    confirmed_time=price_dict["matched_datetime"],
+                )
+                await finance_uow.price_repository.insert_one(entity)
+        await finance_uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
