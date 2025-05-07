@@ -311,13 +311,15 @@ async def post_users_me_query_mark_prices(
                         == query_pair.quote_asset_reference
                     ),
                     key=lambda price: price.confirmed_time,
+                    default=None,
                 )
-                response_data.append(
-                    ReadMarkPriceResponse(
-                        query_datetime=query_datetime,
-                        mark_price=mark_price.model_dump(),
+                if mark_price is not None:
+                    response_data.append(
+                        ReadMarkPriceResponse(
+                            query_datetime=query_datetime,
+                            mark_price=mark_price.model_dump(),
+                        )
                     )
-                )
     return ResponseSchema[list[ReadMarkPriceResponse]](
         status=StatusEnum.SUCCESS, data=response_data
     )
