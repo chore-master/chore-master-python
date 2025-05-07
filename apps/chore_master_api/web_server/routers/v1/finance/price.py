@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path, Query
-from sqlalchemy import func, or_
+from pydantic import BaseModel
+from sqlalchemy import and_, func, or_
 from sqlalchemy.future import select
 
 from apps.chore_master_api.end_user_space.models.finance import Price
@@ -67,6 +68,27 @@ class AutoFillPriceRequest(BaseUpdateEntityRequest):
     operator_reference: str
 
 
+class QueryMarkPriceRequest(BaseUpdateEntityRequest):
+    class QueryPair(BaseModel):
+        base_asset_reference: str
+        quote_asset_reference: str
+
+    query_pairs: list[QueryPair]
+    query_datetimes: list[datetime]
+    max_allowed_timedelta_ms: int
+
+
+class ReadMarkPriceResponse(BaseModel):
+    class MarkPrice(BaseModel):
+        base_asset_reference: str
+        quote_asset_reference: str
+        value: str
+        confirmed_time: datetime
+
+    query_datetime: datetime
+    mark_price: MarkPrice
+
+
 @router.get("/users/me/prices", dependencies=[Depends(require_freemium_role)])
 async def get_users_me_prices(
     base_asset_reference: Annotated[Optional[str], Query()] = None,
@@ -124,6 +146,104 @@ async def post_users_me_prices(
         await uow.price_repository.insert_one(entity)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.patch(
+    "/users/me/prices/{price_reference}",
+    dependencies=[Depends(require_freemium_role)],
+)
+async def patch_users_me_prices_price_reference(
+    price_reference: Annotated[str, Path()],
+    update_entity_request: UpdatePriceRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+):
+    async with uow:
+        await uow.price_repository.update_many(
+            values=update_entity_request.model_dump(exclude_unset=True),
+            filter={
+                "reference": price_reference,
+                "user_reference": current_user.reference,
+            },
+        )
+        await uow.commit()
+    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.delete(
+    "/users/me/prices/{price_reference}",
+    dependencies=[Depends(require_freemium_role)],
+)
+async def delete_users_me_prices_price_reference(
+    price_reference: Annotated[str, Path()],
+    current_user: CurrentUser = Depends(get_current_user),
+    uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+):
+    async with uow:
+        await uow.price_repository.delete_many(
+            filter={
+                "reference": price_reference,
+                "user_reference": current_user.reference,
+            },
+            limit=1,
+        )
+        await uow.commit()
+    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
+
+
+@router.post(
+    "/users/me/query-mark-prices", dependencies=[Depends(require_freemium_role)]
+)
+async def post_users_me_query_mark_prices(
+    query_mark_price_request: QueryMarkPriceRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+):
+    max_query_datetime = max(query_mark_price_request.query_datetimes)
+    min_query_datetime = min(query_mark_price_request.query_datetimes)
+    async with uow:
+        filters = [
+            Price.user_reference == current_user.reference,
+            Price.confirmed_time
+            >= min_query_datetime
+            - timedelta(milliseconds=query_mark_price_request.max_allowed_timedelta_ms),
+            Price.confirmed_time <= max_query_datetime,
+            or_(
+                and_(
+                    Price.base_asset_reference == query_pair.base_asset_reference,
+                    Price.quote_asset_reference == query_pair.quote_asset_reference,
+                )
+                for query_pair in query_mark_price_request.query_pairs
+            ),
+        ]
+        statement = select(Price).filter(*filters)
+        result = await uow.session.execute(statement)
+        prices = result.scalars().unique().all()
+
+        response_data = []
+        for query_pair in query_mark_price_request.query_pairs:
+            for query_datetime in query_mark_price_request.query_datetimes:
+                mark_price = max(
+                    (
+                        price
+                        for price in prices
+                        if price.confirmed_time <= query_datetime
+                        and price.base_asset_reference
+                        == query_pair.base_asset_reference
+                        and price.quote_asset_reference
+                        == query_pair.quote_asset_reference
+                    ),
+                    key=lambda price: price.confirmed_time,
+                )
+                response_data.append(
+                    ReadMarkPriceResponse(
+                        query_datetime=query_datetime,
+                        mark_price=mark_price.model_dump(),
+                    )
+                )
+    return ResponseSchema[list[ReadMarkPriceResponse]](
+        status=StatusEnum.SUCCESS, data=response_data
+    )
 
 
 @router.patch(
@@ -199,47 +319,4 @@ async def patch_users_me_prices_auto_fill(
                     )
                     await finance_uow.price_repository.insert_one(entity)
         await finance_uow.commit()
-    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
-
-
-@router.patch(
-    "/users/me/prices/{price_reference}",
-    dependencies=[Depends(require_freemium_role)],
-)
-async def patch_users_me_prices_price_reference(
-    price_reference: Annotated[str, Path()],
-    update_entity_request: UpdatePriceRequest,
-    current_user: CurrentUser = Depends(get_current_user),
-    uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
-):
-    async with uow:
-        await uow.price_repository.update_many(
-            values=update_entity_request.model_dump(exclude_unset=True),
-            filter={
-                "reference": price_reference,
-                "user_reference": current_user.reference,
-            },
-        )
-        await uow.commit()
-    return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
-
-
-@router.delete(
-    "/users/me/prices/{price_reference}",
-    dependencies=[Depends(require_freemium_role)],
-)
-async def delete_users_me_prices_price_reference(
-    price_reference: Annotated[str, Path()],
-    current_user: CurrentUser = Depends(get_current_user),
-    uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
-):
-    async with uow:
-        await uow.price_repository.delete_many(
-            filter={
-                "reference": price_reference,
-                "user_reference": current_user.reference,
-            },
-            limit=1,
-        )
-        await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
