@@ -677,7 +677,7 @@ async def get_interest_rate_inspect(cap_amount: int = Query(default=800000)):
                         "https://www.nextbank.com.tw/announcement/4b262cbb0600000005db69481a78b4a4/news57",
                         "https://nebweb.nextbank.com.tw/corp/rates",
                     ],
-                    "end_time": "2025-03-31T00:00:00Z",
+                    "end_time": "2025-06-30T00:00:00Z",
                     "entries": [
                         {
                             "min_amount": 0,
