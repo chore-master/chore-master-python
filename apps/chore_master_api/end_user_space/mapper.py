@@ -6,6 +6,7 @@ from apps.chore_master_api.end_user_space.models import (
     identity,
     integration,
     some_module,
+    trace,
 )
 from apps.chore_master_api.end_user_space.tables.base import get_base_columns
 from modules.database.sqlalchemy import types
@@ -107,6 +108,17 @@ class Mapper:
                     )
                 },
             )
+
+        trace_quota_table = Table(
+            "trace_quota",
+            self._metadata,
+            *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
+            Column("limit", types.Integer, nullable=False),
+            Column("used", types.Integer, nullable=False),
+        )
+        if getattr(trace.Quota, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(trace.Quota, trace_quota_table)
 
         integration_operator_table = Table(
             "integration_operator",

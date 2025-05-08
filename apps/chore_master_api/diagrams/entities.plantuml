@@ -41,6 +41,15 @@ package identity {
   }
 }
 
+package trace {
+  entity "Quota" {
+    * reference: str <<PK>>
+    * user_reference: str <<FK>>
+    * limit: int
+    * used: int
+  }
+}
+
 package integration {
   entity "Operator" {
     * reference: str <<PK>>
@@ -69,7 +78,6 @@ package finance {
     quote_asset_reference: str <<FK>>
     value: str
     confirmed_time: datetime
-    $add("source_type: str =") \n $add("| 'MANUAL'") \n $add("| 'MANAGED'")
   }
 
   entity "Account" {
@@ -162,6 +170,7 @@ User                 ||--o{ BalanceSheet
 User                 ||--o{ Asset
 User                 ||--o{ Price
 User                 ||--o{ Portfolio
+User                 ||--o{ Quota
 
 UserRole             }o--|| Role
 

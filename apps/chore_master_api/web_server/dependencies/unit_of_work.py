@@ -13,6 +13,9 @@ from apps.chore_master_api.end_user_space.unit_of_works.integration import (
 from apps.chore_master_api.end_user_space.unit_of_works.some_module import (
     SomeModuleSQLAlchemyUnitOfWork,
 )
+from apps.chore_master_api.end_user_space.unit_of_works.trace import (
+    TraceSQLAlchemyUnitOfWork,
+)
 from apps.chore_master_api.web_server.dependencies.database import (
     get_chore_master_db,
     get_chore_master_db_registry,
@@ -25,6 +28,13 @@ async def get_identity_uow(
     _end_user_db_registry: registry = Depends(get_chore_master_db_registry),
 ) -> IdentitySQLAlchemyUnitOfWork:
     return IdentitySQLAlchemyUnitOfWork(relational_database=chore_master_db)
+
+
+async def get_trace_uow(
+    chore_master_db: RelationalDatabase = Depends(get_chore_master_db),
+    _end_user_db_registry: registry = Depends(get_chore_master_db_registry),
+) -> TraceSQLAlchemyUnitOfWork:
+    return TraceSQLAlchemyUnitOfWork(relational_database=chore_master_db)
 
 
 async def get_integration_uow(
