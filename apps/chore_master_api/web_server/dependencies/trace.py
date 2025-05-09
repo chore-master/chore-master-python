@@ -24,7 +24,7 @@ class Counter:
         self._current_count -= delta
 
 
-async def get_quota_counter(
+async def get_used_quota_counter(
     current_user: CurrentUser = Depends(get_current_user),
     uow: TraceSQLAlchemyUnitOfWork = Depends(get_trace_uow),
 ):
@@ -38,11 +38,11 @@ async def get_quota_counter(
         initial_count = 0
         if is_quota_exists:
             initial_count = quotas[0].used
-        quota_counter = Counter(initial_count)
+        used_quota_counter = Counter(initial_count)
 
-        yield quota_counter
+        yield used_quota_counter
 
-        if quota_counter.current_count != initial_count:
+        if used_quota_counter.current_count != initial_count:
             if is_quota_exists:
                 await uow.quota_repository.update_many(
                     filter={
@@ -50,14 +50,14 @@ async def get_quota_counter(
                         "user_reference": current_user.reference,
                     },
                     values={
-                        "used": quota_counter.current_count,
+                        "used": used_quota_counter.current_count,
                     },
                 )
             else:
                 await uow.quota_repository.insert_one(
                     Quota(
                         user_reference=current_user.reference,
-                        used=quota_counter.current_count,
+                        used=used_quota_counter.current_count,
                         limit=0,
                     ),
                 )

@@ -19,6 +19,10 @@ from apps.chore_master_api.web_server.dependencies.auth import (
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
+from apps.chore_master_api.web_server.dependencies.trace import (
+    Counter,
+    get_used_quota_counter,
+)
 from apps.chore_master_api.web_server.dependencies.unit_of_work import (
     get_integration_uow,
 )
@@ -112,6 +116,7 @@ async def post_users_me_operators(
     create_entity_request: CreateOperatorRequest,
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
     current_user: CurrentUser = Depends(get_current_user),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     try:
         entity_dict = {
@@ -126,6 +131,7 @@ async def post_users_me_operators(
     async with uow:
         entity = Operator(**entity_dict)
         await uow.operator_repository.insert_one(entity)
+        used_quota_counter.increase(1)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
@@ -183,6 +189,7 @@ async def delete_users_me_operators_operator_reference(
     operator_reference: Annotated[str, Path()],
     uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
     current_user: CurrentUser = Depends(get_current_user),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     async with uow:
         await uow.operator_repository.delete_many(
@@ -192,5 +199,6 @@ async def delete_users_me_operators_operator_reference(
             },
             limit=1,
         )
+        used_quota_counter.decrease(1)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)

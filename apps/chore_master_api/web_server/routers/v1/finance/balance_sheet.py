@@ -21,6 +21,10 @@ from apps.chore_master_api.web_server.dependencies.auth import (
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
+from apps.chore_master_api.web_server.dependencies.trace import (
+    Counter,
+    get_used_quota_counter,
+)
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
 from apps.chore_master_api.web_server.schemas.dto import CurrentUser, OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
@@ -95,6 +99,7 @@ async def post_users_me_balance_sheets(
     create_entity_request: CreateBalanceSheetRequest,
     current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     balance_sheet_reference = StringUtils.new_short_id(8)
     entity_dict = {
@@ -103,6 +108,7 @@ async def post_users_me_balance_sheets(
     }
     entity_dict.update(create_entity_request.model_dump(exclude_unset=True))
     entity_dict["balanced_time"] = entity_dict["balanced_time"].replace(tzinfo=None)
+
     async with uow:
         balance_entries = []
         for be in create_entity_request.balance_entries:
@@ -113,9 +119,12 @@ async def post_users_me_balance_sheets(
             balance_entry = BalanceEntry(**balance_entry_dict)
             balance_entries.append(balance_entry)
         await uow.balance_entry_repository.insert_many(balance_entries)
+        used_quota_counter.increase(len(balance_entries))
 
         entity = BalanceSheet(**entity_dict)
         await uow.balance_sheet_repository.insert_one(entity)
+        used_quota_counter.increase(1)
+
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
@@ -223,6 +232,7 @@ async def put_users_me_balance_sheets_balance_sheet_reference(
     update_entity_request: UpdateBalanceSheetRequest,
     current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     update_entity_dict = update_entity_request.model_dump(
         exclude_unset=True,
@@ -242,11 +252,19 @@ async def put_users_me_balance_sheets_balance_sheet_reference(
         )
         if balance_sheet_count == 0:
             raise NotFoundError("Balance sheet not found")
+
+        balance_entry_count = await uow.balance_entry_repository.count(
+            filter={
+                "balance_sheet_reference": balance_sheet_reference,
+            }
+        )
         await uow.balance_entry_repository.delete_many(
             filter={
                 "balance_sheet_reference": balance_sheet_reference,
             }
         )
+        used_quota_counter.decrease(balance_entry_count)
+
         balance_entries = []
         for be in update_entity_request.balance_entries:
             balance_entry_dict = {
@@ -256,6 +274,8 @@ async def put_users_me_balance_sheets_balance_sheet_reference(
             balance_entry = BalanceEntry(**balance_entry_dict)
             balance_entries.append(balance_entry)
         await uow.balance_entry_repository.insert_many(balance_entries)
+        used_quota_counter.increase(len(balance_entries))
+
         await uow.balance_sheet_repository.update_many(
             values=update_entity_dict,
             filter={
@@ -275,6 +295,7 @@ async def delete_users_me_balance_sheets_balance_sheet_reference(
     balance_sheet_reference: Annotated[str, Path()],
     current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     async with uow:
         balance_sheet_count = await uow.balance_sheet_repository.count(
@@ -285,11 +306,19 @@ async def delete_users_me_balance_sheets_balance_sheet_reference(
         )
         if balance_sheet_count == 0:
             raise NotFoundError("Balance sheet not found")
+
+        balance_entry_count = await uow.balance_entry_repository.count(
+            filter={
+                "balance_sheet_reference": balance_sheet_reference,
+            }
+        )
         await uow.balance_entry_repository.delete_many(
             filter={
                 "balance_sheet_reference": balance_sheet_reference,
             }
         )
+        used_quota_counter.decrease(balance_entry_count)
+
         await uow.balance_sheet_repository.delete_many(
             filter={
                 "reference": balance_sheet_reference,
@@ -297,5 +326,7 @@ async def delete_users_me_balance_sheets_balance_sheet_reference(
             },
             limit=1,
         )
+        used_quota_counter.decrease(balance_sheet_count)
+
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)

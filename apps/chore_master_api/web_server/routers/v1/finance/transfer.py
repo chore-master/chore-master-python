@@ -10,6 +10,10 @@ from apps.chore_master_api.end_user_space.unit_of_works.finance import (
     FinanceSQLAlchemyUnitOfWork,
 )
 from apps.chore_master_api.web_server.dependencies.auth import require_freemium_role
+from apps.chore_master_api.web_server.dependencies.trace import (
+    Counter,
+    get_used_quota_counter,
+)
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
@@ -47,6 +51,7 @@ async def post_portfolios_portfolio_reference_transactions_transaction_reference
     transaction_reference: Annotated[str, Path()],
     create_entity_request: CreateTransferRequest,
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     entity_dict = {
         "transaction_reference": transaction_reference,
@@ -55,6 +60,7 @@ async def post_portfolios_portfolio_reference_transactions_transaction_reference
     async with uow:
         entity = Transfer(**entity_dict)
         await uow.transfer_repository.insert_one(entity)
+        used_quota_counter.increase(1)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
@@ -91,6 +97,7 @@ async def delete_portfolios_portfolio_reference_transactions_transaction_referen
     transaction_reference: Annotated[str, Path()],
     transfer_reference: Annotated[str, Path()],
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     async with uow:
         await uow.transfer_repository.delete_many(
@@ -100,5 +107,6 @@ async def delete_portfolios_portfolio_reference_transactions_transaction_referen
             },
             limit=1,
         )
+        used_quota_counter.decrease(1)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)

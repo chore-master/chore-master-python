@@ -24,6 +24,10 @@ from apps.chore_master_api.web_server.dependencies.auth import (
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
+from apps.chore_master_api.web_server.dependencies.trace import (
+    Counter,
+    get_used_quota_counter,
+)
 from apps.chore_master_api.web_server.dependencies.unit_of_work import (
     get_finance_uow,
     get_integration_uow,
@@ -136,6 +140,7 @@ async def post_users_me_prices(
     create_entity_request: CreatePriceRequest,
     current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     entity_dict = {
         "user_reference": current_user.reference,
@@ -144,6 +149,7 @@ async def post_users_me_prices(
     async with uow:
         entity = Price(**entity_dict)
         await uow.price_repository.insert_one(entity)
+        used_quota_counter.increase(1)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
@@ -158,6 +164,7 @@ async def patch_users_me_prices_auto_fill(
     current_user: CurrentUser = Depends(get_current_user),
     finance_uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
     integration_uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     async with finance_uow, integration_uow:
         operator = await integration_uow.operator_repository.find_one(
@@ -221,6 +228,7 @@ async def patch_users_me_prices_auto_fill(
                         confirmed_time=matched_datetime,
                     )
                     await finance_uow.price_repository.insert_one(entity)
+                    used_quota_counter.increase(1)
         await finance_uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
@@ -255,6 +263,7 @@ async def delete_users_me_prices_price_reference(
     price_reference: Annotated[str, Path()],
     current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     async with uow:
         await uow.price_repository.delete_many(
@@ -264,6 +273,7 @@ async def delete_users_me_prices_price_reference(
             },
             limit=1,
         )
+        used_quota_counter.decrease(1)
         await uow.commit()
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 

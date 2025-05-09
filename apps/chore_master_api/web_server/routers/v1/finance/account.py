@@ -19,7 +19,7 @@ from apps.chore_master_api.web_server.dependencies.pagination import (
 )
 from apps.chore_master_api.web_server.dependencies.trace import (
     Counter,
-    get_quota_counter,
+    get_used_quota_counter,
 )
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_finance_uow
 from apps.chore_master_api.web_server.schemas.dto import CurrentUser, OffsetPagination
@@ -106,7 +106,7 @@ async def post_users_me_accounts(
     create_entity_request: CreateAccountRequest,
     current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
-    quota_counter: Counter = Depends(get_quota_counter),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     entity_dict = {
         "user_reference": current_user.reference,
@@ -118,8 +118,8 @@ async def post_users_me_accounts(
     async with uow:
         entity = Account(**entity_dict)
         await uow.account_repository.insert_one(entity)
+        used_quota_counter.increase(1)
         await uow.commit()
-    quota_counter.increase(1)
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
@@ -158,7 +158,7 @@ async def delete_users_me_accounts_account_reference(
     account_reference: Annotated[str, Path()],
     current_user: CurrentUser = Depends(get_current_user),
     uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
-    quota_counter: Counter = Depends(get_quota_counter),
+    used_quota_counter: Counter = Depends(get_used_quota_counter),
 ):
     async with uow:
         await uow.account_repository.delete_many(
@@ -168,6 +168,6 @@ async def delete_users_me_accounts_account_reference(
             },
             limit=1,
         )
+        used_quota_counter.decrease(1)
         await uow.commit()
-    quota_counter.decrease(1)
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
