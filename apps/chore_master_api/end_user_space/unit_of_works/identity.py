@@ -10,9 +10,11 @@ class IdentitySQLAlchemyUnitOfWork(BaseSQLAlchemyUnitOfWork):
         self.user_repository = identity.UserRepository(self.session)
         self.user_session_repository = identity.UserSessionRepository(self.session)
         self.user_role_repository = identity.UserRoleRepository(self.session)
+        self.role_repository = identity.RoleRepository(self.session)
         return self
 
     async def __aexit__(self, *args):
+        self.role_repository = None
         self.user_role_repository = None
         self.user_session_repository = None
         self.user_repository = None

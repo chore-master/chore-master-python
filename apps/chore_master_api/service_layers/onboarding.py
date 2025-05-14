@@ -1,7 +1,11 @@
 import alembic
 from sqlalchemy.orm import registry
 
+from apps.chore_master_api.end_user_space.models.identity import UserRole
 from apps.chore_master_api.end_user_space.models.trace import Quota
+from apps.chore_master_api.end_user_space.unit_of_works.identity import (
+    IdentitySQLAlchemyUnitOfWork,
+)
 from apps.chore_master_api.end_user_space.unit_of_works.trace import (
     TraceSQLAlchemyUnitOfWork,
 )
@@ -71,17 +75,32 @@ async def ensure_system_initialized(
 
 
 async def ensure_user_initialized(
+    identity_uow: IdentitySQLAlchemyUnitOfWork,
     trace_uow: TraceSQLAlchemyUnitOfWork,
     user_reference: str,
 ):
-    async with trace_uow:
-        quotas = await trace_uow.quota_repository.find_many(
-            filter={"user_reference": user_reference}
+    user_roles = await identity_uow.user_role_repository.find_many(
+        filter={"user_reference": user_reference}
+    )
+    if len(user_roles) == 0:
+        roles = await identity_uow.role_repository.find_many()
+        await identity_uow.user_role_repository.insert_many(
+            [
+                UserRole(
+                    user_reference=user_reference,
+                    role_reference=role.reference,
+                )
+                for role in roles
+                if role.symbol in {"GUEST", "FREEMIUM"}
+            ]
         )
-        if len(quotas) == 0:
-            quota = Quota(
-                user_reference=user_reference,
-                limit=100,
-                used=0,
-            )
-            await trace_uow.quota_repository.insert_one(quota)
+    quotas = await trace_uow.quota_repository.find_many(
+        filter={"user_reference": user_reference}
+    )
+    if len(quotas) == 0:
+        quota = Quota(
+            user_reference=user_reference,
+            limit=100,
+            used=0,
+        )
+        await trace_uow.quota_repository.insert_one(quota)

@@ -144,7 +144,7 @@ async def get_google_callback(
     ):
         return error_response
 
-    async with identity_uow:
+    async with identity_uow, trace_uow:
         users = await identity_uow.user_repository.find_many(
             filter={"email": google_user_dict["email"]}
         )
@@ -159,14 +159,20 @@ async def get_google_callback(
         else:
             user_reference = users[0]["reference"]
 
-        await ensure_user_initialized(
-            trace_uow=trace_uow, user_reference=user_reference
-        )
         user_session_reference, user_session_ttl = await login_user(
             identity_uow=identity_uow,
             user_reference=user_reference,
             user_agent=user_agent,
         )
+
+        await ensure_user_initialized(
+            identity_uow=identity_uow,
+            trace_uow=trace_uow,
+            user_reference=user_reference,
+        )
+
+        await identity_uow.commit()
+        await trace_uow.commit()
 
     response.set_cookie(
         key=chore_master_api_web_server_config.SESSION_COOKIE_KEY,
