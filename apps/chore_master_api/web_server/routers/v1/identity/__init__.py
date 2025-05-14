@@ -1,5 +1,8 @@
 from fastapi import APIRouter
 
+from apps.chore_master_api.web_server.routers.v1.identity.google import (
+    router as google_router,
+)
 from apps.chore_master_api.web_server.routers.v1.identity.role import (
     router as role_router,
 )
@@ -15,3 +18,4 @@ router = APIRouter(prefix="/identity", tags=["Identity"])
 router.include_router(user_router)
 router.include_router(user_session_router)
 router.include_router(role_router)
+router.include_router(google_router)
