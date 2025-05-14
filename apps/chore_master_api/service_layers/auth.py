@@ -67,3 +67,5 @@ async def login_user(
     else:
         user_session_reference = active_user_session.reference
         user_session_ttl = active_user_session.expired_time - utc_now
+
+    return user_session_reference, user_session_ttl
