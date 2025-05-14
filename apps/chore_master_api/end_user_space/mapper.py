@@ -42,8 +42,8 @@ class Mapper:
             self._metadata,
             *get_base_columns(),
             Column("name", types.String, nullable=False),
-            Column("username", types.String, nullable=False),
-            Column("password", types.String, nullable=False),
+            Column("username", types.String, nullable=True),
+            Column("password", types.String, nullable=True),
             Column("email", types.String, nullable=True),
         )
         if getattr(identity.User, "_sa_class_manager", None) is None:

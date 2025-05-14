@@ -6,8 +6,8 @@ from apps.chore_master_api.end_user_space.models.base import Entity
 
 class User(Entity):
     name: str
-    username: str
-    password: str
+    username: Optional[str] = None
+    password: Optional[str] = None
     email: Optional[str] = None
 
 

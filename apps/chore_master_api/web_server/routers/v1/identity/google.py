@@ -92,7 +92,7 @@ async def get_google_callback(
                 "code": code,
                 "client_id": chore_master_api_web_server_config.GOOGLE_OAUTH_CLIENT_ID,
                 "client_secret": chore_master_api_web_server_config.GOOGLE_OAUTH_SECRET,
-                "redirect_uri": f"{chore_master_api_web_server_config.IAM_API_ORIGIN}/v1/auth/google/callback",
+                "redirect_uri": f"{chore_master_api_web_server_config.API_ORIGIN}/v1/identity/google/callback",
                 "grant_type": "authorization_code",
             },
         )
