@@ -10,7 +10,10 @@ from apps.chore_master_api.end_user_space.models.identity import UserSession
 from apps.chore_master_api.end_user_space.unit_of_works.identity import (
     IdentitySQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.service_layers.auth import get_is_turnstile_token_valid
+from apps.chore_master_api.service_layers.auth import (
+    get_is_turnstile_token_valid,
+    login_user,
+)
 from apps.chore_master_api.web_server.dependencies.unit_of_work import get_identity_uow
 from apps.chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
@@ -46,7 +49,6 @@ async def post_user_sessions_login(
     if not is_turnstile_token_valid:
         raise UnauthorizedError("Forbidden")
 
-    utc_now = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     async with identity_uow:
         users = await identity_uow.user_repository.find_many(
             filter={
@@ -61,42 +63,11 @@ async def post_user_sessions_login(
         else:
             user_reference = user.reference
 
-        statement = select(UserSession).filter(
-            UserSession.user_reference == user_reference,
-            UserSession.is_active == True,
-            UserSession.expired_time > utc_now,
+        user_session_reference, user_session_ttl = await login_user(
+            identity_uow=identity_uow,
+            user_reference=user_reference,
+            user_agent=user_agent,
         )
-        result = await identity_uow.session.execute(statement)
-        active_user_session = result.scalars().unique().first()
-
-        statement = (
-            update(UserSession)
-            .filter(
-                UserSession.user_reference == user_reference,
-                UserSession.expired_time < utc_now,
-            )
-            .values(
-                is_active=False,
-                deactivated_time=utc_now,
-            )
-        )
-        await identity_uow.session.execute(statement)
-
-        if active_user_session is None:
-            user_session_reference = StringUtils.new_short_id(length=8)
-            user_session_ttl = timedelta(days=14)
-            await identity_uow.user_session_repository.insert_one(
-                UserSession(
-                    reference=user_session_reference,
-                    user_reference=user_reference,
-                    user_agent=user_agent,
-                    is_active=True,
-                    expired_time=utc_now + user_session_ttl,
-                )
-            )
-        else:
-            user_session_reference = active_user_session.reference
-            user_session_ttl = active_user_session.expired_time - utc_now
         await identity_uow.commit()
 
     response.set_cookie(

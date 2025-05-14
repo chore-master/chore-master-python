@@ -1,6 +1,10 @@
 import alembic
 from sqlalchemy.orm import registry
 
+from apps.chore_master_api.end_user_space.models.trace import Quota
+from apps.chore_master_api.end_user_space.unit_of_works.trace import (
+    TraceSQLAlchemyUnitOfWork,
+)
 from modules.database.relational_database import (
     DataMigration,
     RelationalDatabase,
@@ -64,3 +68,20 @@ async def ensure_system_initialized(
                 )
             ]
         )
+
+
+async def ensure_user_initialized(
+    trace_uow: TraceSQLAlchemyUnitOfWork,
+    user_reference: str,
+):
+    async with trace_uow:
+        quotas = await trace_uow.quota_repository.find_many(
+            filter={"user_reference": user_reference}
+        )
+        if len(quotas) == 0:
+            quota = Quota(
+                user_reference=user_reference,
+                limit=100,
+                used=0,
+            )
+            await trace_uow.quota_repository.insert_one(quota)

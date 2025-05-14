@@ -1,8 +1,6 @@
 import json
-from datetime import datetime, timedelta, timezone
 from typing import Annotated, Optional
 from urllib.parse import urlencode
-from uuid import uuid4
 
 import jwt
 from fastapi import APIRouter, Depends, Header, Query
@@ -10,10 +8,19 @@ from fastapi.responses import RedirectResponse
 from httpx import AsyncClient
 
 from apps.chore_master_api.config import get_chore_master_api_web_server_config
+from apps.chore_master_api.end_user_space.models.identity import User
 from apps.chore_master_api.end_user_space.unit_of_works.identity import (
     IdentitySQLAlchemyUnitOfWork,
 )
-from apps.chore_master_api.web_server.dependencies.unit_of_work import get_identity_uow
+from apps.chore_master_api.end_user_space.unit_of_works.trace import (
+    TraceSQLAlchemyUnitOfWork,
+)
+from apps.chore_master_api.service_layers.auth import login_user
+from apps.chore_master_api.service_layers.onboarding import ensure_user_initialized
+from apps.chore_master_api.web_server.dependencies.unit_of_work import (
+    get_identity_uow,
+    get_trace_uow,
+)
 from apps.chore_master_api.web_server.schemas.config import (
     ChoreMasterAPIWebServerConfigSchema,
 )
@@ -66,6 +73,7 @@ async def get_google_callback(
         get_chore_master_api_web_server_config
     ),
     identity_uow: IdentitySQLAlchemyUnitOfWork = Depends(get_identity_uow),
+    trace_uow: TraceSQLAlchemyUnitOfWork = Depends(get_trace_uow),
 ):
     state_dict = json.loads(state)
     error_redirect_uri = state_dict["error_redirect_uri"]
@@ -117,10 +125,10 @@ async def get_google_callback(
         "azp": "288527338577-kkmlhu66kkdubn3rpgg0611svcts1h81.apps.googleusercontent.com",
         "aud": "288527338577-kkmlhu66kkdubn3rpgg0611svcts1h81.apps.googleusercontent.com",
         "sub": "104424308010635546950",
-        "email": "gocreating@gmail.com",
+        "email": "foobar@gmail.com",
         "email_verified": true,
         "at_hash": "bcDnsMZZk8M1i6kQu6EbAA",
-        "name": "CP Weng",
+        "name": "Foo Bar",
         "picture": "https://lh3.googleusercontent.com/a/ACg8ocIu1a04gol8MMHQNQkVU5rkj5h2c-JL7Q3r0_0OHuDq_9mR9XSm=s96-c",
         "given_name": "CP",
         "family_name": "Weng",
@@ -136,84 +144,36 @@ async def get_google_callback(
     ):
         return error_response
 
-    end_user_collection = chore_master_api_db.get_collection("end_user")
-    end_user_session_collection = chore_master_api_db.get_collection("end_user_session")
-    end_user = await end_user_collection.find_one({"email": google_user_dict["email"]})
-    utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
-
-    if end_user is None:
-        end_user_reference = uuid4()
-        end_user_dict = {
-            "reference": end_user_reference,
-            "created_time": utc_now,
-            "email": google_user_dict["email"],
-        }
-        end_user_collection.insert_one(end_user_dict)
-    else:
-        end_user_reference = end_user["reference"]
-
-    active_end_user_session = await end_user_session_collection.find_one(
-        {
-            "end_user_reference": end_user_reference,
-            "is_active": True,
-            "expired_time": {"$gt": utc_now},
-        }
-    )
-    await end_user_session_collection.update_many(
-        {
-            "end_user_reference": end_user_reference,
-            "expired_time": {"$lt": utc_now},
-        },
-        {
-            "$set": {
-                "is_active": False,
-                "deactivated_time": utc_now,
-            }
-        },
-    )
-    if active_end_user_session is None:
-        end_user_session_reference = uuid4()
-        end_user_session_ttl = timedelta(days=14)
-        end_user_session_dict = {
-            "reference": end_user_session_reference,
-            "end_user_reference": end_user_reference,
-            "user_agent": user_agent,
-            "is_active": True,
-            "expired_time": utc_now + end_user_session_ttl,
-            "created_time": utc_now,
-            "deactivated_time": None,
-            "google": {
-                "refresh_token": access_token_dict["refresh_token"],
-                "access_token_dict": access_token_dict,
-                "user_dict": google_user_dict,
-            },
-        }
-        end_user_session_collection.insert_one(end_user_session_dict)
-    else:
-        end_user_session_reference = active_end_user_session["reference"]
-        update_end_user_session_dict = {
-            "google.access_token_dict": access_token_dict,
-            "google.user_dict": google_user_dict,
-        }
-        if "refresh_token" in access_token_dict:
-            update_end_user_session_dict["google.refresh_token"] = access_token_dict[
-                "refresh_token"
-            ]
-        await end_user_session_collection.update_one(
-            filter={"reference": end_user_session_reference},
-            update={"$set": update_end_user_session_dict},
+    async with identity_uow:
+        users = await identity_uow.user_repository.find_many(
+            filter={"email": google_user_dict["email"]}
         )
-        end_user_session_ttl = (
-            active_end_user_session["expired_time"].replace(tzinfo=timezone.utc)
-            - utc_now
+        if len(users) == 0:
+            user_dict = {
+                "email": google_user_dict["email"],
+                "name": google_user_dict["name"],
+            }
+            user = User(**user_dict)
+            await identity_uow.user_repository.insert_one(user)
+            user_reference = user.reference
+        else:
+            user_reference = users[0]["reference"]
+
+        await ensure_user_initialized(
+            trace_uow=trace_uow, user_reference=user_reference
+        )
+        user_session_reference, user_session_ttl = await login_user(
+            identity_uow=identity_uow,
+            user_reference=user_reference,
+            user_agent=user_agent,
         )
 
     response.set_cookie(
         key=chore_master_api_web_server_config.SESSION_COOKIE_KEY,
-        value=str(end_user_session_reference),
+        value=user_session_reference,
         domain=chore_master_api_web_server_config.SESSION_COOKIE_DOMAIN,
         httponly=True,
         samesite="lax",
-        max_age=end_user_session_ttl.total_seconds(),
+        max_age=user_session_ttl.total_seconds(),
     )
     return response

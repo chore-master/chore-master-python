@@ -20,6 +20,8 @@
                 "DATABASE_ORIGIN": "sqlite+aiosqlite:///./dbs/local.db",
                 "DATABASE_SCHEMA_NAME": "",
                 "CLOUDFLARE_TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
+                "GOOGLE_OAUTH_CLIENT_ID": "<GOOGLE_OAUTH_CLIENT_ID>",
+                "GOOGLE_OAUTH_SECRET": "<GOOGLE_OAUTH_SECRET>",
             }
         },
     ]

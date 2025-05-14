@@ -17,6 +17,8 @@ package identity {
     * name: str
     * username: str
     * password: str
+    --
+    email: str
   }
 
   entity "Role" {

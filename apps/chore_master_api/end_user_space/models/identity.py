@@ -8,6 +8,7 @@ class User(Entity):
     name: str
     username: str
     password: str
+    email: Optional[str] = None
 
 
 class Role(Entity):
