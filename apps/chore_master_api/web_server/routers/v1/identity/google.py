@@ -169,6 +169,9 @@ async def get_google_callback(
             identity_uow=identity_uow,
             trace_uow=trace_uow,
             user_reference=user_reference,
+            user_attributes={
+                "google.user": json.dumps(google_user_dict),
+            },
         )
 
         await identity_uow.commit()

@@ -3,6 +3,7 @@ from typing import Type
 from apps.chore_master_api.end_user_space.models.identity import (
     Role,
     User,
+    UserAttribute,
     UserRole,
     UserSession,
 )
@@ -31,3 +32,9 @@ class RoleRepository(BaseSQLAlchemyRepository[Role]):
     @property
     def entity_class(self) -> Type[Role]:
         return Role
+
+
+class UserAttributeRepository(BaseSQLAlchemyRepository[UserAttribute]):
+    @property
+    def entity_class(self) -> Type[UserAttribute]:
+        return UserAttribute
