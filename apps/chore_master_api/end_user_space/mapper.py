@@ -85,6 +85,19 @@ class Mapper:
                 },
             )
 
+        identity_user_attribute_table = Table(
+            "identity_user_attribute",
+            self._metadata,
+            *get_base_columns(),
+            Column("user_reference", types.String, nullable=False),
+            Column("key", types.String, nullable=False),
+            Column("value", types.String, nullable=False),
+        )
+        if getattr(identity.UserAttribute, "_sa_class_manager", None) is None:
+            self._mapper_registry.map_imperatively(
+                identity.UserAttribute, identity_user_attribute_table
+            )
+
         identity_user_session_table = Table(
             "identity_user_session",
             self._metadata,

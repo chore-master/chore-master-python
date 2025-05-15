@@ -20,6 +20,12 @@ class UserRole(Entity):
     role_reference: str
 
 
+class UserAttribute(Entity):
+    user_reference: str
+    key: str
+    value: str
+
+
 class UserSession(Entity):
     user_reference: str
     user_agent: str
