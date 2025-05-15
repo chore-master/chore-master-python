@@ -41,6 +41,14 @@ package identity {
     --
     deactivated_time: datetime
   }
+
+  entity "UserMetadata" {
+    * reference: str <<PK>>
+    * user_reference: str <<FK>>
+    * provider: str = \n | 'google'
+    * value: str
+    --
+  }
 }
 
 package trace {
@@ -166,6 +174,7 @@ package finance {
 
 User                 ||--o{ UserRole
 User                 ||--o{ UserSession
+User                 ||--o{ UserMetadata
 User                 ||--o{ Operator
 User                 ||--o{ Account
 User                 ||--o{ BalanceSheet
