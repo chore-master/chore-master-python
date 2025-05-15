@@ -157,7 +157,7 @@ async def get_google_callback(
             await identity_uow.user_repository.insert_one(user)
             user_reference = user.reference
         else:
-            user_reference = users[0]["reference"]
+            user_reference = users[0].reference
 
         user_session_reference, user_session_ttl = await login_user(
             identity_uow=identity_uow,
