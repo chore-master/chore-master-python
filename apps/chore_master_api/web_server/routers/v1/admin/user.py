@@ -43,7 +43,8 @@ class CreateUserRequest(BaseCreateEntityRequest):
 
 class ReadUserSummaryResponse(BaseQueryEntityResponse):
     name: str
-    username: str
+    username: Optional[str] = None
+    email: Optional[str] = None
 
 
 class ReadUserDetailResponse(BaseQueryEntityResponse):
@@ -51,13 +52,15 @@ class ReadUserDetailResponse(BaseQueryEntityResponse):
         role_reference: str
 
     name: str
-    username: str
+    username: Optional[str] = None
+    email: Optional[str] = None
     user_roles: list[ReadUserRoleResponse]
 
 
 class UpdateUserRequest(BaseUpdateEntityRequest):
     model_config = ConfigDict(use_enum_values=True)
 
+    reference: Optional[str] = None
     name: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None
@@ -131,11 +134,19 @@ async def get_users_user_reference(
 async def patch_users_user_reference(
     user_reference: Annotated[str, Path()],
     update_entity_request: UpdateUserRequest,
+    current_user: CurrentUser = Depends(get_current_user),
     uow: IdentitySQLAlchemyUnitOfWork = Depends(get_identity_uow),
 ):
+    update_dict = update_entity_request.model_dump(exclude_unset=True)
+    if (
+        "reference" in update_dict
+        and update_dict.get("reference") != user_reference
+        and current_user.reference == user_reference
+    ):
+        raise BadRequestError("Cannot update current logged in user's reference")
     async with uow:
         await uow.user_repository.update_many(
-            values=update_entity_request.model_dump(exclude_unset=True),
+            values=update_dict,
             filter={"reference": user_reference},
         )
         await uow.commit()
