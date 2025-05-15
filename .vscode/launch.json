@@ -24,7 +24,23 @@
                 "GOOGLE_OAUTH_SECRET": "<GOOGLE_OAUTH_SECRET>",
             }
         },
-{
+        {
+            "name": "[Chore Master API] Database Generate Revision",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "apps.chore_master_api.entrypoints.database_generate_revision",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "env": {
+                "ENV": "local",
+                "SERVICE_NAME": "chore_master_api",
+                "COMPONENT_NAME": "utility",
+                "DATABASE_ORIGIN": "sqlite+aiosqlite:///./dbs/local.db",
+                "DATABASE_SCHEMA_NAME": "",
+            }
+        },
+        {
             "name": "[Chore Master API] Database Upgrade",
             "type": "debugpy",
             "request": "launch",

@@ -5,7 +5,7 @@ from modules.database.relational_database import DataMigration, RelationalDataba
 from modules.utils.file_system_utils import FileSystemUtils
 
 
-async def upgrade():
+async def _get_db_and_db_registry():
     chore_master_api_web_server_config = get_chore_master_api_web_server_config()
     chore_master_db = RelationalDatabase(
         chore_master_api_web_server_config.DATABASE_ORIGIN
@@ -18,22 +18,32 @@ async def upgrade():
     )
     Mapper(chore_master_db_registry).map_models_to_tables()
 
+    return chore_master_db, chore_master_db_registry
+
+
+async def generate_revision():
+    (
+        chore_master_db,
+        chore_master_db_registry,
+    ) = await _get_db_and_db_registry()
+    schema_migration = await get_schema_migration(chore_master_db)
+    schema_migration.generate_revision(metadata=chore_master_db_registry.metadata)
+
+
+async def upgrade():
+    (
+        chore_master_db,
+        chore_master_db_registry,
+    ) = await _get_db_and_db_registry()
     schema_migration = await get_schema_migration(chore_master_db)
     schema_migration.upgrade(metadata=chore_master_db_registry.metadata)
 
 
 async def import_data():
-    chore_master_api_web_server_config = get_chore_master_api_web_server_config()
-    chore_master_db = RelationalDatabase(
-        chore_master_api_web_server_config.DATABASE_ORIGIN
-    )
-    metadata = RelationalDatabase.create_metadata(
-        schema_name=chore_master_api_web_server_config.DATABASE_SCHEMA_NAME
-    )
-    chore_master_db_registry = RelationalDatabase.create_mapper_registry(
-        metadata=metadata
-    )
-    Mapper(chore_master_db_registry).map_models_to_tables()
+    (
+        chore_master_db,
+        chore_master_db_registry,
+    ) = await _get_db_and_db_registry()
 
     data_migration = DataMigration(chore_master_db, chore_master_db_registry)
     for directory in ["global", "admin"]:
