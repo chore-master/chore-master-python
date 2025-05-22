@@ -7,9 +7,19 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
 from apps.chore_master_api.end_user_space.models.identity import User
+from apps.chore_master_api.end_user_space.unit_of_works.finance import (
+    FinanceSQLAlchemyUnitOfWork,
+)
 from apps.chore_master_api.end_user_space.unit_of_works.identity import (
     IdentitySQLAlchemyUnitOfWork,
 )
+from apps.chore_master_api.end_user_space.unit_of_works.integration import (
+    IntegrationSQLAlchemyUnitOfWork,
+)
+from apps.chore_master_api.end_user_space.unit_of_works.trace import (
+    TraceSQLAlchemyUnitOfWork,
+)
+from apps.chore_master_api.service_layers.user import migrate_user_reference
 from apps.chore_master_api.web_server.dependencies.auth import (
     get_current_user,
     require_admin_role,
@@ -17,7 +27,12 @@ from apps.chore_master_api.web_server.dependencies.auth import (
 from apps.chore_master_api.web_server.dependencies.pagination import (
     get_offset_pagination,
 )
-from apps.chore_master_api.web_server.dependencies.unit_of_work import get_identity_uow
+from apps.chore_master_api.web_server.dependencies.unit_of_work import (
+    get_finance_uow,
+    get_identity_uow,
+    get_integration_uow,
+    get_trace_uow,
+)
 from apps.chore_master_api.web_server.schemas.dto import CurrentUser, OffsetPagination
 from apps.chore_master_api.web_server.schemas.request import (
     BaseCreateEntityRequest,
@@ -134,22 +149,44 @@ async def get_users_user_reference(
 async def patch_users_user_reference(
     user_reference: Annotated[str, Path()],
     update_entity_request: UpdateUserRequest,
-    current_user: CurrentUser = Depends(get_current_user),
-    uow: IdentitySQLAlchemyUnitOfWork = Depends(get_identity_uow),
+    # current_user: CurrentUser = Depends(get_current_user),
+    identity_uow: IdentitySQLAlchemyUnitOfWork = Depends(get_identity_uow),
+    integration_uow: IntegrationSQLAlchemyUnitOfWork = Depends(get_integration_uow),
+    trace_uow: TraceSQLAlchemyUnitOfWork = Depends(get_trace_uow),
+    finance_uow: FinanceSQLAlchemyUnitOfWork = Depends(get_finance_uow),
 ):
     update_dict = update_entity_request.model_dump(exclude_unset=True)
-    if (
-        "reference" in update_dict
-        and update_dict.get("reference") != user_reference
-        and current_user.reference == user_reference
-    ):
-        raise BadRequestError("Cannot update current logged in user's reference")
-    async with uow:
-        await uow.user_repository.update_many(
+    is_migrating_user_reference = (
+        "reference" in update_dict and update_dict.get("reference") != user_reference
+    )
+    # if is_migrating_user_reference and current_user.reference == user_reference:
+    #     raise BadRequestError("Cannot update current logged in user's reference")
+
+    async with identity_uow:
+        if is_migrating_user_reference:
+            old_user_reference = user_reference
+            new_user_reference = update_dict["reference"]
+            users = await identity_uow.user_repository.find_many(
+                filter={"reference": new_user_reference}, limit=1
+            )
+            if len(users) > 0:
+                raise BadRequestError("User reference already exists")
+        await identity_uow.user_repository.update_many(
             values=update_dict,
             filter={"reference": user_reference},
         )
-        await uow.commit()
+        await identity_uow.commit()
+
+    if is_migrating_user_reference:
+        await migrate_user_reference(
+            old_user_reference=old_user_reference,
+            new_user_reference=new_user_reference,
+            identity_uow=identity_uow,
+            trace_uow=trace_uow,
+            finance_uow=finance_uow,
+            integration_uow=integration_uow,
+        )
+
     return ResponseSchema[None](status=StatusEnum.SUCCESS, data=None)
 
 
