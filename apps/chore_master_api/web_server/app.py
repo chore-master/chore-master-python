@@ -9,7 +9,7 @@ from apps.chore_master_api.config import get_chore_master_api_web_server_config
 from apps.chore_master_api.end_user_space.mapper import Mapper
 
 # from apps.chore_master_api.service_layers.onboarding import ensure_system_initialized
-from apps.chore_master_api.web_server.dependencies.database import get_schema_migration
+# from apps.chore_master_api.web_server.dependencies.database import get_schema_migration
 from apps.chore_master_api.web_server.routers import router as base_router
 from modules.base.config import get_base_config
 from modules.base.schemas.system import BaseConfigSchema

@@ -11,7 +11,7 @@ poetry run python -m patchright install chromium
 ## Release
 
 ```sh
-export TAG="2025-05-21-v1"
+export TAG="2025-05-22-v2"
 git tag $TAG --force
 sudo docker buildx build \
     --platform linux/amd64 \
